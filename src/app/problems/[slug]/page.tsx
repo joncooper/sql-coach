@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, use } from "react";
+import { useEffect, useState, useCallback, useRef, use } from "react";
 import dynamic from "next/dynamic";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import ProblemDescription from "@/components/ProblemDescription";
@@ -8,10 +8,23 @@ import DifficultyBadge from "@/components/DifficultyBadge";
 import SchemaExplorer from "@/components/SchemaExplorer";
 import SampleData from "@/components/SampleData";
 import ResultsTable from "@/components/ResultsTable";
-import type { QueryResult, RowDiff } from "@/types";
+import { loadStats, recordAttempt, recordHintReveal, recordSolutionViewed, isReviewDue, computeMasteryLevel, getSolvedCount } from "@/lib/stats";
+import type { QueryResult, RowDiff, MasteryLevel } from "@/types";
 
 function formatCategory(s: string) {
   return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const masteryLabels: Record<MasteryLevel, string> = {
+  unattempted: "Unattempted",
+  attempted: "Attempted",
+  solved: "Solved",
+  practiced: "Practiced",
+  mastered: "Mastered \u2605",
+};
+
+function formatMastery(level: MasteryLevel): string {
+  return masteryLabels[level];
 }
 
 const SqlEditor = dynamic(() => import("@/components/SqlEditor"), {
@@ -46,6 +59,7 @@ interface ProblemDetail {
 interface SubmitResponse {
   pass: boolean;
   message: string;
+  coaching: string;
   expected: { columns: string[]; rows: unknown[][] };
   actual: { columns: string[]; rows: unknown[][] };
   diff: RowDiff[];
@@ -66,6 +80,18 @@ export default function ProblemPage({
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAccepted, setShowAccepted] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [solution, setSolution] = useState<string | null>(null);
+  const [reviewDue, setReviewDue] = useState(false);
+  const [masteryTransition, setMasteryTransition] = useState<{ from: MasteryLevel; to: MasteryLevel } | null>(null);
+  const [totalSolved, setTotalSolved] = useState(0);
+
+  // Timer state
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerPausedRef = useRef(false);
 
   useEffect(() => {
     fetch(`/api/problems/${slug}`)
@@ -79,6 +105,14 @@ export default function ProblemPage({
           setCode(data.starter_code);
         }
       });
+
+    // Load attempt count and review status from stats
+    const stats = loadStats();
+    const ps = stats.problems[slug];
+    if (ps) {
+      setAttemptCount(ps.attempts);
+      setReviewDue(isReviewDue(ps));
+    }
   }, [slug]);
 
   useEffect(() => {
@@ -88,6 +122,40 @@ export default function ProblemPage({
     }, 500);
     return () => clearTimeout(timer);
   }, [code, slug]);
+
+  // Start timer on first code change when enabled
+  const handleCodeChange = useCallback(
+    (newCode: string) => {
+      setCode(newCode);
+      if (timerEnabled && !timerStarted && newCode.trim()) {
+        setTimerStarted(true);
+      }
+    },
+    [timerEnabled, timerStarted]
+  );
+
+  // Timer interval
+  useEffect(() => {
+    if (timerStarted && timerEnabled) {
+      timerRef.current = setInterval(() => {
+        if (!timerPausedRef.current) {
+          setElapsedMs((prev) => prev + 1000);
+        }
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [timerStarted, timerEnabled]);
+
+  // Pause on visibility change
+  useEffect(() => {
+    const handler = () => {
+      timerPausedRef.current = document.hidden;
+    };
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
 
   const handleRun = useCallback(async () => {
     if (!code.trim() || isRunning) return;
@@ -135,20 +203,29 @@ export default function ProblemPage({
         setSubmitResult(null);
       } else {
         setSubmitResult(data);
+        const difficulty = problem?.difficulty ?? "easy";
+
+        // Compute mastery before recording
+        const prevStats = loadStats();
+        const prevLevel = computeMasteryLevel(prevStats.problems[slug], difficulty);
+
+        const timeArg = timerEnabled && timerStarted ? elapsedMs : undefined;
+        const store = recordAttempt(slug, data.pass, timeArg);
+        const newCount = store.problems[slug]?.attempts ?? 0;
+        setAttemptCount(newCount);
+
         if (data.pass) {
+          // Compute mastery after recording
+          const newLevel = computeMasteryLevel(store.problems[slug], difficulty);
+          if (newLevel !== prevLevel) {
+            setMasteryTransition({ from: prevLevel, to: newLevel });
+          } else {
+            setMasteryTransition(null);
+          }
+          setTotalSolved(getSolvedCount(store));
           setShowAccepted(true);
-          setTimeout(() => setShowAccepted(false), 3000);
-          const completions = JSON.parse(
-            localStorage.getItem("sql-coach:completed") ?? "{}"
-          );
-          completions[slug] = {
-            completedAt: new Date().toISOString(),
-            attempts: (completions[slug]?.attempts ?? 0) + 1,
-          };
-          localStorage.setItem(
-            "sql-coach:completed",
-            JSON.stringify(completions)
-          );
+          // Stop the timer on acceptance
+          if (timerRef.current) clearInterval(timerRef.current);
         }
       }
     } catch {
@@ -157,6 +234,44 @@ export default function ProblemPage({
       setIsRunning(false);
     }
   }, [code, slug, isRunning]);
+
+  const handleResetCode = useCallback(() => {
+    if (!problem) return;
+    setCode(problem.starter_code ?? "");
+    localStorage.removeItem(`sql-coach:code:${slug}`);
+    setResult(null);
+    setSubmitResult(null);
+    setError(null);
+    setShowAccepted(false);
+  }, [problem, slug]);
+
+  const handleHintReveal = useCallback(
+    (count: number) => {
+      recordHintReveal(slug, count);
+    },
+    [slug]
+  );
+
+  const handleShowSolution = useCallback(async () => {
+    const ok = window.confirm(
+      "Viewing the solution means this problem can never reach Mastered status. Continue?"
+    );
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/problems/${slug}/solution`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const data = await res.json();
+      if (data.solution) {
+        setSolution(data.solution);
+        recordSolutionViewed(slug);
+      }
+    } catch {
+      // silently fail
+    }
+  }, [slug]);
 
   if (!problem) {
     return (
@@ -176,6 +291,10 @@ export default function ProblemPage({
   const hasSubmit = submitResult !== null;
   const isWrong = hasSubmit && !submitResult.pass;
   const isAccepted = hasSubmit && submitResult.pass;
+
+  // Show solution button after 3 failed attempts (and no solution already shown)
+  const failedAttempts = attemptCount - (isAccepted ? 1 : 0);
+  const canShowSolution = !solution && failedAttempts >= 3;
 
   return (
     <PanelGroup orientation="horizontal" className="h-full overflow-hidden">
@@ -225,6 +344,11 @@ export default function ProblemPage({
             <ProblemDescription
               description={problem.description}
               hints={problem.hints}
+              onHintReveal={handleHintReveal}
+              solution={solution}
+              canShowSolution={canShowSolution}
+              onShowSolution={handleShowSolution}
+              reviewDue={reviewDue}
             />
             <div className="mt-4 border-t border-zinc-800 pt-4">
               <SchemaExplorer schema={problem.schema} />
@@ -246,15 +370,61 @@ export default function ProblemPage({
           {/* Editor */}
           <Panel defaultSize={50} minSize={20}>
             <div className="relative flex h-full flex-col">
-              {/* Accepted celebration overlay */}
+              {/* Accepted celebration overlay — persistent until dismissed */}
               {showAccepted && (
-                <div className="animate-in absolute inset-0 z-20 flex items-center justify-center bg-emerald-950/80 backdrop-blur-sm">
+                <div
+                  className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center bg-emerald-950/80 backdrop-blur-sm"
+                  onClick={() => setShowAccepted(false)}
+                >
                   <div className="text-center">
                     <div className="text-6xl font-black tracking-tight text-emerald-400">
                       Accepted
                     </div>
                     <div className="mt-2 text-lg text-emerald-500/80">
                       Runtime: {submitResult?.executionTimeMs}ms
+                      {timerEnabled && timerStarted && (
+                        <span className="ml-3">
+                          Time: {String(Math.floor(elapsedMs / 60000)).padStart(2, "0")}:
+                          {String(Math.floor((elapsedMs % 60000) / 1000)).padStart(2, "0")}
+                        </span>
+                      )}
+                    </div>
+                    {attemptCount > 1 && (
+                      <div className="mt-1 text-sm text-emerald-600">
+                        Solved in {attemptCount} attempt{attemptCount !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                    {masteryTransition && (
+                      <div className="mt-1 text-sm text-emerald-500">
+                        {masteryTransition.from === "unattempted" || masteryTransition.from === "attempted"
+                          ? null
+                          : <>{formatMastery(masteryTransition.from)} &rarr; </>}
+                        {formatMastery(masteryTransition.to)}
+                      </div>
+                    )}
+                    {totalSolved > 0 && (
+                      <div className="mt-1 text-xs text-emerald-700">
+                        {totalSolved}/100 problems solved
+                      </div>
+                    )}
+                    <div className="mt-4 flex items-center justify-center gap-3">
+                      {problem.adjacent.next && (
+                        <a
+                          href={`/problems/${problem.adjacent.next}`}
+                          className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
+                        >
+                          Next Problem &rarr;
+                        </a>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowAccepted(false);
+                        }}
+                        className="rounded-md bg-zinc-700 px-4 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600"
+                      >
+                        Dismiss
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -262,7 +432,7 @@ export default function ProblemPage({
               <div className="flex-1 overflow-hidden">
                 <SqlEditor
                   value={code}
-                  onChange={setCode}
+                  onChange={handleCodeChange}
                   onRun={handleRun}
                   onSubmit={handleSubmit}
                   schema={editorSchema}
@@ -286,6 +456,41 @@ export default function ProblemPage({
                   Submit
                   <span className="ml-2 text-xs text-emerald-300">{"\u2318\u21E7\u23CE"}</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setTimerEnabled((v) => !v);
+                    if (!timerEnabled) {
+                      setElapsedMs(0);
+                      setTimerStarted(false);
+                    }
+                  }}
+                  className={`rounded-md px-2 py-1.5 text-xs transition-colors ${
+                    timerEnabled
+                      ? "bg-zinc-700 text-zinc-200"
+                      : "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400"
+                  }`}
+                  title={timerEnabled ? "Disable timer" : "Enable timer"}
+                >
+                  &#9201;
+                  {timerEnabled && (
+                    <span className="ml-1 font-mono">
+                      {String(Math.floor(elapsedMs / 60000)).padStart(2, "0")}:
+                      {String(Math.floor((elapsedMs % 60000) / 1000)).padStart(2, "0")}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={handleResetCode}
+                  className="ml-auto rounded-md px-3 py-1.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-400"
+                  title="Reset to starter code"
+                >
+                  Reset
+                </button>
+                {attemptCount > 0 && (
+                  <span className="text-xs text-zinc-600">
+                    Attempt {attemptCount}
+                  </span>
+                )}
               </div>
             </div>
           </Panel>
@@ -313,6 +518,12 @@ export default function ProblemPage({
                       </span>
                     )}
                   </div>
+                  {/* Coaching message */}
+                  {isWrong && submitResult.coaching && (
+                    <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-300">
+                      {submitResult.coaching}
+                    </div>
+                  )}
                 </div>
               )}
 

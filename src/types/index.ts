@@ -38,6 +38,7 @@ export interface RowDiff {
 export interface SubmitResult {
   pass: boolean;
   message: string;
+  coaching: string;
   expected: { columns: string[]; rows: unknown[][] };
   actual: { columns: string[]; rows: unknown[][] };
   diff: RowDiff[];
@@ -54,4 +55,36 @@ export interface ColumnInfo {
   column_name: string;
   data_type: string;
   is_nullable: string;
+}
+
+// --- Stats & Mastery ---
+
+export type MasteryLevel =
+  | "unattempted"
+  | "attempted"
+  | "solved"
+  | "practiced"
+  | "mastered";
+
+export interface ProblemStats {
+  attempts: number;
+  solvedAt: string | null;
+  lastAttemptAt: string | null;
+  lastSolvedAt: string | null;
+  hintsUsed: number;
+  solutionViewed: boolean;
+  bestTimeMs: number | null;
+  solveHistory: string[];
+  nextReviewAt: string | null;
+}
+
+export interface GlobalStats {
+  activeDays: string[];
+  longestStreak: number;
+}
+
+export interface StatsStore {
+  version: 2;
+  problems: Record<string, ProblemStats>;
+  global: GlobalStats;
 }

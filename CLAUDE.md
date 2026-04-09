@@ -46,6 +46,14 @@ bun run dev
 3. Test solution SQL: `docker exec sql-coach-db psql -U coach_admin -d sql_coach -c "YOUR SQL"`
 4. Restart dev server to pick up new problem
 
+## Tooling — Non-Negotiable
+
+- **bun** for ALL JavaScript/TypeScript operations — running scripts, installing packages, executing tests. Never use npm, yarn, pnpm, npx, or node directly.
+- **uv** for ALL Python operations — installing packages, running scripts, managing virtualenvs. Never use pip, pip3, python -m pip, or bare python/python3 to install or run.
+- **jq** for ALL JSON inspection and transformation. Never use inline Python scripts, node -e, or other interpreters to parse or query JSON.
+
+These are hard requirements, not suggestions. If a command example elsewhere in this file or in any script uses the wrong tool, fix the script — don't follow it.
+
 ## Commands
 
 - `bun run dev` — development server

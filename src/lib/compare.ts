@@ -5,6 +5,13 @@ interface CompareOptions {
   expectedColumns: string[];
 }
 
+interface CompareResult {
+  pass: boolean;
+  message: string;
+  coaching: string;
+  diff: RowDiff[];
+}
+
 function normalize(value: unknown): string {
   if (value === null || value === undefined) return "NULL";
   if (typeof value === "number") {
@@ -19,11 +26,27 @@ function rowKey(row: unknown[]): string {
   return row.map(normalize).join("|||");
 }
 
+function generateCoaching(diff: RowDiff[], orderMatters: boolean): string {
+  const missing = diff.filter((d) => d.type === "missing").length;
+  const extra = diff.filter((d) => d.type === "extra").length;
+
+  if (orderMatters && missing > 0 && extra > 0 && missing === extra) {
+    return "The right rows are present but in the wrong order. Check your ORDER BY clause.";
+  }
+  if (missing > 0 && extra === 0) {
+    return `Your query is missing ${missing} expected row${missing > 1 ? "s" : ""}. Your WHERE clause or JOIN might be too restrictive.`;
+  }
+  if (extra > 0 && missing === 0) {
+    return `Your query returns ${extra} extra row${extra > 1 ? "s" : ""}. Tighten your WHERE clause or add DISTINCT.`;
+  }
+  return "Some expected rows are missing and some unexpected rows appear. Double-check your JOIN conditions and WHERE filters.";
+}
+
 export function compareResults(
   expected: { columns: string[]; rows: unknown[][] },
   actual: { columns: string[]; rows: unknown[][] },
   options: CompareOptions
-): { pass: boolean; message: string; diff: RowDiff[] } {
+): CompareResult {
   // Check column names
   const expectedCols = options.expectedColumns.map((c) => c.toLowerCase());
   const actualCols = actual.columns.map((c) => c.toLowerCase());
@@ -32,6 +55,7 @@ export function compareResults(
     return {
       pass: false,
       message: `Expected ${expectedCols.length} columns (${expectedCols.join(", ")}), got ${actualCols.length} (${actualCols.join(", ")})`,
+      coaching: `Your query returns ${actualCols.length} column${actualCols.length === 1 ? "" : "s"} but ${expectedCols.length} ${expectedCols.length === 1 ? "is" : "are"} expected. Check your SELECT clause.`,
       diff: [],
     };
   }
@@ -41,6 +65,7 @@ export function compareResults(
       return {
         pass: false,
         message: `Column ${i + 1}: expected "${expectedCols[i]}", got "${actualCols[i]}"`,
+        coaching: `Column ${i + 1} should be "${expectedCols[i]}" but got "${actualCols[i]}". Check your column aliases (AS).`,
         diff: [],
       };
     }
@@ -71,11 +96,12 @@ export function compareResults(
     }
 
     if (diff.length === 0) {
-      return { pass: true, message: "Accepted", diff: [] };
+      return { pass: true, message: "Accepted", coaching: "", diff: [] };
     }
     return {
       pass: false,
       message: `${diff.length} row difference(s) found`,
+      coaching: generateCoaching(diff, true),
       diff,
     };
   }
@@ -127,12 +153,13 @@ export function compareResults(
   }
 
   if (diff.length === 0) {
-    return { pass: true, message: "Accepted", diff: [] };
+    return { pass: true, message: "Accepted", coaching: "", diff: [] };
   }
 
   return {
     pass: false,
     message: `${diff.length} row difference(s) found`,
+    coaching: generateCoaching(diff, false),
     diff,
   };
 }
