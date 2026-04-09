@@ -1,0 +1,38 @@
+slug: running-revenue-total
+title: "Running Revenue Total"
+difficulty: medium
+category: window-functions
+tags: [window-function, sum, running-total, order-by]
+domain: ecommerce
+tables: [ecommerce.orders]
+description: |
+  Calculate a running total of revenue from **completed** orders, ordered by `order_date`.
+
+  Return the following columns:
+  - `order_date` - the date of the order
+  - `total_amount` - the individual order amount
+  - `running_total` - the cumulative sum of `total_amount` up to and including the current row, ordered by `order_date`
+
+  Order the results by `order_date` ascending.
+hints:
+  - "Filter for completed orders using WHERE status = 'completed'."
+  - "Use SUM() as a window function: SUM(total_amount) OVER (ORDER BY order_date)."
+  - "The default window frame with ORDER BY is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, which gives a running total."
+starter_code: |
+  SELECT
+    order_date,
+    total_amount,
+    -- your window function here
+    AS running_total
+  FROM ecommerce.orders
+  WHERE ...
+order_matters: true
+solution: |
+  SELECT
+    order_date,
+    total_amount,
+    SUM(total_amount) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total
+  FROM ecommerce.orders
+  WHERE status = 'completed'
+  ORDER BY order_date;
+expected_columns: [order_date, total_amount, running_total]

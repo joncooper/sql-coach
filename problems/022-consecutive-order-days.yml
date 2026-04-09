@@ -1,0 +1,43 @@
+slug: consecutive-order-days
+title: "Customers with Consecutive Order Days"
+difficulty: hard
+category: window-functions
+tags: [window-functions, lag, date-arithmetic, distinct]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  Find customers who have placed orders on **consecutive days** (i.e., the difference between two order dates is exactly 1 day) or on the **same day** (difference of 0 days).
+
+  Use the `LAG()` window function to compare each order's date with the customer's previous order date.
+
+  Return the following columns:
+  - `customer_name` - the customer's name (distinct values only)
+
+  Order the results by `customer_name` ascending.
+hints:
+  - "Use LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) to get the previous order date."
+  - "Calculate the difference: order_date - previous_order_date."
+  - "Filter where the difference is 0 or 1 day."
+  - "Use DISTINCT to avoid duplicates."
+starter_code: |
+  -- Find customers who placed orders on consecutive or same days
+  SELECT DISTINCT
+    customer_name
+  FROM (
+    -- your subquery here
+  ) consecutive
+order_matters: true
+solution: |
+  SELECT DISTINCT
+    customer_name
+  FROM (
+    SELECT
+      c.name AS customer_name,
+      o.order_date,
+      LAG(o.order_date) OVER (PARTITION BY c.id ORDER BY o.order_date) AS prev_order_date
+    FROM ecommerce.customers c
+    JOIN ecommerce.orders o ON o.customer_id = c.id
+  ) sub
+  WHERE order_date - prev_order_date <= 1
+  ORDER BY customer_name;
+expected_columns: [customer_name]

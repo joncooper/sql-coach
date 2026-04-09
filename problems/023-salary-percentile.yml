@@ -1,0 +1,37 @@
+slug: salary-percentile
+title: "Employee Salary Percentile"
+difficulty: medium
+category: window-functions
+tags: [window-functions, percent-rank, rounding]
+domain: hr
+tables: [hr.employees]
+description: |
+  Calculate the salary percentile for each employee using the `PERCENT_RANK()` window function.
+
+  `PERCENT_RANK()` returns a value between 0 and 1, representing where each employee's salary falls relative to all other employees.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's name
+  - `salary` - the employee's salary
+  - `percentile` - the percent rank rounded to **2 decimal places**
+
+  Order the results by `percentile` in **descending** order, then by `name` ascending.
+hints:
+  - "PERCENT_RANK() OVER (ORDER BY salary) ranks from 0 (lowest) to 1 (highest)."
+  - "Use ROUND(..., 2) to round to 2 decimal places."
+  - "Remember to cast appropriately if needed: ROUND(PERCENT_RANK()::numeric, 2)."
+starter_code: |
+  SELECT
+    name,
+    salary,
+    -- calculate percentile
+  FROM hr.employees
+order_matters: true
+solution: |
+  SELECT
+    name,
+    salary,
+    ROUND(PERCENT_RANK() OVER (ORDER BY salary)::numeric, 2) AS percentile
+  FROM hr.employees
+  ORDER BY percentile DESC, name ASC;
+expected_columns: [name, salary, percentile]

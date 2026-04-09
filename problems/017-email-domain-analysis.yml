@@ -1,0 +1,34 @@
+slug: email-domain-analysis
+title: "Email Domain Analysis"
+difficulty: easy
+category: string-functions
+tags: [string-functions, aggregation, split-part]
+domain: hr
+tables: [hr.employees]
+description: |
+  Extract the email domain from each employee's email address and count how many employees use each domain.
+
+  For example, if an email is `jane@example.com`, the domain is `example.com`.
+
+  Return the following columns in this exact order:
+  - `domain` - the part of the email after the `@` symbol
+  - `employee_count` - the number of employees with that domain
+
+  Order the results by `employee_count` in **descending** order.
+hints:
+  - "Use SPLIT_PART(email, '@', 2) to extract the domain portion of an email."
+  - "Group by the extracted domain and use COUNT(*) for the count."
+starter_code: |
+  SELECT
+    -- extract domain from email
+    -- count employees per domain
+  FROM hr.employees
+order_matters: true
+solution: |
+  SELECT
+    SPLIT_PART(email, '@', 2) AS domain,
+    COUNT(*) AS employee_count
+  FROM hr.employees
+  GROUP BY SPLIT_PART(email, '@', 2)
+  ORDER BY employee_count DESC;
+expected_columns: [domain, employee_count]

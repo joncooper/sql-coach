@@ -1,0 +1,48 @@
+slug: conditional-multi-metric
+title: "Monthly Order Dashboard"
+difficulty: medium
+category: case-expressions
+tags: [case, aggregation, date-trunc, conditional-aggregation]
+domain: ecommerce
+tables: [ecommerce.orders]
+description: |
+  Build a **monthly dashboard** summarizing order activity. For each month, calculate multiple metrics using `CASE` expressions inside aggregate functions.
+
+  Return the following columns in this exact order:
+  - `month` - the month as a DATE (use `DATE_TRUNC('month', order_date)`)
+  - `total_orders` - count of all orders in that month
+  - `completed_orders` - count of orders with status = `'completed'`
+  - `cancelled_orders` - count of orders with status = `'cancelled'`
+  - `total_revenue` - sum of `total_amount` for completed orders only
+  - `avg_order_value` - average `total_amount` for completed orders only, rounded to **2 decimal places**
+
+  Order the results by `month` ascending.
+hints:
+  - "Use DATE_TRUNC('month', order_date) to group by month."
+  - "Use COUNT(*) for total_orders, then SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) for completed_orders."
+  - "For total_revenue, use SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END)."
+  - "For avg_order_value, use AVG with a CASE that returns total_amount for completed orders and NULL otherwise -- AVG ignores NULLs."
+starter_code: |
+  SELECT
+    DATE_TRUNC('month', order_date) AS month,
+    -- total_orders
+    -- completed_orders
+    -- cancelled_orders
+    -- total_revenue
+    -- avg_order_value
+  FROM ecommerce.orders
+  GROUP BY month
+  ORDER BY month;
+order_matters: true
+solution: |
+  SELECT
+    DATE_TRUNC('month', order_date) AS month,
+    COUNT(*) AS total_orders,
+    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_orders,
+    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders,
+    SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END) AS total_revenue,
+    ROUND(AVG(CASE WHEN status = 'completed' THEN total_amount END)::numeric, 2) AS avg_order_value
+  FROM ecommerce.orders
+  GROUP BY DATE_TRUNC('month', order_date)
+  ORDER BY month;
+expected_columns: [month, total_orders, completed_orders, cancelled_orders, total_revenue, avg_order_value]

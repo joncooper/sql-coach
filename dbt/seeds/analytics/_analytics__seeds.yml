@@ -1,0 +1,40 @@
+version: 2
+
+seeds:
+  - name: users
+    description: Application users
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: username
+        tests: [unique, not_null]
+      - name: email
+        tests: [unique, not_null]
+      - name: plan
+        tests:
+          - accepted_values:
+              values: [free, pro, enterprise]
+
+  - name: sessions
+    description: User browsing sessions
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('users')
+              field: id
+
+  - name: page_views
+    description: Individual page views within sessions
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: session_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('sessions')
+              field: id

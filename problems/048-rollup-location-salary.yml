@@ -1,0 +1,47 @@
+slug: rollup-location-salary
+title: "Salary Rollup by Location"
+difficulty: medium
+category: aggregations
+tags: [rollup, grouping, aggregation]
+domain: hr
+tables: [hr.employees, hr.departments]
+description: |
+  Use `ROLLUP` to show **average salary** by location and department, with subtotals per location and a grand total.
+
+  `ROLLUP(location, department_name)` produces three levels of aggregation:
+  1. Per location + department (detail rows)
+  2. Per location (subtotal -- `department_name` is NULL)
+  3. Grand total (both `location` and `department_name` are NULL)
+
+  Return the following columns in this exact order:
+  - `location` - the department's location (NULL for the grand total row)
+  - `department_name` - the department name (NULL for location subtotals and grand total)
+  - `avg_salary` - the average salary, rounded to **0 decimal places**
+  - `employee_count` - the number of employees
+
+  Order by `location` ascending with `NULLS LAST`, then `department_name` ascending with `NULLS LAST`.
+hints:
+  - "Use GROUP BY ROLLUP(d.location, d.name) to get all three aggregation levels."
+  - "Use ROUND(AVG(e.salary), 0) for the average salary."
+  - "ORDER BY location NULLS LAST, department_name NULLS LAST ensures the grand total sorts to the bottom."
+starter_code: |
+  SELECT
+    d.location,
+    d.name AS department_name,
+    -- avg_salary, employee_count
+  FROM hr.employees e
+  JOIN hr.departments d ON d.id = e.department_id
+  GROUP BY ROLLUP(d.location, d.name)
+  ORDER BY d.location NULLS LAST, d.name NULLS LAST;
+order_matters: true
+solution: |
+  SELECT
+    d.location,
+    d.name AS department_name,
+    ROUND(AVG(e.salary), 0) AS avg_salary,
+    COUNT(*) AS employee_count
+  FROM hr.employees e
+  JOIN hr.departments d ON d.id = e.department_id
+  GROUP BY ROLLUP(d.location, d.name)
+  ORDER BY d.location NULLS LAST, d.name NULLS LAST;
+expected_columns: [location, department_name, avg_salary, employee_count]

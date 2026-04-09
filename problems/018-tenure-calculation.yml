@@ -1,0 +1,37 @@
+slug: tenure-calculation
+title: "Employee Tenure Calculation"
+difficulty: medium
+category: date-functions
+tags: [date-functions, age, extract, casting]
+domain: hr
+tables: [hr.employees]
+description: |
+  Calculate each employee's tenure in complete years as of **2024-01-01**.
+
+  Use PostgreSQL's `AGE()` function or date arithmetic to determine how many full years each employee has been with the company.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's name
+  - `hire_date` - the employee's hire date
+  - `tenure_years` - the number of complete years of tenure (as an integer)
+
+  Order the results by `tenure_years` in **descending** order, then by `name` ascending.
+hints:
+  - "AGE('2024-01-01'::date, hire_date) returns an interval representing the difference."
+  - "Use EXTRACT(YEAR FROM ...) to pull the year component from an interval."
+  - "Cast the result to INTEGER using ::INTEGER."
+starter_code: |
+  SELECT
+    name,
+    hire_date,
+    -- calculate tenure in years
+  FROM hr.employees
+order_matters: true
+solution: |
+  SELECT
+    name,
+    hire_date,
+    EXTRACT(YEAR FROM AGE('2024-01-01'::date, hire_date))::INTEGER AS tenure_years
+  FROM hr.employees
+  ORDER BY tenure_years DESC, name ASC;
+expected_columns: [name, hire_date, tenure_years]

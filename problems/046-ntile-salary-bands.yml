@@ -1,0 +1,50 @@
+slug: ntile-salary-bands
+title: "Salary Bands with NTILE"
+difficulty: medium
+category: window-functions
+tags: [window-functions, ntile, case]
+domain: hr
+tables: [hr.employees]
+description: |
+  Divide employees into **4 salary bands** using the `NTILE(4)` window function.
+
+  `NTILE(4)` assigns each row a bucket number from 1 to 4, where 1 is the **lowest** salary group and 4 is the **highest**.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's name
+  - `salary` - the employee's salary
+  - `salary_band` - the NTILE bucket (1 = bottom quartile, 4 = top quartile)
+  - `band_label` - a human-readable label using CASE:
+    - 1 = `'Bottom 25%'`
+    - 2 = `'Lower Middle'`
+    - 3 = `'Upper Middle'`
+    - 4 = `'Top 25%'`
+
+  Order the results by `salary_band` ascending, then `salary` descending.
+hints:
+  - "Use NTILE(4) OVER (ORDER BY salary) to split employees into 4 equal-ish groups."
+  - "Use a CASE expression to map the NTILE number to the band label."
+  - "NTILE(4) ORDER BY salary assigns 1 to the lowest salaries and 4 to the highest."
+starter_code: |
+  SELECT
+    name,
+    salary,
+    -- salary_band using NTILE
+    -- band_label using CASE
+  FROM hr.employees
+  ORDER BY salary_band, salary DESC;
+order_matters: true
+solution: |
+  SELECT
+    name,
+    salary,
+    NTILE(4) OVER (ORDER BY salary) AS salary_band,
+    CASE NTILE(4) OVER (ORDER BY salary)
+      WHEN 1 THEN 'Bottom 25%'
+      WHEN 2 THEN 'Lower Middle'
+      WHEN 3 THEN 'Upper Middle'
+      WHEN 4 THEN 'Top 25%'
+    END AS band_label
+  FROM hr.employees
+  ORDER BY salary_band ASC, salary DESC;
+expected_columns: [name, salary, salary_band, band_label]

@@ -1,0 +1,68 @@
+version: 2
+
+seeds:
+  - name: categories
+    description: Product categories with hierarchy
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: name
+        tests: [not_null]
+
+  - name: products
+    description: Product catalog
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: name
+        tests: [not_null]
+      - name: category_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('categories')
+              field: id
+      - name: price
+        tests: [not_null]
+
+  - name: customers
+    description: Customer records
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: email
+        tests: [unique, not_null]
+
+  - name: orders
+    description: Customer orders
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('customers')
+              field: id
+      - name: status
+        tests:
+          - accepted_values:
+              values: [completed, pending, cancelled, refunded]
+
+  - name: order_items
+    description: Line items within orders
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: order_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('orders')
+              field: id
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('products')
+              field: id

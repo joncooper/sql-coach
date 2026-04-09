@@ -1,0 +1,38 @@
+slug: department-salary-rank
+title: "Salary Rank Within Department"
+difficulty: medium
+category: window-functions
+tags: [dense-rank, window-function, partition-by]
+domain: hr
+tables: [hr.employees, hr.departments]
+description: |
+  Rank employees within each department by their salary using the `DENSE_RANK()` window function. Employees with the same salary should receive the same rank, and the next rank should not skip numbers.
+
+  Return the following columns:
+  - `department_name` - the name of the department
+  - `employee_name` - the employee's name
+  - `salary` - the employee's salary
+  - `salary_rank` - the dense rank of the employee's salary within their department (highest salary = rank 1)
+
+  Order the results by `department_name` ascending, then by `salary_rank` ascending.
+hints:
+  - "DENSE_RANK() OVER (PARTITION BY ... ORDER BY ...) ranks rows within each partition."
+  - "Use PARTITION BY department to rank within each department separately."
+  - "ORDER BY salary DESC inside the window to give rank 1 to the highest salary."
+starter_code: |
+  SELECT
+    -- your query here
+    DENSE_RANK() OVER (...) AS salary_rank
+  FROM hr.employees e
+  JOIN hr.departments d ON e.department_id = d.id
+order_matters: true
+solution: |
+  SELECT
+    d.name AS department_name,
+    e.name AS employee_name,
+    e.salary,
+    DENSE_RANK() OVER (PARTITION BY d.name ORDER BY e.salary DESC) AS salary_rank
+  FROM hr.employees e
+  JOIN hr.departments d ON e.department_id = d.id
+  ORDER BY department_name, salary_rank;
+expected_columns: [department_name, employee_name, salary, salary_rank]

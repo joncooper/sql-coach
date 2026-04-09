@@ -1,0 +1,41 @@
+slug: department-salary-stats
+title: "Department Salary Statistics"
+difficulty: easy
+category: aggregations
+tags: [group-by, aggregate-functions, round, count, avg, min, max]
+domain: hr
+tables: [hr.employees, hr.departments]
+description: |
+  Calculate salary statistics for each department. Join employees with departments to get department names.
+
+  Return the following columns:
+  - `department_name` - the name of the department
+  - `employee_count` - the number of employees in the department
+  - `avg_salary` - the average salary, **rounded to 2 decimal places**
+  - `min_salary` - the lowest salary in the department
+  - `max_salary` - the highest salary in the department
+
+  Order the results by `avg_salary` in **descending** order.
+hints:
+  - "Use GROUP BY on the department name after joining the two tables."
+  - "Use COUNT(*) for the employee count, and ROUND(AVG(salary), 2) for the rounded average."
+  - "MIN() and MAX() give you the lowest and highest values in each group."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM hr.employees e
+  JOIN hr.departments d ON e.department_id = d.id
+  GROUP BY ...
+order_matters: true
+solution: |
+  SELECT
+    d.name AS department_name,
+    COUNT(*) AS employee_count,
+    ROUND(AVG(e.salary), 2) AS avg_salary,
+    MIN(e.salary) AS min_salary,
+    MAX(e.salary) AS max_salary
+  FROM hr.employees e
+  JOIN hr.departments d ON e.department_id = d.id
+  GROUP BY d.name
+  ORDER BY avg_salary DESC;
+expected_columns: [department_name, employee_count, avg_salary, min_salary, max_salary]

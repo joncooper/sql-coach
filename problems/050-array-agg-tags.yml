@@ -1,0 +1,37 @@
+slug: array-agg-tags
+title: "Product Prices by Category"
+difficulty: easy
+category: string-functions
+tags: [array-agg, distinct, ordering]
+domain: ecommerce
+tables: [ecommerce.products, ecommerce.categories]
+description: |
+  For each product category, create a **sorted array of distinct product prices** using `ARRAY_AGG(DISTINCT ... ORDER BY ...)`.
+
+  Return the following columns in this exact order:
+  - `category_name` - the name of the category
+  - `price_list` - an array of distinct prices for products in that category, sorted in ascending order
+
+  Order the results by `category_name` ascending.
+hints:
+  - "Use ARRAY_AGG(DISTINCT p.price ORDER BY p.price) to build a sorted array of unique prices."
+  - "JOIN products with categories to get category names."
+  - "GROUP BY the category name."
+starter_code: |
+  SELECT
+    c.name AS category_name,
+    -- build the price_list array
+  FROM ecommerce.products p
+  JOIN ecommerce.categories c ON c.id = p.category_id
+  GROUP BY c.name
+  ORDER BY category_name;
+order_matters: true
+solution: |
+  SELECT
+    c.name AS category_name,
+    ARRAY_AGG(DISTINCT p.price ORDER BY p.price) AS price_list
+  FROM ecommerce.products p
+  JOIN ecommerce.categories c ON c.id = p.category_id
+  GROUP BY c.name
+  ORDER BY category_name;
+expected_columns: [category_name, price_list]

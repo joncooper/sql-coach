@@ -1,0 +1,45 @@
+slug: generate-series-date-spine
+title: "Date Spine with Daily Order Counts"
+difficulty: medium
+category: date-functions
+tags: [generate-series, date-functions, left-join, coalesce]
+domain: ecommerce
+tables: [ecommerce.orders]
+description: |
+  Generate a **complete date spine** from January 1, 2023 through December 31, 2023 and LEFT JOIN daily **completed** order counts onto it.
+
+  Use `generate_series` to create one row per date. For days with no completed orders, the count should be `0` (not NULL).
+
+  Return the following columns in this exact order:
+  - `report_date` - the date (DATE)
+  - `order_count` - the number of completed orders on that date (0 if none)
+
+  Order the results by `report_date` ascending.
+hints:
+  - "Use generate_series('2023-01-01'::date, '2023-12-31'::date, '1 day'::interval) to create the date spine."
+  - "LEFT JOIN the orders table (filtered to completed status) grouped by order_date."
+  - "Use COALESCE(..., 0) to replace NULL counts with 0."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM generate_series(
+    '2023-01-01'::date,
+    '2023-12-31'::date,
+    '1 day'::interval
+  ) AS report_date
+order_matters: true
+solution: |
+  SELECT
+    d.report_date::date AS report_date,
+    COALESCE(COUNT(o.id), 0) AS order_count
+  FROM generate_series(
+    '2023-01-01'::date,
+    '2023-12-31'::date,
+    '1 day'::interval
+  ) AS d(report_date)
+  LEFT JOIN ecommerce.orders o
+    ON o.order_date = d.report_date::date
+    AND o.status = 'completed'
+  GROUP BY d.report_date
+  ORDER BY d.report_date;
+expected_columns: [report_date, order_count]

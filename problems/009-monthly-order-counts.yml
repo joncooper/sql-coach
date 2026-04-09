@@ -1,0 +1,38 @@
+slug: monthly-order-counts
+title: "Monthly Order Counts"
+difficulty: medium
+category: aggregations
+tags: [date-trunc, group-by, having, count]
+domain: ecommerce
+tables: [ecommerce.orders]
+description: |
+  Count the number of orders placed each month using PostgreSQL's `DATE_TRUNC` function.
+
+  Return the following columns:
+  - `month` - the first day of each month (produced by `DATE_TRUNC('month', order_date)`)
+  - `order_count` - the number of orders in that month
+
+  Only include months that have **3 or more** orders.
+
+  Order the results by `month` in **ascending** order.
+hints:
+  - "DATE_TRUNC('month', order_date) truncates a date to the first day of its month."
+  - "Group by the truncated date to aggregate orders by month."
+  - "Use HAVING COUNT(*) >= 3 to filter out months with fewer than 3 orders."
+starter_code: |
+  SELECT
+    DATE_TRUNC('month', order_date) AS month,
+    -- your query here
+  FROM ecommerce.orders
+  GROUP BY ...
+  HAVING ...
+order_matters: true
+solution: |
+  SELECT
+    DATE_TRUNC('month', order_date) AS month,
+    COUNT(*) AS order_count
+  FROM ecommerce.orders
+  GROUP BY DATE_TRUNC('month', order_date)
+  HAVING COUNT(*) >= 3
+  ORDER BY month;
+expected_columns: [month, order_count]

@@ -1,0 +1,64 @@
+slug: category-hierarchy
+title: "Category Hierarchy Path"
+difficulty: hard
+category: ctes
+tags: [recursive-cte, with-recursive, string-concatenation, hierarchy]
+domain: ecommerce
+tables: [ecommerce.categories]
+description: |
+  Use a **recursive CTE** to build the full hierarchy path for each product category.
+
+  The `categories` table has a `parent_category_id` column that references another category's `id`. Top-level categories have `parent_category_id` set to NULL.
+
+  Return the following columns:
+  - `name` - the category name
+  - `full_path` - the complete hierarchy path using " > " as a separator (e.g., "Electronics > Phones")
+
+  For top-level categories, `full_path` should just be the category name itself (e.g., "Electronics").
+
+  Order the results by `full_path` ascending.
+hints:
+  - "Start the recursive CTE with the base case: categories where parent_category_id IS NULL."
+  - "In the recursive step, join categories to the CTE result on parent_category_id = id."
+  - "Build the path by concatenating: parent_path || ' > ' || child_name."
+  - "The final SELECT should come from the CTE, ordered by full_path."
+starter_code: |
+  WITH RECURSIVE category_tree AS (
+    -- base case: top-level categories
+    SELECT ...
+    FROM ecommerce.categories
+    WHERE parent_category_id IS NULL
+
+    UNION ALL
+
+    -- recursive case: child categories
+    SELECT ...
+    FROM ecommerce.categories c
+    JOIN category_tree ct ON ...
+  )
+  SELECT name, full_path
+  FROM category_tree
+  ORDER BY full_path;
+order_matters: true
+solution: |
+  WITH RECURSIVE category_tree AS (
+    SELECT
+      id,
+      name,
+      name::TEXT AS full_path
+    FROM ecommerce.categories
+    WHERE parent_category_id IS NULL
+
+    UNION ALL
+
+    SELECT
+      c.id,
+      c.name,
+      ct.full_path || ' > ' || c.name
+    FROM ecommerce.categories c
+    JOIN category_tree ct ON c.parent_category_id = ct.id
+  )
+  SELECT name, full_path
+  FROM category_tree
+  ORDER BY full_path;
+expected_columns: [name, full_path]

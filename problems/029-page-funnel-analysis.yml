@@ -1,0 +1,73 @@
+slug: page-funnel-analysis
+title: "Page View Funnel Analysis"
+difficulty: hard
+category: ctes
+tags: [cte, funnel, aggregation, joins]
+domain: analytics
+tables: [analytics.users, analytics.sessions, analytics.page_views]
+description: |
+  Analyze the conversion funnel across three pages: `/`, `/pricing`, and `/signup`.
+
+  For each step of the funnel, count how many **unique users** reached that step within the **same session**, where the pages were viewed in the correct order (by `viewed_at`):
+  1. Visited `/`
+  2. Visited `/pricing` **after** visiting `/` in the same session
+  3. Visited `/signup` **after** visiting `/pricing` in the same session
+
+  Return the following columns in this exact order:
+  - `step` - the URL (`/`, `/pricing`, `/signup`)
+  - `unique_users` - the count of distinct users who reached this funnel step
+
+  Order the results by funnel step order: `/` first, then `/pricing`, then `/signup`.
+hints:
+  - "Use CTEs to build each funnel step incrementally."
+  - "For step 1, find distinct users who viewed '/' in any session."
+  - "For step 2, find users who viewed '/pricing' AFTER '/' in the same session (compare viewed_at timestamps)."
+  - "For step 3, extend the pattern: '/signup' AFTER '/pricing' in the same session."
+  - "Use UNION ALL to combine the three steps into a single result set."
+starter_code: |
+  WITH step1 AS (
+    -- Users who visited /
+  ),
+  step2 AS (
+    -- Users who visited /pricing after /
+  ),
+  step3 AS (
+    -- Users who visited /signup after /pricing
+  )
+  SELECT step, unique_users
+  FROM (
+    -- combine funnel steps
+  ) funnel
+order_matters: true
+solution: |
+  WITH step1 AS (
+    SELECT DISTINCT s.user_id
+    FROM analytics.sessions s
+    JOIN analytics.page_views pv ON pv.session_id = s.id
+    WHERE pv.url = '/'
+  ),
+  step2 AS (
+    SELECT DISTINCT s.user_id
+    FROM analytics.sessions s
+    JOIN analytics.page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/'
+    JOIN analytics.page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/pricing'
+    WHERE pv2.viewed_at > pv1.viewed_at
+  ),
+  step3 AS (
+    SELECT DISTINCT s.user_id
+    FROM analytics.sessions s
+    JOIN analytics.page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/'
+    JOIN analytics.page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/pricing'
+    JOIN analytics.page_views pv3 ON pv3.session_id = s.id AND pv3.url = '/signup'
+    WHERE pv2.viewed_at > pv1.viewed_at
+      AND pv3.viewed_at > pv2.viewed_at
+  )
+  SELECT step, unique_users FROM (
+    SELECT '/' AS step, COUNT(*) AS unique_users, 1 AS sort_order FROM step1
+    UNION ALL
+    SELECT '/pricing', COUNT(*), 2 FROM step2
+    UNION ALL
+    SELECT '/signup', COUNT(*), 3 FROM step3
+  ) funnel
+  ORDER BY sort_order;
+expected_columns: [step, unique_users]

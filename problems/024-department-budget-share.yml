@@ -1,0 +1,40 @@
+slug: department-budget-share
+title: "Department Budget Share"
+difficulty: medium
+category: aggregations
+tags: [aggregation, subquery, percentage, rounding]
+domain: hr
+tables: [hr.departments, hr.employees]
+description: |
+  Calculate each department's share of the total company salary budget as a percentage.
+
+  Return the following columns in this exact order:
+  - `department_name` - the department name
+  - `total_salary` - the sum of all salaries in the department
+  - `budget_percentage` - the department's share of total salary budget, rounded to **1 decimal place**
+
+  Order the results by `budget_percentage` in **descending** order.
+hints:
+  - "Use SUM(salary) grouped by department to get each department's total."
+  - "Use a subquery or window function to get the overall total: SUM(salary) OVER () or (SELECT SUM(salary) FROM hr.employees)."
+  - "Calculate percentage as: department_total * 100.0 / overall_total."
+  - "Use ROUND(..., 1) for 1 decimal place."
+starter_code: |
+  SELECT
+    d.name AS department_name,
+    -- total salary per department
+    -- budget percentage
+  FROM hr.departments d
+  JOIN hr.employees e ON e.department_id = d.id
+  GROUP BY d.name
+order_matters: true
+solution: |
+  SELECT
+    d.name AS department_name,
+    SUM(e.salary) AS total_salary,
+    ROUND(SUM(e.salary) * 100.0 / (SELECT SUM(salary) FROM hr.employees), 1) AS budget_percentage
+  FROM hr.departments d
+  JOIN hr.employees e ON e.department_id = d.id
+  GROUP BY d.name
+  ORDER BY budget_percentage DESC;
+expected_columns: [department_name, total_salary, budget_percentage]

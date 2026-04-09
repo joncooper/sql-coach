@@ -1,0 +1,49 @@
+slug: customer-churn-risk
+title: "Customer Churn Risk"
+difficulty: hard
+category: business-analysis
+tags: [subquery, case, date-arithmetic, aggregation]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  Identify customers at risk of churning.
+
+  Define **"at risk"** as customers whose last completed order was more than **90 days** before the most recent order date in the system. Use a subquery to determine the system-wide max order date -- do **not** hardcode a date.
+
+  Include only customers who have placed **at least one completed order** (status = `'completed'`).
+
+  Return the following columns in this exact order:
+  - `customer_name` - the customer's name
+  - `last_order_date` - the date of their most recent completed order
+  - `days_since_last_order` - integer number of days between their last completed order and the system-wide max order date
+  - `risk_status` - `'at risk'` if days_since_last_order > 90, otherwise `'active'`
+
+  Order the results by `days_since_last_order` descending.
+hints:
+  - "Use MAX(order_date) in a subquery to get the system-wide latest order date across all statuses."
+  - "Filter orders to status = 'completed' when finding each customer's last order."
+  - "Use a CASE expression to assign 'at risk' vs 'active'."
+  - "Remember: days_since_last_order = (system max date) - (customer's last completed order date)."
+starter_code: |
+  SELECT
+    -- customer_name, last_order_date, days_since_last_order, risk_status
+  FROM ecommerce.customers c
+  JOIN ecommerce.orders o ON o.customer_id = c.id
+  WHERE o.status = 'completed'
+  -- complete the query
+order_matters: true
+solution: |
+  SELECT
+    c.name AS customer_name,
+    MAX(o.order_date) AS last_order_date,
+    (SELECT MAX(order_date) FROM ecommerce.orders) - MAX(o.order_date) AS days_since_last_order,
+    CASE
+      WHEN (SELECT MAX(order_date) FROM ecommerce.orders) - MAX(o.order_date) > 90 THEN 'at risk'
+      ELSE 'active'
+    END AS risk_status
+  FROM ecommerce.customers c
+  JOIN ecommerce.orders o ON o.customer_id = c.id
+  WHERE o.status = 'completed'
+  GROUP BY c.id, c.name
+  ORDER BY days_since_last_order DESC;
+expected_columns: [customer_name, last_order_date, days_since_last_order, risk_status]

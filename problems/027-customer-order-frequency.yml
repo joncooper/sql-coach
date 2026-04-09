@@ -1,0 +1,50 @@
+slug: customer-order-frequency
+title: "Customer Order Frequency Classification"
+difficulty: medium
+category: subqueries
+tags: [subquery, case, left-join, aggregation]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  Classify each customer by their order frequency:
+  - **'frequent'** — 5 or more orders
+  - **'regular'** — 2 to 4 orders
+  - **'occasional'** — exactly 1 order
+  - **'inactive'** — 0 orders
+
+  Make sure to include customers who have never placed an order.
+
+  Return the following columns in this exact order:
+  - `customer_name` - the customer's name
+  - `order_count` - the total number of orders placed
+  - `frequency` - the classification label
+
+  Order the results by `order_count` **descending**, then by `customer_name` ascending.
+hints:
+  - "Use a LEFT JOIN from customers to orders so customers with no orders are included."
+  - "COUNT(o.id) will return 0 for customers with no orders (unlike COUNT(*))."
+  - "Use a CASE expression to map the count to the frequency label."
+starter_code: |
+  SELECT
+    c.name AS customer_name,
+    -- count orders
+    -- classify frequency
+  FROM ecommerce.customers c
+  LEFT JOIN ecommerce.orders o ON o.customer_id = c.id
+  GROUP BY c.name
+order_matters: true
+solution: |
+  SELECT
+    c.name AS customer_name,
+    COUNT(o.id) AS order_count,
+    CASE
+      WHEN COUNT(o.id) >= 5 THEN 'frequent'
+      WHEN COUNT(o.id) >= 2 THEN 'regular'
+      WHEN COUNT(o.id) = 1 THEN 'occasional'
+      ELSE 'inactive'
+    END AS frequency
+  FROM ecommerce.customers c
+  LEFT JOIN ecommerce.orders o ON o.customer_id = c.id
+  GROUP BY c.name
+  ORDER BY order_count DESC, customer_name ASC;
+expected_columns: [customer_name, order_count, frequency]

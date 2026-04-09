@@ -1,0 +1,47 @@
+slug: session-duration-change
+title: "Session Duration Change"
+difficulty: hard
+category: window-functions
+tags: [lag, window-function, extract, epoch, date-math]
+domain: analytics
+tables: [analytics.users, analytics.sessions]
+description: |
+  For each user, calculate the duration of each session in minutes and the change in duration from their previous session.
+
+  Use `EXTRACT(EPOCH FROM ...)` to convert timestamp differences to seconds, then divide by 60 and cast to integer for minutes.
+
+  Use the `LAG()` window function to find each user's previous session duration.
+
+  Return the following columns:
+  - `username` - the user's username
+  - `started_at` - when the session started
+  - `duration_minutes` - the session duration in whole minutes (as an integer)
+  - `prev_duration_change` - the difference between the current session's duration and the previous session's duration in minutes (current minus previous). This should be NULL for a user's first session.
+
+  Order the results by `username` ascending, then `started_at` ascending.
+hints:
+  - "Calculate minutes: EXTRACT(EPOCH FROM (ended_at - started_at)) / 60 gives fractional minutes. Cast to INTEGER."
+  - "LAG(value) OVER (PARTITION BY user_id ORDER BY started_at) gets the previous session's value for the same user."
+  - "Compute the change as current duration minus the LAG of duration."
+starter_code: |
+  SELECT
+    u.username,
+    s.started_at,
+    -- duration calculation here AS duration_minutes,
+    -- change calculation here AS prev_duration_change
+  FROM analytics.sessions s
+  JOIN analytics.users u ON s.user_id = u.id
+order_matters: true
+solution: |
+  SELECT
+    u.username,
+    s.started_at,
+    (EXTRACT(EPOCH FROM (s.ended_at - s.started_at)) / 60)::INTEGER AS duration_minutes,
+    (EXTRACT(EPOCH FROM (s.ended_at - s.started_at)) / 60)::INTEGER
+      - LAG((EXTRACT(EPOCH FROM (s.ended_at - s.started_at)) / 60)::INTEGER)
+        OVER (PARTITION BY s.user_id ORDER BY s.started_at)
+    AS prev_duration_change
+  FROM analytics.sessions s
+  JOIN analytics.users u ON s.user_id = u.id
+  ORDER BY u.username, s.started_at;
+expected_columns: [username, started_at, duration_minutes, prev_duration_change]

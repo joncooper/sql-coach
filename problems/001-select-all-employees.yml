@@ -1,0 +1,34 @@
+slug: select-all-employees
+title: "Select All Employees"
+difficulty: easy
+category: basic-select
+tags: [select, order-by, basics]
+domain: hr
+tables: [hr.employees]
+description: |
+  Write a query to retrieve all employees from the HR database.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's full name
+  - `email` - the employee's email address
+  - `salary` - the employee's current salary
+  - `hire_date` - the date the employee was hired
+
+  Order the results by `hire_date` in **descending** order (most recently hired first).
+hints:
+  - "Use SELECT to specify the exact columns you need."
+  - "Use ORDER BY with the DESC keyword to sort in descending order."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM hr.employees
+order_matters: true
+solution: |
+  SELECT
+    name,
+    email,
+    salary,
+    hire_date
+  FROM hr.employees
+  ORDER BY hire_date DESC;
+expected_columns: [name, email, salary, hire_date]

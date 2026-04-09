@@ -1,0 +1,36 @@
+slug: avg-session-duration-by-device
+title: "Average Session Duration by Device"
+difficulty: easy
+category: aggregations
+tags: [aggregation, date-arithmetic, extract, rounding]
+domain: analytics
+tables: [analytics.sessions]
+description: |
+  Calculate the average session duration in **minutes** for each device type.
+
+  Session duration is the difference between `ended_at` and `started_at`.
+
+  Return the following columns in this exact order:
+  - `device` - the device type (desktop, mobile, tablet)
+  - `avg_duration_minutes` - the average session duration in minutes, rounded to **1 decimal place**
+
+  Order the results by `avg_duration_minutes` in **descending** order.
+hints:
+  - "Use EXTRACT(EPOCH FROM (ended_at - started_at)) to get the duration in seconds."
+  - "Divide by 60 to convert seconds to minutes."
+  - "Use ROUND(AVG(...), 1) to round the average to 1 decimal place."
+starter_code: |
+  SELECT
+    device,
+    -- calculate average duration in minutes
+  FROM analytics.sessions
+  GROUP BY device
+order_matters: true
+solution: |
+  SELECT
+    device,
+    ROUND(AVG(EXTRACT(EPOCH FROM (ended_at - started_at)) / 60)::numeric, 1) AS avg_duration_minutes
+  FROM analytics.sessions
+  GROUP BY device
+  ORDER BY avg_duration_minutes DESC;
+expected_columns: [device, avg_duration_minutes]

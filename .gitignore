@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env.local
+dbt/.venv/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+*.pyc
+__pycache__/

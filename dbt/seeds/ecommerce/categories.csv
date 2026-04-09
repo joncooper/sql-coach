@@ -1,0 +1,13 @@
+id,name,parent_category_id
+1,Electronics,
+2,Clothing,
+3,Home & Garden,
+4,Phones,1
+5,Laptops,1
+6,Accessories,1
+7,Men,2
+8,Women,2
+9,Furniture,3
+10,Kitchen,3
+11,Tablets,1
+12,Audio,1

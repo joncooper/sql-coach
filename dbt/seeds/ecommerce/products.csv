@@ -1,0 +1,26 @@
+id,name,category_id,price,created_at
+1,iPhone 15 Pro,4,999.99,2023-09-15
+2,Samsung Galaxy S24,4,849.99,2023-11-01
+3,Google Pixel 8,4,699.99,2023-10-12
+4,MacBook Pro 16,5,2499.99,2023-10-30
+5,Dell XPS 15,5,1799.99,2023-08-20
+6,ThinkPad X1 Carbon,5,1599.99,2023-07-15
+7,AirPods Pro,6,249.99,2023-09-01
+8,USB-C Hub,6,59.99,2023-06-01
+9,Leather Jacket,7,299.99,2023-08-15
+10,Slim Fit Jeans,7,79.99,2023-07-01
+11,Running Shoes,7,129.99,2023-09-20
+12,Summer Dress,8,89.99,2023-06-15
+13,Yoga Pants,8,59.99,2023-05-01
+14,Standing Desk,9,599.99,2023-04-01
+15,Ergonomic Chair,9,449.99,2023-03-15
+16,Chef Knife Set,10,199.99,2023-07-20
+17,Instant Pot,10,89.99,2023-08-01
+18,iPad Air,11,599.99,2023-10-15
+19,Wireless Headphones,12,179.99,2023-09-10
+20,Bluetooth Speaker,12,99.99,2023-08-25
+21,Monitor Stand,6,39.99,2023-05-15
+22,Wool Sweater,7,119.99,2023-10-01
+23,Silk Blouse,8,149.99,2023-09-05
+24,Bookshelf,9,249.99,2023-06-20
+25,Coffee Maker,10,149.99,2023-07-10

@@ -1,0 +1,51 @@
+slug: plan-conversion-rate
+title: "Pricing Page Conversion by Plan"
+difficulty: medium
+category: business-analysis
+tags: [joins, aggregation, case, percentage]
+domain: analytics
+tables: [analytics.users, analytics.sessions, analytics.page_views]
+description: |
+  Calculate the **percentage of users per plan** who have visited the `/pricing` page. Compare across free, pro, and enterprise plans.
+
+  A user "visited pricing" if any of their sessions contain a page_view with a URL of `'/pricing'`.
+
+  Return the following columns in this exact order:
+  - `plan` - the user's plan (free, pro, enterprise)
+  - `total_users` - total number of users on this plan
+  - `users_who_visited_pricing` - number of distinct users on this plan who viewed `/pricing`
+  - `conversion_rate` - the percentage of users who visited pricing, rounded to **1 decimal place**
+
+  Order the results by `conversion_rate` descending.
+hints:
+  - "Start from analytics.users and LEFT JOIN through sessions and page_views to preserve all users."
+  - "Use COUNT(DISTINCT ...) to count unique users who visited /pricing."
+  - "Filter for url = '/pricing' in the JOIN condition (not WHERE) so you don't lose users who never visited."
+  - "Divide users_who_visited_pricing by total_users, cast to numeric, multiply by 100, and round."
+starter_code: |
+  SELECT
+    u.plan,
+    -- total_users
+    -- users_who_visited_pricing
+    -- conversion_rate
+  FROM analytics.users u
+  -- join sessions and page_views
+  GROUP BY u.plan
+  ORDER BY conversion_rate DESC;
+order_matters: true
+solution: |
+  SELECT
+    u.plan,
+    COUNT(DISTINCT u.id) AS total_users,
+    COUNT(DISTINCT CASE WHEN pv.url = '/pricing' THEN u.id END) AS users_who_visited_pricing,
+    ROUND(
+      COUNT(DISTINCT CASE WHEN pv.url = '/pricing' THEN u.id END)::numeric
+      / COUNT(DISTINCT u.id) * 100,
+      1
+    ) AS conversion_rate
+  FROM analytics.users u
+  LEFT JOIN analytics.sessions s ON s.user_id = u.id
+  LEFT JOIN analytics.page_views pv ON pv.session_id = s.id
+  GROUP BY u.plan
+  ORDER BY conversion_rate DESC;
+expected_columns: [plan, total_users, users_who_visited_pricing, conversion_rate]

@@ -1,0 +1,67 @@
+slug: first-order-analysis
+title: "First Order Analysis"
+difficulty: medium
+category: window-functions
+tags: [window-functions, row-number, date-arithmetic, cte]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  For each customer, find their **first completed order** using `ROW_NUMBER()`.
+
+  Only consider orders with status = `'completed'`. Calculate how many days elapsed between the customer's signup and their first completed order.
+
+  Return the following columns in this exact order:
+  - `customer_name` - the customer's name
+  - `first_order_date` - the date of their first completed order
+  - `first_order_amount` - the total_amount of that first completed order
+  - `days_since_signup` - integer number of days between `first_order_date` and `signup_date`
+
+  Order the results by `days_since_signup` descending.
+hints:
+  - "Use ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date) to number each customer's completed orders."
+  - "Filter to row_number = 1 to get the first order."
+  - "Subtract signup_date from first_order_date to get days_since_signup."
+  - "Wrap the ROW_NUMBER query in a CTE or subquery so you can filter on the row number."
+starter_code: |
+  -- Find each customer's first completed order
+  WITH ranked_orders AS (
+    SELECT
+      c.name AS customer_name,
+      c.signup_date,
+      o.order_date,
+      o.total_amount,
+      ROW_NUMBER() OVER (
+        -- partition and order here
+      ) AS rn
+    FROM ecommerce.customers c
+    JOIN ecommerce.orders o ON o.customer_id = c.id
+    WHERE o.status = 'completed'
+  )
+  SELECT
+    customer_name,
+    -- first_order_date, first_order_amount, days_since_signup
+  FROM ranked_orders
+  WHERE rn = 1
+  ORDER BY days_since_signup DESC;
+order_matters: true
+solution: |
+  WITH ranked_orders AS (
+    SELECT
+      c.name AS customer_name,
+      c.signup_date,
+      o.order_date,
+      o.total_amount,
+      ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY o.order_date) AS rn
+    FROM ecommerce.customers c
+    JOIN ecommerce.orders o ON o.customer_id = c.id
+    WHERE o.status = 'completed'
+  )
+  SELECT
+    customer_name,
+    order_date AS first_order_date,
+    total_amount AS first_order_amount,
+    order_date - signup_date AS days_since_signup
+  FROM ranked_orders
+  WHERE rn = 1
+  ORDER BY days_since_signup DESC;
+expected_columns: [customer_name, first_order_date, first_order_amount, days_since_signup]

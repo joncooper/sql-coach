@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+body {
+  background: #09090b;
+  color: #e4e4e7;
+}
+
+@keyframes accepted-in {
+  0% { opacity: 0; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes accepted-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-in {
+  animation: accepted-in 0.4s ease-out forwards;
+}

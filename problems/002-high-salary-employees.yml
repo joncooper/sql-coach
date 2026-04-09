@@ -1,0 +1,34 @@
+slug: high-salary-employees
+title: "High Salary Employees"
+difficulty: easy
+category: basic-select
+tags: [select, where, order-by, filtering]
+domain: hr
+tables: [hr.employees]
+description: |
+  Find all employees who earn more than $100,000 per year.
+
+  Return the following columns:
+  - `name` - the employee's name
+  - `department_id` - the ID of their department
+  - `salary` - their salary
+
+  Order the results by `salary` in **descending** order (highest paid first).
+hints:
+  - "Use a WHERE clause to filter rows based on salary."
+  - "The comparison operator > works with numeric values like 100000."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM hr.employees
+  WHERE ...
+order_matters: true
+solution: |
+  SELECT
+    name,
+    department_id,
+    salary
+  FROM hr.employees
+  WHERE salary > 100000
+  ORDER BY salary DESC;
+expected_columns: [name, department_id, salary]

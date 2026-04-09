@@ -1,0 +1,79 @@
+slug: signup-cohort-retention
+title: "Signup Cohort Retention Analysis"
+difficulty: hard
+category: cohort-analysis
+tags: [cohort-analysis, date-functions, aggregation, retention]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  Perform a **cohort retention analysis** based on customer signup month.
+
+  For each signup month cohort, calculate the percentage of customers who placed at least one **completed** order in each subsequent month (including the signup month itself).
+
+  Use `DATE_TRUNC('month', ...)` to define cohorts and order months. The month difference (months_since_signup) should be 0 for the signup month, 1 for the next month, and so on.
+
+  Return the following columns in this exact order:
+  - `signup_cohort` - the first day of the signup month (DATE)
+  - `months_since_signup` - integer, 0 = signup month
+  - `retained_customers` - count of distinct customers from that cohort who placed at least one completed order in that month
+  - `cohort_size` - total number of customers in the cohort
+  - `retention_rate` - percentage of cohort retained, rounded to **1 decimal place**
+
+  Order the results by `signup_cohort` ascending, then `months_since_signup` ascending.
+hints:
+  - "Start by building a cohort CTE: SELECT id, DATE_TRUNC('month', signup_date)::date AS signup_cohort FROM ecommerce.customers."
+  - "Join cohort customers to completed orders, and compute the month offset using EXTRACT(YEAR FROM age(...)) * 12 + EXTRACT(MONTH FROM age(...)) or a date subtraction approach."
+  - "Use COUNT(DISTINCT customer_id) to get retained_customers per cohort per month offset."
+  - "Calculate cohort_size separately and join it in, then divide to get retention_rate."
+starter_code: |
+  -- Cohort retention analysis
+  WITH cohorts AS (
+    SELECT
+      id AS customer_id,
+      DATE_TRUNC('month', signup_date)::date AS signup_cohort
+    FROM ecommerce.customers
+  )
+  SELECT
+    signup_cohort,
+    months_since_signup,
+    retained_customers,
+    cohort_size,
+    -- calculate retention_rate
+  FROM ...
+  ORDER BY signup_cohort, months_since_signup
+order_matters: true
+solution: |
+  WITH cohorts AS (
+    SELECT
+      id AS customer_id,
+      DATE_TRUNC('month', signup_date)::date AS signup_cohort
+    FROM ecommerce.customers
+  ),
+  cohort_sizes AS (
+    SELECT
+      signup_cohort,
+      COUNT(*) AS cohort_size
+    FROM cohorts
+    GROUP BY signup_cohort
+  ),
+  cohort_activity AS (
+    SELECT
+      c.signup_cohort,
+      (EXTRACT(YEAR FROM age(DATE_TRUNC('month', o.order_date), c.signup_cohort)) * 12
+        + EXTRACT(MONTH FROM age(DATE_TRUNC('month', o.order_date), c.signup_cohort)))::int AS months_since_signup,
+      COUNT(DISTINCT c.customer_id) AS retained_customers
+    FROM cohorts c
+    JOIN ecommerce.orders o ON o.customer_id = c.customer_id
+    WHERE o.status = 'completed'
+    GROUP BY c.signup_cohort, months_since_signup
+  )
+  SELECT
+    ca.signup_cohort,
+    ca.months_since_signup,
+    ca.retained_customers,
+    cs.cohort_size,
+    ROUND(ca.retained_customers * 100.0 / cs.cohort_size, 1) AS retention_rate
+  FROM cohort_activity ca
+  JOIN cohort_sizes cs ON cs.signup_cohort = ca.signup_cohort
+  ORDER BY ca.signup_cohort, ca.months_since_signup;
+expected_columns: [signup_cohort, months_since_signup, retained_customers, cohort_size, retention_rate]

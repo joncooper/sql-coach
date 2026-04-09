@@ -1,0 +1,29 @@
+slug: second-highest-salary
+title: "Second Highest Salary"
+difficulty: medium
+category: subqueries
+tags: [subquery, distinct, limit, offset, scalar-subquery]
+domain: hr
+tables: [hr.employees]
+description: |
+  Find the **second highest distinct salary** in the company.
+
+  Return a single column:
+  - `second_highest_salary` - the second highest unique salary value
+
+  Your query should return exactly one row. If multiple employees share the same salary, it still counts as one distinct salary level.
+hints:
+  - "Use SELECT DISTINCT salary to get unique salary values."
+  - "Order by salary descending and use LIMIT 1 OFFSET 1 to skip the highest and get the second."
+  - "Alternatively, you can use a subquery: select the max salary that is less than the overall max salary."
+starter_code: |
+  SELECT
+    -- your query here
+    AS second_highest_salary
+order_matters: false
+solution: |
+  SELECT DISTINCT salary AS second_highest_salary
+  FROM hr.employees
+  ORDER BY salary DESC
+  LIMIT 1 OFFSET 1;
+expected_columns: [second_highest_salary]

@@ -1,0 +1,55 @@
+slug: grouping-sets-revenue
+title: "Revenue Summary with GROUPING SETS"
+difficulty: medium
+category: aggregations
+tags: [grouping-sets, aggregation, joins]
+domain: ecommerce
+tables: [ecommerce.categories, ecommerce.products, ecommerce.order_items, ecommerce.orders]
+description: |
+  Use **GROUPING SETS** to produce a revenue summary at three levels of granularity in a single query:
+
+  1. Revenue by **(category_name, product_name)** — per-product detail
+  2. Revenue by **(category_name)** — category subtotal
+  3. **Grand total** — overall revenue
+
+  Only include revenue from **completed** orders. Revenue is calculated as `SUM(oi.quantity * oi.unit_price)`.
+
+  Return the following columns in this exact order:
+  - `category_name` - the category name (NULL for grand total row)
+  - `product_name` - the product name (NULL for category subtotal and grand total rows)
+  - `total_revenue` - the total revenue for that grouping level
+
+  Order the results by `category_name` ascending with **NULLS LAST**, then `product_name` ascending with **NULLS LAST**.
+hints:
+  - "Join order_items -> orders (completed only) -> products -> categories."
+  - "Use GROUP BY GROUPING SETS ((cat.name, p.name), (cat.name), ()) to produce all three levels."
+  - "ORDER BY category_name NULLS LAST, product_name NULLS LAST."
+starter_code: |
+  SELECT
+    cat.name AS category_name,
+    p.name AS product_name,
+    SUM(oi.quantity * oi.unit_price) AS total_revenue
+  FROM ecommerce.order_items oi
+  JOIN ecommerce.orders o ON o.id = oi.order_id
+  JOIN ecommerce.products p ON p.id = oi.product_id
+  JOIN ecommerce.categories cat ON cat.id = p.category_id
+  WHERE o.status = 'completed'
+  -- add GROUPING SETS here
+order_matters: true
+solution: |
+  SELECT
+    cat.name AS category_name,
+    p.name AS product_name,
+    SUM(oi.quantity * oi.unit_price) AS total_revenue
+  FROM ecommerce.order_items oi
+  JOIN ecommerce.orders o ON o.id = oi.order_id
+  JOIN ecommerce.products p ON p.id = oi.product_id
+  JOIN ecommerce.categories cat ON cat.id = p.category_id
+  WHERE o.status = 'completed'
+  GROUP BY GROUPING SETS (
+    (cat.name, p.name),
+    (cat.name),
+    ()
+  )
+  ORDER BY category_name NULLS LAST, product_name NULLS LAST;
+expected_columns: [category_name, product_name, total_revenue]

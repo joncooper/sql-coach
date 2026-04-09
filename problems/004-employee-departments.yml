@@ -1,0 +1,35 @@
+slug: employee-departments
+title: "Employees and Their Departments"
+difficulty: easy
+category: joins
+tags: [join, inner-join, basics]
+domain: hr
+tables: [hr.employees, hr.departments]
+description: |
+  Join the employees table with the departments table to show which department each employee belongs to.
+
+  Return the following columns:
+  - `employee_name` - the employee's name (aliased from employees.name)
+  - `department_name` - the department's name (aliased from departments.name)
+  - `salary` - the employee's salary
+
+  Order the results by `department_name` ascending, then by `salary` **descending** within each department.
+hints:
+  - "Use an INNER JOIN to connect employees to departments."
+  - "The join condition is employees.department_id = departments.id."
+  - "Use column aliases (AS) to rename the output columns."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM hr.employees
+  JOIN hr.departments ON ...
+order_matters: true
+solution: |
+  SELECT
+    e.name AS employee_name,
+    d.name AS department_name,
+    e.salary
+  FROM hr.employees e
+  JOIN hr.departments d ON e.department_id = d.id
+  ORDER BY department_name, salary DESC;
+expected_columns: [employee_name, department_name, salary]

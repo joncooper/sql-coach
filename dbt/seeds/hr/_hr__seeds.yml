@@ -1,0 +1,40 @@
+version: 2
+
+seeds:
+  - name: departments
+    description: Company departments
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: name
+        tests: [not_null]
+
+  - name: employees
+    description: Employee records with manager hierarchy
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: email
+        tests: [unique, not_null]
+      - name: department_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('departments')
+              field: id
+
+  - name: salaries
+    description: Historical salary records
+    columns:
+      - name: id
+        tests: [unique, not_null]
+      - name: employee_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('employees')
+              field: id
+      - name: amount
+        tests: [not_null]
+      - name: effective_date
+        tests: [not_null]

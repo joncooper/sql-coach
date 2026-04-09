@@ -1,0 +1,58 @@
+slug: dedup-latest-salary
+title: "Deduplicate to Latest Salary"
+difficulty: medium
+category: data-quality
+tags: [row-number, deduplication, window-functions, joins]
+domain: hr
+tables: [hr.employees, hr.salaries]
+description: |
+  Some employees have multiple salary records in the `hr.salaries` table. Using `ROW_NUMBER()`, find the **latest** (most recent `effective_date`) salary record for each employee.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's name
+  - `effective_date` - the effective date of their most recent salary record
+  - `amount` - the salary amount of their most recent record
+
+  Order the results by `amount` descending.
+hints:
+  - "Use ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY effective_date DESC) to rank salary records per employee."
+  - "Wrap in a CTE or subquery and filter where row_number = 1."
+  - "Join to hr.employees to get the employee name."
+starter_code: |
+  WITH latest AS (
+    SELECT
+      employee_id,
+      effective_date,
+      amount,
+      ROW_NUMBER() OVER (
+        -- partition and order here
+      ) AS rn
+    FROM hr.salaries
+  )
+  SELECT
+    -- your query here
+  FROM latest
+  JOIN hr.employees e ON e.id = latest.employee_id
+  WHERE rn = 1
+  ORDER BY amount DESC
+order_matters: true
+solution: |
+  WITH latest AS (
+    SELECT
+      employee_id,
+      effective_date,
+      amount,
+      ROW_NUMBER() OVER (
+        PARTITION BY employee_id ORDER BY effective_date DESC
+      ) AS rn
+    FROM hr.salaries
+  )
+  SELECT
+    e.name,
+    latest.effective_date,
+    latest.amount
+  FROM latest
+  JOIN hr.employees e ON e.id = latest.employee_id
+  WHERE latest.rn = 1
+  ORDER BY latest.amount DESC;
+expected_columns: [name, effective_date, amount]

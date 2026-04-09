@@ -1,0 +1,19 @@
+name: sql_coach
+version: "1.0.0"
+config-version: 2
+
+profile: sql_coach
+
+seed-paths: ["seeds"]
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+seeds:
+  sql_coach:
+    hr:
+      +schema: hr
+    ecommerce:
+      +schema: ecommerce
+    analytics:
+      +schema: analytics

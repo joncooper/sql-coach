@@ -1,0 +1,12 @@
+sql_coach:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: coach_admin
+      password: coach_local_dev
+      dbname: sql_coach
+      schema: public
+      threads: 4

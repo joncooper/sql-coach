@@ -1,0 +1,49 @@
+slug: yoy-salary-growth
+title: "Year-over-Year Salary Growth"
+difficulty: hard
+category: window-functions
+tags: [window-functions, lag, percentage, date-functions]
+domain: hr
+tables: [hr.employees, hr.salaries]
+description: |
+  For employees with salary history records, calculate the **year-over-year salary growth percentage** for each salary change.
+
+  Use the `LAG()` window function to access each employee's previous salary amount, then compute the growth percentage.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's name
+  - `effective_date` - the date the salary took effect
+  - `amount` - the salary amount
+  - `growth_pct` - the percentage growth from the previous salary, rounded to **1 decimal place**. Should be `NULL` for an employee's first (earliest) salary record.
+
+  The growth percentage formula is: `(current_amount - previous_amount) / previous_amount * 100`
+
+  Order the results by `name` ascending, then `effective_date` ascending.
+hints:
+  - "Use LAG(amount) OVER (PARTITION BY employee_id ORDER BY effective_date) to get the previous salary."
+  - "Calculate growth: (amount - prev_amount) / prev_amount * 100."
+  - "Use ROUND(..., 1) for 1 decimal place."
+  - "The first record per employee will have a NULL previous salary, so growth_pct should be NULL."
+starter_code: |
+  SELECT
+    e.name,
+    s.effective_date,
+    s.amount,
+    -- calculate growth percentage
+  FROM hr.salaries s
+  JOIN hr.employees e ON e.id = s.employee_id
+order_matters: true
+solution: |
+  SELECT
+    e.name,
+    s.effective_date,
+    s.amount,
+    ROUND(
+      (s.amount - LAG(s.amount) OVER (PARTITION BY s.employee_id ORDER BY s.effective_date))::numeric
+      / LAG(s.amount) OVER (PARTITION BY s.employee_id ORDER BY s.effective_date) * 100,
+      1
+    ) AS growth_pct
+  FROM hr.salaries s
+  JOIN hr.employees e ON e.id = s.employee_id
+  ORDER BY e.name ASC, s.effective_date ASC;
+expected_columns: [name, effective_date, amount, growth_pct]

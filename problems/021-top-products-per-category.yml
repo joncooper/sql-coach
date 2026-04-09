@@ -1,0 +1,58 @@
+slug: top-products-per-category
+title: "Top 2 Products per Category by Sales"
+difficulty: hard
+category: window-functions
+tags: [window-functions, rank, aggregation, joins]
+domain: ecommerce
+tables: [ecommerce.categories, ecommerce.products, ecommerce.order_items, ecommerce.orders]
+description: |
+  Find the **top 2 best-selling products** (by total quantity sold) in each category, considering only items from **completed** orders.
+
+  Use a window function to rank products within each category by their total quantity sold.
+
+  Return the following columns in this exact order:
+  - `category_name` - the category name
+  - `product_name` - the product name
+  - `total_quantity` - the total quantity sold across all completed orders
+  - `category_rank` - the rank within the category (1 = best seller)
+
+  Order the results by `category_name` ascending, then `category_rank` ascending.
+hints:
+  - "Join products to order_items and orders, filtering for completed orders."
+  - "Use SUM(oi.quantity) grouped by category and product to get total_quantity."
+  - "Apply RANK() OVER (PARTITION BY category ORDER BY total_quantity DESC) to rank within each category."
+  - "Filter to keep only ranks 1 and 2 using a subquery or CTE."
+starter_code: |
+  -- Find top 2 products by quantity sold in each category
+  SELECT
+    category_name,
+    product_name,
+    total_quantity,
+    category_rank
+  FROM (
+    -- your subquery here
+  ) ranked
+  WHERE category_rank <= 2
+order_matters: true
+solution: |
+  SELECT
+    category_name,
+    product_name,
+    total_quantity,
+    category_rank
+  FROM (
+    SELECT
+      cat.name AS category_name,
+      p.name AS product_name,
+      SUM(oi.quantity) AS total_quantity,
+      RANK() OVER (PARTITION BY cat.name ORDER BY SUM(oi.quantity) DESC) AS category_rank
+    FROM ecommerce.categories cat
+    JOIN ecommerce.products p ON p.category_id = cat.id
+    JOIN ecommerce.order_items oi ON oi.product_id = p.id
+    JOIN ecommerce.orders o ON o.id = oi.order_id
+    WHERE o.status = 'completed'
+    GROUP BY cat.name, p.name
+  ) ranked
+  WHERE category_rank <= 2
+  ORDER BY category_name ASC, category_rank ASC;
+expected_columns: [category_name, product_name, total_quantity, category_rank]

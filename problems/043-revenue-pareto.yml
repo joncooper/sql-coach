@@ -1,0 +1,66 @@
+slug: revenue-pareto
+title: "Revenue Pareto Analysis"
+difficulty: hard
+category: business-analysis
+tags: [window-functions, cumulative-sum, business-analysis]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  Perform a **Pareto analysis** on customer revenue. Calculate each customer's cumulative share of total completed-order revenue.
+
+  Only include orders with status = `'completed'`.
+
+  Use `SUM() OVER (ORDER BY ...)` for the running cumulative calculation.
+
+  Return the following columns in this exact order:
+  - `customer_name` - the customer's name
+  - `customer_revenue` - total completed-order revenue for this customer
+  - `cumulative_revenue` - running cumulative revenue, ordered from highest to lowest customer_revenue
+  - `cumulative_pct` - cumulative revenue as a percentage of total revenue, rounded to **1 decimal place**
+
+  Order the results by `customer_revenue` descending.
+hints:
+  - "First aggregate each customer's total revenue from completed orders."
+  - "Use SUM(customer_revenue) OVER (ORDER BY customer_revenue DESC) for the cumulative sum."
+  - "Divide cumulative_revenue by the overall total (use SUM() OVER () with no partition) and multiply by 100."
+  - "Use ROUND(..., 1) for 1 decimal place."
+starter_code: |
+  -- Pareto analysis of customer revenue
+  WITH customer_rev AS (
+    SELECT
+      -- aggregate customer revenue from completed orders
+    FROM ecommerce.customers c
+    JOIN ecommerce.orders o ON o.customer_id = c.id
+    WHERE o.status = 'completed'
+    GROUP BY c.id, c.name
+  )
+  SELECT
+    customer_name,
+    customer_revenue,
+    cumulative_revenue,
+    cumulative_pct
+  FROM ...
+  ORDER BY customer_revenue DESC;
+order_matters: true
+solution: |
+  WITH customer_rev AS (
+    SELECT
+      c.name AS customer_name,
+      SUM(o.total_amount) AS customer_revenue
+    FROM ecommerce.customers c
+    JOIN ecommerce.orders o ON o.customer_id = c.id
+    WHERE o.status = 'completed'
+    GROUP BY c.id, c.name
+  )
+  SELECT
+    customer_name,
+    customer_revenue,
+    SUM(customer_revenue) OVER (ORDER BY customer_revenue DESC) AS cumulative_revenue,
+    ROUND(
+      (SUM(customer_revenue) OVER (ORDER BY customer_revenue DESC)
+      / SUM(customer_revenue) OVER () * 100)::numeric,
+      1
+    ) AS cumulative_pct
+  FROM customer_rev
+  ORDER BY customer_revenue DESC;
+expected_columns: [customer_name, customer_revenue, cumulative_revenue, cumulative_pct]

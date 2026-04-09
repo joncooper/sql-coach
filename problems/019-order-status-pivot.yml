@@ -1,0 +1,44 @@
+slug: order-status-pivot
+title: "Order Status Pivot by Customer"
+difficulty: medium
+category: case-expressions
+tags: [case, aggregation, pivot, conditional]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  Create a pivot table showing the count of each order status per customer.
+
+  Use `CASE` expressions inside `SUM()` or `COUNT()` to pivot the order statuses into separate columns.
+
+  Return the following columns in this exact order:
+  - `customer_name` - the customer's name
+  - `completed_count` - number of completed orders
+  - `pending_count` - number of pending orders
+  - `cancelled_count` - number of cancelled orders
+  - `refunded_count` - number of refunded orders
+
+  Order the results by `completed_count` in **descending** order, then by `customer_name` ascending.
+hints:
+  - "Use SUM(CASE WHEN o.status = 'completed' THEN 1 ELSE 0 END) to count a specific status."
+  - "JOIN customers to orders and GROUP BY customer name."
+  - "Make sure to include all four statuses: completed, pending, cancelled, refunded."
+starter_code: |
+  SELECT
+    c.name AS customer_name,
+    -- pivot order statuses into columns
+  FROM ecommerce.customers c
+  JOIN ecommerce.orders o ON o.customer_id = c.id
+  GROUP BY c.name
+order_matters: true
+solution: |
+  SELECT
+    c.name AS customer_name,
+    SUM(CASE WHEN o.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
+    SUM(CASE WHEN o.status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
+    SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count,
+    SUM(CASE WHEN o.status = 'refunded' THEN 1 ELSE 0 END) AS refunded_count
+  FROM ecommerce.customers c
+  JOIN ecommerce.orders o ON o.customer_id = c.id
+  GROUP BY c.name
+  ORDER BY completed_count DESC, customer_name ASC;
+expected_columns: [customer_name, completed_count, pending_count, cancelled_count, refunded_count]

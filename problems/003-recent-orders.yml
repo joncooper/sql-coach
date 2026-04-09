@@ -1,0 +1,39 @@
+slug: recent-orders
+title: "Recent Completed Orders"
+difficulty: easy
+category: basic-select
+tags: [select, where, date-filtering, and]
+domain: ecommerce
+tables: [ecommerce.orders]
+description: |
+  Find all **completed** orders from Q3 2023 (July 1 through September 30, 2023).
+
+  Return the following columns:
+  - `id` - the order ID
+  - `customer_id` - the customer who placed the order
+  - `order_date` - when the order was placed
+  - `total_amount` - the order total
+
+  Order the results by `order_date` in **ascending** order.
+hints:
+  - "Use AND to combine multiple conditions in your WHERE clause."
+  - "Filter by status = 'completed' and use date comparisons for the date range."
+  - "Remember Q3 runs from '2023-07-01' to '2023-09-30' inclusive."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM ecommerce.orders
+  WHERE ...
+order_matters: true
+solution: |
+  SELECT
+    id,
+    customer_id,
+    order_date,
+    total_amount
+  FROM ecommerce.orders
+  WHERE status = 'completed'
+    AND order_date >= '2023-07-01'
+    AND order_date <= '2023-09-30'
+  ORDER BY order_date;
+expected_columns: [id, customer_id, order_date, total_amount]

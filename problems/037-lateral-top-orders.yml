@@ -1,0 +1,51 @@
+slug: lateral-top-orders
+title: "Top 2 Orders per Customer (LATERAL Join)"
+difficulty: hard
+category: advanced-joins
+tags: [lateral-join, subquery, limit, ordering]
+domain: ecommerce
+tables: [ecommerce.customers, ecommerce.orders]
+description: |
+  For each customer, find their **2 most recent completed orders** using a `LATERAL` join.
+
+  A LATERAL join allows a subquery to reference columns from preceding tables in the FROM clause — perfect for "top-N per group" problems without window functions.
+
+  Only include **completed** orders. Customers with no completed orders should not appear in the results.
+
+  Return the following columns in this exact order:
+  - `customer_name` - the customer's name
+  - `order_date` - the order date
+  - `total_amount` - the order total
+
+  Order the results by `customer_name` ascending, then `order_date` descending.
+hints:
+  - "Use FROM ecommerce.customers c, LATERAL (SELECT ... FROM ecommerce.orders WHERE customer_id = c.id ... LIMIT 2) AS recent_orders."
+  - "Inside the LATERAL subquery, filter for completed status and ORDER BY order_date DESC LIMIT 2."
+  - "A LATERAL join acts like an INNER JOIN by default — customers with no matching orders are excluded."
+starter_code: |
+  SELECT
+    c.name AS customer_name,
+    recent.order_date,
+    recent.total_amount
+  FROM ecommerce.customers c,
+  LATERAL (
+    -- subquery referencing c.id here
+  ) AS recent
+  ORDER BY customer_name, order_date DESC
+order_matters: true
+solution: |
+  SELECT
+    c.name AS customer_name,
+    recent.order_date,
+    recent.total_amount
+  FROM ecommerce.customers c,
+  LATERAL (
+    SELECT o.order_date, o.total_amount
+    FROM ecommerce.orders o
+    WHERE o.customer_id = c.id
+      AND o.status = 'completed'
+    ORDER BY o.order_date DESC
+    LIMIT 2
+  ) AS recent
+  ORDER BY customer_name ASC, order_date DESC;
+expected_columns: [customer_name, order_date, total_amount]

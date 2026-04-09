@@ -1,0 +1,50 @@
+slug: salary-above-dept-avg
+title: "Employees Above Department Average Salary"
+difficulty: medium
+category: subqueries
+tags: [subquery, window-functions, aggregation, comparison]
+domain: hr
+tables: [hr.employees, hr.departments]
+description: |
+  Find employees whose salary is **above** their department's average salary.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's name
+  - `department_name` - the department name
+  - `salary` - the employee's salary
+  - `dept_avg_salary` - the department's average salary, rounded to **0 decimal places**
+
+  Order the results by `salary` in **descending** order.
+hints:
+  - "Use a window function AVG(salary) OVER (PARTITION BY department_id) to calculate the department average alongside each row."
+  - "Alternatively, use a subquery or CTE to compute department averages, then join back."
+  - "Use ROUND(..., 0) to round to 0 decimal places."
+starter_code: |
+  SELECT
+    name,
+    department_name,
+    salary,
+    dept_avg_salary
+  FROM (
+    -- your subquery here
+  ) sub
+  WHERE salary > dept_avg_salary
+order_matters: true
+solution: |
+  SELECT
+    name,
+    department_name,
+    salary,
+    dept_avg_salary
+  FROM (
+    SELECT
+      e.name,
+      d.name AS department_name,
+      e.salary,
+      ROUND(AVG(e.salary) OVER (PARTITION BY e.department_id))::numeric AS dept_avg_salary
+    FROM hr.employees e
+    JOIN hr.departments d ON d.id = e.department_id
+  ) sub
+  WHERE salary > dept_avg_salary
+  ORDER BY salary DESC;
+expected_columns: [name, department_name, salary, dept_avg_salary]

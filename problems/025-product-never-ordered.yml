@@ -1,0 +1,36 @@
+slug: product-never-ordered
+title: "Products Never Ordered"
+difficulty: easy
+category: joins
+tags: [left-join, null-check, anti-join]
+domain: ecommerce
+tables: [ecommerce.products, ecommerce.order_items]
+description: |
+  Find all products that have **never been ordered** by any customer.
+
+  Use a LEFT JOIN and check for NULL values, or use a NOT EXISTS / NOT IN subquery.
+
+  Return the following columns in this exact order:
+  - `name` - the product name
+  - `price` - the product price
+
+  Order the results by `price` in **descending** order.
+hints:
+  - "LEFT JOIN products to order_items — unmatched products will have NULL in the order_items columns."
+  - "Filter with WHERE oi.id IS NULL to find products with no matching orders."
+  - "Alternatively, use WHERE p.id NOT IN (SELECT product_id FROM ecommerce.order_items)."
+starter_code: |
+  SELECT
+    -- product name and price
+  FROM ecommerce.products p
+  -- your join or subquery here
+order_matters: true
+solution: |
+  SELECT
+    p.name,
+    p.price
+  FROM ecommerce.products p
+  LEFT JOIN ecommerce.order_items oi ON oi.product_id = p.id
+  WHERE oi.id IS NULL
+  ORDER BY p.price DESC;
+expected_columns: [name, price]

@@ -1,0 +1,35 @@
+slug: employee-manager
+title: "Employee and Manager Names"
+difficulty: medium
+category: joins
+tags: [self-join, inner-join, aliases]
+domain: hr
+tables: [hr.employees]
+description: |
+  Write a self-join query to show each employee alongside their manager's name. The `manager_id` column in the employees table references another row in the same table.
+
+  Return the following columns:
+  - `employee_name` - the employee's name
+  - `manager_name` - the manager's name
+
+  **Exclude** employees who have no manager (i.e., where `manager_id` is NULL -- these are department heads).
+
+  Order the results by `employee_name` ascending.
+hints:
+  - "A self-join means joining a table to itself. Use different aliases for each copy."
+  - "Join employees (as the employee) to employees (as the manager) where the employee's manager_id equals the manager's id."
+  - "Using an INNER JOIN automatically excludes employees with no manager since NULL manager_id won't match any id."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM hr.employees e
+  JOIN hr.employees m ON ...
+order_matters: true
+solution: |
+  SELECT
+    e.name AS employee_name,
+    m.name AS manager_name
+  FROM hr.employees e
+  JOIN hr.employees m ON e.manager_id = m.id
+  ORDER BY employee_name;
+expected_columns: [employee_name, manager_name]

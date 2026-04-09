@@ -1,0 +1,58 @@
+slug: moving-avg-session-count
+title: "3-Day Moving Average of Session Counts"
+difficulty: medium
+category: window-functions
+tags: [window-functions, moving-average, date-functions, aggregation]
+domain: analytics
+tables: [analytics.sessions]
+description: |
+  Calculate a **3-day moving average** of daily session counts from the analytics schema.
+
+  First, count the number of sessions per day (using the date portion of `started_at`). Then, compute a 3-day moving average using a window function.
+
+  Use the window frame `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` to include the current day and the 2 preceding rows.
+
+  Return the following columns in this exact order:
+  - `session_date` - the date (DATE, derived from `started_at`)
+  - `daily_sessions` - the count of sessions on that date
+  - `moving_avg_3d` - the 3-day moving average, rounded to **1 decimal place**
+
+  Order the results by `session_date` ascending.
+hints:
+  - "Use started_at::date or DATE_TRUNC('day', started_at)::date to extract the date from started_at."
+  - "Group by session_date to count daily sessions."
+  - "Apply AVG(daily_sessions) OVER (ORDER BY session_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) for the moving average."
+  - "ROUND(..., 1) for 1 decimal place."
+starter_code: |
+  WITH daily_counts AS (
+    SELECT
+      started_at::date AS session_date,
+      COUNT(*) AS daily_sessions
+    FROM analytics.sessions
+    GROUP BY started_at::date
+  )
+  SELECT
+    session_date,
+    daily_sessions,
+    -- calculate 3-day moving average
+  FROM daily_counts
+  ORDER BY session_date
+order_matters: true
+solution: |
+  WITH daily_counts AS (
+    SELECT
+      started_at::date AS session_date,
+      COUNT(*) AS daily_sessions
+    FROM analytics.sessions
+    GROUP BY started_at::date
+  )
+  SELECT
+    session_date,
+    daily_sessions,
+    ROUND(
+      AVG(daily_sessions) OVER (ORDER BY session_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW),
+      1
+    ) AS moving_avg_3d
+  FROM daily_counts
+  ORDER BY session_date;
+expected_columns: [session_date, daily_sessions, moving_avg_3d]

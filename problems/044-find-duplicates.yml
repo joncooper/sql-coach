@@ -1,0 +1,40 @@
+slug: find-duplicates
+title: "Find Duplicate Salaries"
+difficulty: easy
+category: data-quality
+tags: [group-by, having, joins]
+domain: hr
+tables: [hr.employees, hr.departments]
+description: |
+  Find employees who share the **same salary** within the **same department**.
+
+  Return only groups where more than one employee has the same salary in a department.
+
+  Return the following columns in this exact order:
+  - `department_name` - the name of the department
+  - `salary` - the shared salary amount
+  - `employee_count` - the number of employees with that salary in that department (only where count > 1)
+
+  Order the results by `department_name` ascending, then `salary` descending.
+hints:
+  - "JOIN employees with departments to get department names."
+  - "GROUP BY department name and salary."
+  - "Use HAVING COUNT(*) > 1 to filter for duplicates."
+starter_code: |
+  SELECT
+    -- department_name, salary, employee_count
+  FROM hr.employees e
+  JOIN hr.departments d ON d.id = e.department_id
+  -- complete the query
+order_matters: true
+solution: |
+  SELECT
+    d.name AS department_name,
+    e.salary,
+    COUNT(*) AS employee_count
+  FROM hr.employees e
+  JOIN hr.departments d ON d.id = e.department_id
+  GROUP BY d.name, e.salary
+  HAVING COUNT(*) > 1
+  ORDER BY department_name ASC, salary DESC;
+expected_columns: [department_name, salary, employee_count]
