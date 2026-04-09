@@ -1,0 +1,48 @@
+slug: countries-safely-invest
+title: "Countries You Can Safely Invest In"
+difficulty: medium
+category: aggregation
+tags: [union-all, avg, subquery]
+domain: leetcode
+tables: [leetcode.lc1641_person, leetcode.lc1641_country, leetcode.lc1641_calls]
+description: |
+  A telecommunications company wants to invest in countries where the average call duration is strictly greater than the global average call duration.
+
+  Each person has a phone number in the format 'xxx-yyyyyyy' where 'xxx' is the country code. Each call involves a caller and a callee, and both sides of the call count toward their respective countries' average.
+
+  Write a query to find the countries where the company should invest.
+
+  Return the following column:
+  - `country` - the name of the country
+
+  Return the result in **any order**.
+hints:
+  - "Use UNION ALL to combine caller and callee sides of each call so every person's participation is counted."
+  - "Extract the country code from phone numbers using LEFT(phone_number, 3), then join with the country table."
+  - "Calculate the average duration per country and compare it to the global average using a subquery or HAVING clause."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1641_country
+order_matters: false
+solution: |
+  WITH all_calls AS (
+    SELECT c.caller_id AS person_id, c.duration
+    FROM leetcode.lc1641_calls c
+    UNION ALL
+    SELECT c.callee_id AS person_id, c.duration
+    FROM leetcode.lc1641_calls c
+  ),
+  call_countries AS (
+    SELECT
+      co.name AS country,
+      ac.duration
+    FROM all_calls ac
+    JOIN leetcode.lc1641_person p ON ac.person_id = p.id
+    JOIN leetcode.lc1641_country co ON LEFT(p.phone_number, 3) = co.country_code
+  )
+  SELECT country
+  FROM call_countries
+  GROUP BY country
+  HAVING AVG(duration) > (SELECT AVG(duration) FROM call_countries);
+expected_columns: [country]

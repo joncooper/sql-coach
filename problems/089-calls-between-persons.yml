@@ -1,0 +1,37 @@
+slug: calls-between-persons
+title: "Number of Calls Between Two Persons"
+difficulty: medium
+category: conditional-logic
+tags: [case, group-by, aggregation]
+domain: leetcode
+tables: [leetcode.lc1842_calls]
+description: |
+  Given a calls table with `from_id`, `to_id`, and `duration` columns, report the number of calls and the total call duration between each pair of distinct persons `(person1, person2)` where `person1 < person2`.
+
+  A call between persons A and B could appear as either `from_id=A, to_id=B` or `from_id=B, to_id=A`. Both should be counted as the same pair.
+
+  Return the following columns:
+  - `person1` - the smaller ID in the pair
+  - `person2` - the larger ID in the pair
+  - `call_count` - the total number of calls between them
+  - `total_duration` - the sum of all call durations between them
+
+  Return the result in **any order**.
+hints:
+  - "Use CASE or LEAST/GREATEST to normalize each row so person1 is always the smaller ID."
+  - "LEAST(from_id, to_id) gives you person1 and GREATEST(from_id, to_id) gives you person2."
+  - "Group by person1 and person2, then count rows and sum duration."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1842_calls
+order_matters: false
+solution: |
+  SELECT
+    LEAST(from_id, to_id) AS person1,
+    GREATEST(from_id, to_id) AS person2,
+    COUNT(*) AS call_count,
+    SUM(duration) AS total_duration
+  FROM leetcode.lc1842_calls
+  GROUP BY LEAST(from_id, to_id), GREATEST(from_id, to_id);
+expected_columns: [person1, person2, call_count, total_duration]

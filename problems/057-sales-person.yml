@@ -1,0 +1,34 @@
+slug: sales-person
+title: "Sales Person"
+difficulty: easy
+category: subqueries
+tags: [not-in, subquery, joins]
+domain: leetcode
+tables: [leetcode.lc607_sales_person, leetcode.lc607_company, leetcode.lc607_orders]
+description: |
+  Write a query to find the names of all salespersons who did not have any orders related to the company named "RED".
+
+  Return the following column:
+  - `name` - the name of the salesperson
+
+  Return the result in **any order**.
+hints:
+  - "First, find which salespersons have orders with the company 'RED' by joining the orders and company tables."
+  - "Use NOT IN or NOT EXISTS to exclude those salespersons from the full salesperson list."
+  - "Think about it as: all salespersons EXCEPT those who sold to 'RED'."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc607_sales_person
+order_matters: false
+solution: |
+  SELECT name
+  FROM leetcode.lc607_sales_person
+  WHERE sales_id NOT IN (
+    SELECT o.sales_id
+    FROM leetcode.lc607_orders o
+    JOIN leetcode.lc607_company c
+      ON o.com_id = c.com_id
+    WHERE c.name = 'RED'
+  );
+expected_columns: [name]

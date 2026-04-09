@@ -1,0 +1,31 @@
+slug: positive-revenue-customers
+title: "Find Customers With Positive Revenue This Year"
+difficulty: easy
+category: basic-select
+tags: [where, filtering, basics]
+domain: leetcode
+tables: [leetcode.lc1974_customers]
+description: |
+  You are given a **Customers** table containing `customer_id`, `year`, and `revenue` for each customer across different years. Note that revenue can be negative.
+
+  Write a query to find all customers who had **positive revenue** in the year **2021**.
+
+  Return the following column:
+  - `customer_id` - the customer identifier
+
+  Return the result in **any order**.
+hints:
+  - "You need two conditions: filter for the year 2021 AND revenue greater than zero."
+  - "A simple WHERE clause with both conditions is all you need."
+  - "Remember that revenue can be negative or zero -- only include strictly positive values."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1974_customers
+order_matters: false
+solution: |
+  SELECT customer_id
+  FROM leetcode.lc1974_customers
+  WHERE year = 2021
+    AND revenue > 0;
+expected_columns: [customer_id]

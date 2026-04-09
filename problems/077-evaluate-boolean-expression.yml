@@ -1,0 +1,45 @@
+slug: evaluate-boolean-expression
+title: "Evaluate Boolean Expression"
+difficulty: medium
+category: conditional-logic
+tags: [case, joins, operators]
+domain: leetcode
+tables: [leetcode.lc1565_variables, leetcode.lc1565_expressions]
+description: |
+  You have a table of variables with their integer values and a table of boolean expressions. Each expression consists of a left operand, an operator (>, <, or =), and a right operand. The operands reference variable names from the variables table.
+
+  Write a query to evaluate each boolean expression and return the result as 'true' or 'false'.
+
+  Return the following columns in this exact order:
+  - `left_operand` - the left variable name
+  - `operator` - the comparison operator
+  - `right_operand` - the right variable name
+  - `value` - the result of the expression ('true' or 'false')
+
+  Return the result in **any order**.
+hints:
+  - "Join the expressions table to the variables table twice: once for the left operand and once for the right operand."
+  - "SQL cannot dynamically evaluate an operator stored as a string. Use a CASE expression to handle each operator separately."
+  - "Use nested CASE: first match the operator, then compare the values, and return 'true' or 'false'."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1565_expressions
+order_matters: false
+solution: |
+  SELECT
+    e.left_operand,
+    e.operator,
+    e.right_operand,
+    CASE
+      WHEN e.operator = '>' AND v1.value > v2.value THEN 'true'
+      WHEN e.operator = '<' AND v1.value < v2.value THEN 'true'
+      WHEN e.operator = '=' AND v1.value = v2.value THEN 'true'
+      ELSE 'false'
+    END AS value
+  FROM leetcode.lc1565_expressions e
+  JOIN leetcode.lc1565_variables v1
+    ON e.left_operand = v1.name
+  JOIN leetcode.lc1565_variables v2
+    ON e.right_operand = v2.name;
+expected_columns: [left_operand, operator, right_operand, value]

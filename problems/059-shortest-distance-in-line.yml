@@ -1,0 +1,29 @@
+slug: shortest-distance-in-line
+title: "Shortest Distance in a Line"
+difficulty: easy
+category: joins
+tags: [cross-join, math, min]
+domain: leetcode
+tables: [leetcode.lc613_point]
+description: |
+  Given a table of points on the X-axis, find the shortest distance between any two distinct points.
+
+  Return the following column:
+  - `shortest` - the minimum absolute distance between any two points
+
+  Return exactly one row.
+hints:
+  - "You need to compare every point with every other point. A self-join or CROSS JOIN can pair up all combinations."
+  - "Use ABS(p1.x - p2.x) to calculate the distance between two points."
+  - "Make sure to exclude pairs where a point is compared with itself (p1.x != p2.x), then take the MIN."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc613_point
+order_matters: false
+solution: |
+  SELECT MIN(ABS(p1.x - p2.x)) AS shortest
+  FROM leetcode.lc613_point p1
+  CROSS JOIN leetcode.lc613_point p2
+  WHERE p1.x != p2.x;
+expected_columns: [shortest]

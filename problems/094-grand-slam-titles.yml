@@ -1,0 +1,49 @@
+slug: grand-slam-titles
+title: "Grand Slam Titles"
+difficulty: medium
+category: pivoting
+tags: [union-all, unpivot, aggregation]
+domain: leetcode
+tables: [leetcode.lc1932_players, leetcode.lc1932_championships]
+description: |
+  You are given two tables:
+
+  - **Players**: contains `player_id` and `player_name` for each tennis player.
+  - **Championships**: each row represents a year and records the `player_id` of the winner of each of four grand slam tournaments: `wimbledon`, `fr_open`, `us_open`, and `au_open`.
+
+  Write a query to report the **number of grand slam tournaments won** by each player. Do not include players who did not win any tournament.
+
+  Return the following columns in this exact order:
+  - `player_id` - the player identifier
+  - `player_name` - the player's name
+  - `grand_slams_count` - the total number of grand slam titles won
+
+  Return the result in **any order**.
+hints:
+  - "The championships data is stored in a wide format with one column per tournament. You need to unpivot it into rows."
+  - "Use UNION ALL to select each tournament column separately, creating one row per tournament win."
+  - "After unpivoting, JOIN with the Players table and COUNT the wins per player."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1932_championships
+order_matters: false
+solution: |
+  WITH all_wins AS (
+    SELECT wimbledon AS player_id FROM leetcode.lc1932_championships
+    UNION ALL
+    SELECT fr_open FROM leetcode.lc1932_championships
+    UNION ALL
+    SELECT us_open FROM leetcode.lc1932_championships
+    UNION ALL
+    SELECT au_open FROM leetcode.lc1932_championships
+  )
+  SELECT
+    w.player_id,
+    p.player_name,
+    COUNT(*) AS grand_slams_count
+  FROM all_wins w
+  JOIN leetcode.lc1932_players p
+    ON w.player_id = p.player_id
+  GROUP BY w.player_id, p.player_name;
+expected_columns: [player_id, player_name, grand_slams_count]

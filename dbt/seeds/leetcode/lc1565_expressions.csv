@@ -1,0 +1,7 @@
+left_operand,operator,right_operand
+x,>,y
+x,<,y
+x,=,y
+y,>,x
+y,<,x
+x,=,x

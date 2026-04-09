@@ -1,0 +1,38 @@
+slug: calculate-special-bonus
+title: "Calculate Special Bonus"
+difficulty: easy
+category: conditional-logic
+tags: [case, modulo, string-functions]
+domain: leetcode
+tables: [leetcode.lc2024_employees]
+description: |
+  You are given an **Employees** table with `employee_id`, `name`, and `salary`.
+
+  Write a query to calculate the bonus for each employee:
+  - The bonus is **100% of their salary** if the employee's ID is an **odd number** AND their name does **not** start with the letter 'M'.
+  - Otherwise, the bonus is **0**.
+
+  Return the following columns in this exact order:
+  - `employee_id` - the employee identifier
+  - `bonus` - the calculated bonus amount
+
+  Order the result by `employee_id` in **ascending** order.
+hints:
+  - "Use a CASE expression to apply the bonus logic conditionally."
+  - "Check for odd IDs with the modulo operator: employee_id % 2 = 1."
+  - "Use LEFT(name, 1) or name LIKE 'M%' to check if the name starts with 'M'."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc2024_employees
+order_matters: true
+solution: |
+  SELECT
+    employee_id,
+    CASE
+      WHEN employee_id % 2 = 1 AND left(name, 1) <> 'M' THEN salary
+      ELSE 0
+    END AS bonus
+  FROM leetcode.lc2024_employees
+  ORDER BY employee_id;
+expected_columns: [employee_id, bonus]

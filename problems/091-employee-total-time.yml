@@ -1,0 +1,35 @@
+slug: employee-total-time
+title: "Find Total Time Spent by Each Employee"
+difficulty: easy
+category: aggregation
+tags: [sum, group-by, arithmetic]
+domain: leetcode
+tables: [leetcode.lc1892_employees]
+description: |
+  You are given an **Employees** table that logs office entry and exit events. Each row records an employee entering at `in_time` and leaving at `out_time` (both in minutes from midnight, between 1 and 1440). An employee can enter and leave multiple times on the same day.
+
+  Write a query to calculate the **total time in minutes** spent by each employee on each day at the office. The time for a single entry is `out_time - in_time`.
+
+  Return the following columns in this exact order:
+  - `day` - the event date
+  - `emp_id` - the employee identifier
+  - `total_time` - total minutes spent in the office that day
+
+  Return the result in **any order**.
+hints:
+  - "Each row represents one entry/exit event. An employee may have multiple events per day."
+  - "Use GROUP BY on both the date and employee to aggregate per-employee per-day totals."
+  - "SUM(out_time - in_time) gives the total minutes for each group."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1892_employees
+order_matters: false
+solution: |
+  SELECT
+    event_day AS day,
+    emp_id,
+    SUM(out_time - in_time) AS total_time
+  FROM leetcode.lc1892_employees
+  GROUP BY event_day, emp_id;
+expected_columns: [day, emp_id, total_time]

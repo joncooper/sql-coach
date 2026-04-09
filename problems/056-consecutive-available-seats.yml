@@ -1,0 +1,38 @@
+slug: consecutive-available-seats
+title: "Consecutive Available Seats"
+difficulty: easy
+category: window-functions
+tags: [lag, lead, consecutive]
+domain: leetcode
+tables: [leetcode.lc603_cinema]
+description: |
+  Find all seats in the cinema that are part of a group of two or more consecutive free seats.
+
+  A seat is considered "consecutive" with another if their seat IDs differ by exactly 1 and both are free.
+
+  Return the following column:
+  - `seat_id` - the ID of each seat that is part of a consecutive free group
+
+  Order the results by `seat_id` in **ascending** order.
+hints:
+  - "Use LAG() and LEAD() window functions to look at the previous and next seat's availability."
+  - "First filter to only free seats, then check if a free seat has an adjacent free seat (previous or next seat_id differs by 1)."
+  - "A seat belongs to a consecutive group if it has a free neighbor on either side."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc603_cinema
+order_matters: true
+solution: |
+  SELECT seat_id
+  FROM (
+    SELECT
+      seat_id,
+      CASE WHEN seat_id - LAG(seat_id) OVER (ORDER BY seat_id) = 1 THEN 1 ELSE 0 END AS has_prev,
+      CASE WHEN LEAD(seat_id) OVER (ORDER BY seat_id) - seat_id = 1 THEN 1 ELSE 0 END AS has_next
+    FROM leetcode.lc603_cinema
+    WHERE free = true
+  ) s
+  WHERE has_prev = 1 OR has_next = 1
+  ORDER BY seat_id;
+expected_columns: [seat_id]

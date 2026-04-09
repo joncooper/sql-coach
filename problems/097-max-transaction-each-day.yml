@@ -1,0 +1,37 @@
+slug: max-transaction-each-day
+title: "Maximum Transaction Each Day"
+difficulty: medium
+category: window-functions
+tags: [rank, partition-by, date-functions]
+domain: leetcode
+tables: [leetcode.lc1981_transactions]
+description: |
+  You are given a **Transactions** table with columns `transaction_id`, `day` (a timestamp), and `amount`.
+
+  Write a query to find the transactions with the **maximum amount** on each day. If multiple transactions tie for the maximum on the same day, return all of them.
+
+  Return the following column:
+  - `transaction_id` - the transaction identifier
+
+  Order the result by `transaction_id` in **ascending** order.
+hints:
+  - "You need to group by the date portion of the timestamp. In PostgreSQL, cast a timestamp to date with ::date."
+  - "Use RANK() partitioned by the date to rank transactions by amount within each day."
+  - "Filter for rank = 1 to get the maximum transaction(s) per day, then order by transaction_id."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1981_transactions
+order_matters: true
+solution: |
+  WITH ranked AS (
+    SELECT
+      transaction_id,
+      RANK() OVER (PARTITION BY day::date ORDER BY amount DESC) AS rn
+    FROM leetcode.lc1981_transactions
+  )
+  SELECT transaction_id
+  FROM ranked
+  WHERE rn = 1
+  ORDER BY transaction_id;
+expected_columns: [transaction_id]

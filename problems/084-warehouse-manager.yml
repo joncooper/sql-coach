@@ -1,0 +1,34 @@
+slug: warehouse-manager
+title: "Warehouse Manager"
+difficulty: easy
+category: aggregation
+tags: [sum, multiplication, joins]
+domain: leetcode
+tables: [leetcode.lc1718_warehouse, leetcode.lc1718_products]
+description: |
+  Given a warehouse inventory table and a products table with dimensions, calculate the total volume of inventory in each warehouse.
+
+  The volume of a single product unit is `width * length * height`. The total volume for a product in a warehouse is `units * width * length * height`.
+
+  Return the following columns:
+  - `warehouse_name` - the name of the warehouse
+  - `volume` - the total cubic feet of volume occupied by all products in that warehouse
+
+  Return the result in **any order**.
+hints:
+  - "Join the warehouse table with the products table to get the dimensions for each product."
+  - "Calculate volume as units * width * length * height for each row."
+  - "Use SUM and GROUP BY warehouse name to get the total volume per warehouse."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1718_warehouse
+order_matters: false
+solution: |
+  SELECT
+    w.name AS warehouse_name,
+    SUM(w.units * p.width * p.length * p.height) AS volume
+  FROM leetcode.lc1718_warehouse w
+  LEFT JOIN leetcode.lc1718_products p ON w.product_id = p.product_id
+  GROUP BY w.name;
+expected_columns: [warehouse_name, volume]

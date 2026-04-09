@@ -1,0 +1,45 @@
+slug: page-recommendations
+title: "Page Recommendations"
+difficulty: medium
+category: joins
+tags: [joins, not-in, distinct]
+domain: leetcode
+tables: [leetcode.lc1399_friendship, leetcode.lc1399_likes]
+description: |
+  You are given two tables: a **Friendship** table representing bidirectional friendships between users, and a **Likes** table showing which pages each user likes.
+
+  Write a query to recommend pages to **user 1** based on the pages that their friends like. Do **not** recommend pages that user 1 already likes.
+
+  Return the following column:
+  - `recommended_page` - a page liked by a friend of user 1 (excluding pages user 1 already likes)
+
+  Return the result in **any order** without duplicates.
+hints:
+  - "First find all friends of user 1. Remember that friendships are bidirectional -- user 1 could appear in either the user1_id or user2_id column."
+  - "Join the friend list with the Likes table to find all pages liked by user 1's friends."
+  - "Use NOT IN or NOT EXISTS to exclude pages that user 1 already likes, and DISTINCT to remove duplicates."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1399_friendship
+order_matters: false
+solution: |
+  WITH friends AS (
+    SELECT user2_id AS friend_id
+    FROM leetcode.lc1399_friendship
+    WHERE user1_id = 1
+    UNION
+    SELECT user1_id AS friend_id
+    FROM leetcode.lc1399_friendship
+    WHERE user2_id = 1
+  )
+  SELECT DISTINCT l.page_id AS recommended_page
+  FROM friends f
+  JOIN leetcode.lc1399_likes l
+    ON f.friend_id = l.user_id
+  WHERE l.page_id NOT IN (
+    SELECT page_id
+    FROM leetcode.lc1399_likes
+    WHERE user_id = 1
+  );
+expected_columns: [recommended_page]

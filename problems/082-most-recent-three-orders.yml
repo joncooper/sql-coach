@@ -1,0 +1,42 @@
+slug: most-recent-three-orders
+title: "The Most Recent Three Orders"
+difficulty: medium
+category: window-functions
+tags: [rank, partition-by, top-n]
+domain: leetcode
+tables: [leetcode.lc1671_customers, leetcode.lc1671_orders]
+description: |
+  Given tables of customers and their orders, find the most recent **three orders** of each customer. If a customer has fewer than three orders, return all of their orders.
+
+  Return the following columns:
+  - `customer_name` - the customer's name
+  - `customer_id` - the customer's ID
+  - `order_id` - the order ID
+  - `order_date` - the date of the order
+
+  Order the result by `customer_name` ascending, then by `customer_id` ascending, then by `order_date` descending.
+hints:
+  - "Use a window function like RANK() or ROW_NUMBER() to number each customer's orders by date."
+  - "Partition by customer_id and order by order_date DESC to get the most recent orders first."
+  - "Filter for rows where the rank is <= 3 to keep only the top 3 most recent orders per customer."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1671_orders
+order_matters: true
+solution: |
+  WITH ranked AS (
+    SELECT
+      c.name AS customer_name,
+      o.customer_id,
+      o.order_id,
+      o.order_date,
+      RANK() OVER (PARTITION BY c.name, c.customer_id ORDER BY o.order_date DESC) AS rn
+    FROM leetcode.lc1671_orders o
+    LEFT JOIN leetcode.lc1671_customers c ON o.customer_id = c.customer_id
+  )
+  SELECT customer_name, customer_id, order_id, order_date
+  FROM ranked
+  WHERE rn <= 3
+  ORDER BY customer_name, customer_id, order_date DESC;
+expected_columns: [customer_name, customer_id, order_id, order_date]

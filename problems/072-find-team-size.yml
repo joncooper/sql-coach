@@ -1,0 +1,39 @@
+slug: find-team-size
+title: "Find the Team Size"
+difficulty: easy
+category: aggregation
+tags: [count, joins, subquery]
+domain: leetcode
+tables: [leetcode.lc1438_employee]
+description: |
+  You have a table of employees where each employee belongs to a team. Write a query to find the team size for each employee.
+
+  Return the following columns in this exact order:
+  - `employee_id` - the employee's ID
+  - `team_size` - the total number of employees on that employee's team
+
+  Return the result in **any order**.
+hints:
+  - "You need to count how many employees share the same team_id."
+  - "Consider using a subquery or CTE to first calculate the count per team, then join it back to the employee table."
+  - "Alternatively, you can use a window function: COUNT(*) OVER (PARTITION BY team_id)."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1438_employee
+order_matters: false
+solution: |
+  WITH team_counts AS (
+    SELECT
+      team_id,
+      COUNT(*) AS team_size
+    FROM leetcode.lc1438_employee
+    GROUP BY team_id
+  )
+  SELECT
+    e.employee_id,
+    tc.team_size
+  FROM leetcode.lc1438_employee e
+  JOIN team_counts tc
+    ON e.team_id = tc.team_id;
+expected_columns: [employee_id, team_size]

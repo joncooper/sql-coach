@@ -1,0 +1,31 @@
+slug: duplicate-emails
+title: "Duplicate Emails"
+difficulty: easy
+category: aggregation
+tags: [group-by, having, duplicates]
+domain: leetcode
+tables: [leetcode.lc182_person]
+description: |
+  Write a query to report all duplicate email addresses.
+
+  An email is considered a duplicate if it appears more than once in the table.
+
+  Return the following column:
+  - `email` - the duplicate email address
+
+  Return the result in **any order**.
+hints:
+  - "GROUP BY the email column to group identical emails together."
+  - "Use HAVING to filter groups — it works like WHERE but for aggregated results."
+  - "HAVING COUNT(*) > 1 will keep only emails that appear more than once."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc182_person
+order_matters: false
+solution: |
+  SELECT email
+  FROM leetcode.lc182_person
+  GROUP BY email
+  HAVING COUNT(*) > 1;
+expected_columns: [email]

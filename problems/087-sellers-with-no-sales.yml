@@ -1,0 +1,32 @@
+slug: sellers-with-no-sales
+title: "Sellers With No Sales"
+difficulty: easy
+category: joins
+tags: [left-join, null-check, date-functions]
+domain: leetcode
+tables: [leetcode.lc1749_customer, leetcode.lc1749_orders, leetcode.lc1749_seller]
+description: |
+  Given tables of customers, orders, and sellers, find the names of all sellers who did not make any sales in the year 2020.
+
+  Return the following column:
+  - `seller_name` - the name of the seller
+
+  Order the result by `seller_name` ascending.
+hints:
+  - "Use a LEFT JOIN from sellers to orders to find sellers with or without sales."
+  - "Use extract(year FROM sale_date) to check the year of each sale."
+  - "Sellers with no 2020 sales will have no matching 2020 orders -- look for NULL or zero counts."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1749_seller
+order_matters: true
+solution: |
+  SELECT s.seller_name
+  FROM leetcode.lc1749_seller s
+  LEFT JOIN leetcode.lc1749_orders o
+    ON s.seller_id = o.seller_id
+    AND extract(year FROM o.sale_date) = 2020
+  WHERE o.order_id IS NULL
+  ORDER BY s.seller_name;
+expected_columns: [seller_name]

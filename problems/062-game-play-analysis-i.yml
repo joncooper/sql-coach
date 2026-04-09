@@ -1,0 +1,33 @@
+slug: game-play-analysis-i
+title: "Game Play Analysis I"
+difficulty: easy
+category: window-functions
+tags: [min, partition-by, first-value]
+domain: leetcode
+tables: [leetcode.lc1179_activity]
+description: |
+  You are given an **Activity** table that tracks player logins. Each row records a player logging in on a specific date using a device and playing some number of games.
+
+  Write a query to find the **first login date** for each player.
+
+  Return the following columns in this exact order:
+  - `player_id` - the player identifier
+  - `first_login` - the earliest event_date for that player
+
+  Return the result in **any order**.
+hints:
+  - "You need the earliest date per player. Think about aggregate functions or window functions that can find the minimum value."
+  - "MIN(event_date) grouped by player_id gives the first login date directly."
+  - "Alternatively, you can use RANK() or ROW_NUMBER() partitioned by player_id, ordered by event_date, and pick the first row."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1179_activity
+order_matters: false
+solution: |
+  SELECT
+    player_id,
+    MIN(event_date) AS first_login
+  FROM leetcode.lc1179_activity
+  GROUP BY player_id;
+expected_columns: [player_id, first_login]

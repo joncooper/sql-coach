@@ -1,0 +1,32 @@
+slug: customer-largest-orders
+title: "Customer Placing the Largest Number of Orders"
+difficulty: easy
+category: aggregation
+tags: [group-by, count, order-by]
+domain: leetcode
+tables: [leetcode.lc586_orders]
+description: |
+  Write a query to find the customer who has placed the largest number of orders.
+
+  It is guaranteed that exactly one customer has placed more orders than any other.
+
+  Return the following column:
+  - `customer_number` - the customer number of the customer with the most orders
+
+  Return exactly one row.
+hints:
+  - "Use GROUP BY customer_number to count orders per customer."
+  - "Use COUNT(*) to count the number of orders for each customer."
+  - "Order by the count in descending order and use LIMIT 1 to get the top customer."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc586_orders
+order_matters: false
+solution: |
+  SELECT customer_number
+  FROM leetcode.lc586_orders
+  GROUP BY customer_number
+  ORDER BY COUNT(*) DESC
+  LIMIT 1;
+expected_columns: [customer_number]

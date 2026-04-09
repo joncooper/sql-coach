@@ -1,0 +1,35 @@
+slug: students-invalid-departments
+title: "Students With Invalid Departments"
+difficulty: easy
+category: joins
+tags: [left-join, null-check, anti-join]
+domain: leetcode
+tables: [leetcode.lc1481_departments, leetcode.lc1481_students]
+description: |
+  You have a table of university departments and a table of students. Some students are enrolled in departments that no longer exist in the departments table.
+
+  Write a query to find the ID and name of all students who are enrolled in departments that no longer exist.
+
+  Return the following columns in this exact order:
+  - `id` - the student's ID
+  - `name` - the student's name
+
+  Return the result in **any order**.
+hints:
+  - "You need to find students whose department_id does not match any id in the departments table."
+  - "A LEFT JOIN from students to departments will produce NULL values for departments that don't exist."
+  - "Filter for rows where the department's id IS NULL after the LEFT JOIN to find students in invalid departments."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1481_students
+order_matters: false
+solution: |
+  SELECT
+    s.id,
+    s.name
+  FROM leetcode.lc1481_students s
+  LEFT JOIN leetcode.lc1481_departments d
+    ON s.department_id = d.id
+  WHERE d.id IS NULL;
+expected_columns: [id, name]

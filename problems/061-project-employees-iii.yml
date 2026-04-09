@@ -1,0 +1,40 @@
+slug: project-employees-iii
+title: "Project Employees III"
+difficulty: medium
+category: window-functions
+tags: [rank, partition-by, joins]
+domain: leetcode
+tables: [leetcode.lc1163_project, leetcode.lc1163_employee]
+description: |
+  You are given two tables: a **Project** table that maps employees to projects, and an **Employee** table with each employee's name and years of experience.
+
+  Write a query to report the **most experienced** employees in each project. If there is a tie (multiple employees share the maximum experience years for a project), report all of them.
+
+  Return the following columns in this exact order:
+  - `project_id` - the project identifier
+  - `employee_id` - the employee identifier
+
+  Return the result in **any order**.
+hints:
+  - "You need to find the employee(s) with the highest experience_years within each project. Consider using a window function that handles ties."
+  - "RANK() assigns the same rank to tied values, unlike ROW_NUMBER() which breaks ties arbitrarily."
+  - "Use RANK() OVER (PARTITION BY project_id ORDER BY experience_years DESC) and filter for rank = 1."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1163_project
+order_matters: false
+solution: |
+  WITH ranked AS (
+    SELECT
+      p.project_id,
+      p.employee_id,
+      RANK() OVER (PARTITION BY p.project_id ORDER BY e.experience_years DESC) AS rn
+    FROM leetcode.lc1163_project p
+    JOIN leetcode.lc1163_employee e
+      ON p.employee_id = e.employee_id
+  )
+  SELECT project_id, employee_id
+  FROM ranked
+  WHERE rn = 1;
+expected_columns: [project_id, employee_id]

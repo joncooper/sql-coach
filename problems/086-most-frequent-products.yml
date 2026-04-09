@@ -1,0 +1,49 @@
+slug: most-frequent-products
+title: "Most Frequently Ordered Products"
+difficulty: medium
+category: aggregation
+tags: [count, max, subquery]
+domain: leetcode
+tables: [leetcode.lc1735_customers, leetcode.lc1735_orders, leetcode.lc1735_products]
+description: |
+  Given tables of customers, orders, and products, find the most frequently ordered product(s) for each customer.
+
+  If a customer has multiple products tied for the highest order count, return all of them. Customers who have never placed an order should not appear in the result.
+
+  Return the following columns:
+  - `customer_id` - the customer's ID
+  - `product_id` - the product's ID
+  - `product_name` - the name of the product
+
+  Return the result in **any order**.
+hints:
+  - "First count how many times each customer ordered each product using GROUP BY."
+  - "Then find the maximum order count per customer."
+  - "Join or filter to keep only the products matching each customer's maximum count."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1735_orders
+order_matters: false
+solution: |
+  WITH product_counts AS (
+    SELECT
+      o.customer_id,
+      o.product_id,
+      p.product_name,
+      COUNT(o.product_id) AS cnt
+    FROM leetcode.lc1735_orders o
+    LEFT JOIN leetcode.lc1735_customers c ON o.customer_id = c.customer_id
+    LEFT JOIN leetcode.lc1735_products p ON o.product_id = p.product_id
+    GROUP BY o.customer_id, o.product_id, p.product_name
+  ),
+  max_counts AS (
+    SELECT customer_id, MAX(cnt) AS max_cnt
+    FROM product_counts
+    GROUP BY customer_id
+  )
+  SELECT pc.customer_id, pc.product_id, pc.product_name
+  FROM product_counts pc
+  JOIN max_counts mc ON pc.customer_id = mc.customer_id
+  WHERE pc.cnt = mc.max_cnt;
+expected_columns: [customer_id, product_id, product_name]

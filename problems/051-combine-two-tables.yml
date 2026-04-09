@@ -1,0 +1,38 @@
+slug: combine-two-tables
+title: "Combine Two Tables"
+difficulty: easy
+category: joins
+tags: [left-join, select, basics]
+domain: leetcode
+tables: [leetcode.lc175_person, leetcode.lc175_address]
+description: |
+  Write a query to report the first name, last name, city, and state of each person.
+
+  If the address of a person is not present in the address table, report `NULL` instead.
+
+  Return the following columns in this exact order:
+  - `first_name` - the person's first name
+  - `last_name` - the person's last name
+  - `city` - the city from their address (or NULL if no address exists)
+  - `state` - the state from their address (or NULL if no address exists)
+
+  Return the result in **any order**.
+hints:
+  - "You need to include all persons even if they don't have an address. Which type of JOIN preserves all rows from one table?"
+  - "A LEFT JOIN keeps all rows from the left table and fills in NULLs where there is no match on the right."
+  - "Join the two tables on person_id and select the required columns."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc175_person
+order_matters: false
+solution: |
+  SELECT
+    p.first_name,
+    p.last_name,
+    a.city,
+    a.state
+  FROM leetcode.lc175_person p
+  LEFT JOIN leetcode.lc175_address a
+    ON p.person_id = a.person_id;
+expected_columns: [first_name, last_name, city, state]

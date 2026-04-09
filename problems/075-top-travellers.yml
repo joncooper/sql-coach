@@ -1,0 +1,36 @@
+slug: top-travellers
+title: "Top Travellers"
+difficulty: easy
+category: aggregation
+tags: [sum, coalesce, left-join]
+domain: leetcode
+tables: [leetcode.lc1541_users, leetcode.lc1541_rides]
+description: |
+  You have a table of users and a table of rides. Each ride records the distance a user traveled.
+
+  Write a query to report the total distance traveled by each user. If a user has no rides, their traveled distance should be reported as 0.
+
+  Return the following columns in this exact order:
+  - `name` - the user's name
+  - `travelled_distance` - the total distance traveled by the user
+
+  Order the results by `travelled_distance` in **descending** order. If two or more users traveled the same distance, order them by `name` in **ascending** order.
+hints:
+  - "Use a LEFT JOIN from users to rides so that users with no rides are still included."
+  - "Use COALESCE to convert NULL sums to 0 for users who have no rides."
+  - "Remember to GROUP BY user id and name, then order by distance descending and name ascending."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1541_users
+order_matters: true
+solution: |
+  SELECT
+    u.name,
+    COALESCE(SUM(r.distance), 0) AS travelled_distance
+  FROM leetcode.lc1541_users u
+  LEFT JOIN leetcode.lc1541_rides r
+    ON u.id = r.user_id
+  GROUP BY u.id, u.name
+  ORDER BY travelled_distance DESC, name ASC;
+expected_columns: [name, travelled_distance]

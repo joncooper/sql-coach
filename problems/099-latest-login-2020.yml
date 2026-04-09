@@ -1,0 +1,34 @@
+slug: latest-login-2020
+title: "The Latest Login in 2020"
+difficulty: easy
+category: aggregation
+tags: [max, filtering, date-functions]
+domain: leetcode
+tables: [leetcode.lc2041_logins]
+description: |
+  You are given a **Logins** table with `user_id` and `time_stamp` (a timestamp recording when the user logged in).
+
+  Write a query to report the **latest (most recent) login** for each user in the year **2020**. Do not include users who did not log in during 2020.
+
+  Return the following columns in this exact order:
+  - `user_id` - the user identifier
+  - `last_stamp` - the latest login timestamp in 2020
+
+  Return the result in **any order**.
+hints:
+  - "Filter rows to only include logins from the year 2020 before aggregating."
+  - "Use EXTRACT(YEAR FROM time_stamp) = 2020 to filter for the correct year."
+  - "Use MAX(time_stamp) grouped by user_id to find the latest login per user."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc2041_logins
+order_matters: false
+solution: |
+  SELECT
+    user_id,
+    MAX(time_stamp) AS last_stamp
+  FROM leetcode.lc2041_logins
+  WHERE EXTRACT(YEAR FROM time_stamp) = 2020
+  GROUP BY user_id;
+expected_columns: [user_id, last_stamp]

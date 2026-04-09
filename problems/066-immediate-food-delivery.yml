@@ -1,0 +1,36 @@
+slug: immediate-food-delivery
+title: "Immediate Food Delivery I"
+difficulty: easy
+category: aggregation
+tags: [case, percentage, rounding]
+domain: leetcode
+tables: [leetcode.lc1291_delivery]
+description: |
+  You are given a **Delivery** table that holds information about food delivery orders. Each order has an order date and a customer's preferred delivery date.
+
+  If the preferred delivery date is the **same** as the order date, the order is called **immediate**; otherwise, it is called **scheduled**.
+
+  Write a query to find the **percentage of immediate orders**, rounded to **2 decimal places**.
+
+  Return the following column:
+  - `immediate_percentage` - the percentage of immediate orders, rounded to 2 decimal places
+
+  Return the result as a single row.
+hints:
+  - "An order is immediate when order_date equals customer_pref_delivery_date. You need to count these and divide by the total number of orders."
+  - "Use a CASE expression inside SUM() to count immediate orders: SUM(CASE WHEN order_date = customer_pref_delivery_date THEN 1 ELSE 0 END)."
+  - "Multiply by 100.0 (not 100) to force decimal division, then use ROUND(..., 2) for the final result."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1291_delivery
+order_matters: false
+solution: |
+  SELECT
+    ROUND(
+      SUM(CASE WHEN order_date = customer_pref_delivery_date THEN 1 ELSE 0 END) * 100.0
+      / COUNT(*),
+      2
+    ) AS immediate_percentage
+  FROM leetcode.lc1291_delivery;
+expected_columns: [immediate_percentage]

@@ -1,0 +1,38 @@
+slug: game-play-analysis-iii
+title: "Game Play Analysis III"
+difficulty: medium
+category: window-functions
+tags: [running-total, sum, window-frame]
+domain: leetcode
+tables: [leetcode.lc1179_activity]
+description: |
+  You are given an **Activity** table that tracks player logins. Each row records a player logging in on a specific date and playing some number of games.
+
+  Write a query to report, for each player and date, the **cumulative number of games played so far** by that player up to and including that date.
+
+  Return the following columns in this exact order:
+  - `player_id` - the player identifier
+  - `event_date` - the login date
+  - `games_played_so_far` - the running total of games played by this player up to this date
+
+  Return the result in **any order**.
+hints:
+  - "You need a running total of games_played per player, ordered by date. This is a classic use case for window functions."
+  - "SUM() can be used as a window function with PARTITION BY and ORDER BY to compute running totals."
+  - "Use SUM(games_played) OVER (PARTITION BY player_id ORDER BY event_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1179_activity
+order_matters: false
+solution: |
+  SELECT
+    player_id,
+    event_date,
+    SUM(games_played) OVER (
+      PARTITION BY player_id
+      ORDER BY event_date
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS games_played_so_far
+  FROM leetcode.lc1179_activity;
+expected_columns: [player_id, event_date, games_played_so_far]

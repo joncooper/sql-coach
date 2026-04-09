@@ -1,0 +1,53 @@
+slug: quiet-students-in-exams
+title: "Find the Quiet Students in All Exams"
+difficulty: hard
+category: window-functions
+tags: [min, max, window-functions, not-in]
+domain: leetcode
+tables: [leetcode.lc1546_student, leetcode.lc1546_exam]
+description: |
+  A "quiet" student is one who took at least one exam and never scored the highest or the lowest score in any exam they took.
+
+  Write a query to find all quiet students. Do not include students who never took any exam.
+
+  Return the following columns in this exact order:
+  - `student_id` - the student's ID
+  - `student_name` - the student's name
+
+  Order the results by `student_id` in **ascending** order.
+hints:
+  - "Use window functions MIN() and MAX() partitioned by exam_id to find the lowest and highest scores for each exam."
+  - "Identify students who ever scored the highest or lowest in any exam, then exclude them."
+  - "The quiet students are those who took at least one exam AND are NOT in the set of students who scored the min or max in any exam."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1546_student
+order_matters: false
+solution: |
+  WITH exam_extremes AS (
+    SELECT
+      exam_id,
+      student_id,
+      score,
+      MIN(score) OVER (PARTITION BY exam_id) AS min_score,
+      MAX(score) OVER (PARTITION BY exam_id) AS max_score
+    FROM leetcode.lc1546_exam
+  ),
+  loud_students AS (
+    SELECT DISTINCT student_id
+    FROM exam_extremes
+    WHERE score = min_score OR score = max_score
+  ),
+  exam_takers AS (
+    SELECT DISTINCT student_id
+    FROM leetcode.lc1546_exam
+  )
+  SELECT
+    s.student_id,
+    s.student_name
+  FROM leetcode.lc1546_student s
+  JOIN exam_takers et ON s.student_id = et.student_id
+  WHERE s.student_id NOT IN (SELECT student_id FROM loud_students)
+  ORDER BY s.student_id;
+expected_columns: [student_id, student_name]

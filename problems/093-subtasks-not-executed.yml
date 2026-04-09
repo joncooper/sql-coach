@@ -1,0 +1,40 @@
+slug: subtasks-not-executed
+title: "Find the Subtasks That Did Not Execute"
+difficulty: hard
+category: joins
+tags: [generate-series, cross-join, anti-join]
+domain: leetcode
+tables: [leetcode.lc1914_tasks, leetcode.lc1914_executed]
+description: |
+  You are given two tables:
+
+  - **Tasks**: each row has a `task_id` and a `subtasks_count` indicating how many subtasks it has (labeled 1 through `subtasks_count`). The subtasks_count is between 2 and 20.
+  - **Executed**: each row records that `subtask_id` of a given `task_id` was executed successfully.
+
+  Write a query to find all subtasks that were **not executed** for each task.
+
+  Return the following columns in this exact order:
+  - `task_id` - the task identifier
+  - `subtask_id` - the missing subtask identifier
+
+  Return the result in **any order**.
+hints:
+  - "You need to generate all possible (task_id, subtask_id) combinations first, then find which ones are missing from the Executed table."
+  - "PostgreSQL's generate_series(1, N) function can produce a sequence of numbers from 1 to N -- cross join this with each task."
+  - "Use a LEFT JOIN with the Executed table and filter for NULL matches to find subtasks that were never executed."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1914_tasks
+order_matters: false
+solution: |
+  SELECT
+    t.task_id,
+    s.subtask_id
+  FROM leetcode.lc1914_tasks t
+  CROSS JOIN LATERAL generate_series(1, t.subtasks_count) AS s(subtask_id)
+  LEFT JOIN leetcode.lc1914_executed e
+    ON t.task_id = e.task_id
+    AND s.subtask_id = e.subtask_id
+  WHERE e.task_id IS NULL;
+expected_columns: [task_id, subtask_id]

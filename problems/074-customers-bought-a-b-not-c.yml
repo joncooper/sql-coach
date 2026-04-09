@@ -1,0 +1,40 @@
+slug: customers-bought-a-b-not-c
+title: "Customers Who Bought Products A and B but Not C"
+difficulty: medium
+category: aggregation
+tags: [group-by, having, conditional]
+domain: leetcode
+tables: [leetcode.lc1536_customers, leetcode.lc1536_orders]
+description: |
+  You have a table of customers and a table of orders. Each order records which product a customer bought.
+
+  Write a query to find customers who bought both products "A" and "B" but did not buy product "C". These are the customers you want to recommend product C to.
+
+  Return the following columns in this exact order:
+  - `customer_id` - the customer's ID
+  - `customer_name` - the customer's name
+
+  Order the results by `customer_id` in **ascending** order.
+hints:
+  - "Think about how to check whether a customer has purchased a specific product. You can use conditional aggregation with SUM(CASE ...) or BOOL_OR."
+  - "Group orders by customer and use HAVING to filter for customers who bought A and B but not C."
+  - "SUM(CASE WHEN product_name = 'A' THEN 1 ELSE 0 END) > 0 checks if a customer bought product A."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1536_customers
+order_matters: true
+solution: |
+  SELECT
+    c.customer_id,
+    c.customer_name
+  FROM leetcode.lc1536_customers c
+  JOIN leetcode.lc1536_orders o
+    ON c.customer_id = o.customer_id
+  GROUP BY c.customer_id, c.customer_name
+  HAVING
+    SUM(CASE WHEN o.product_name = 'A' THEN 1 ELSE 0 END) > 0
+    AND SUM(CASE WHEN o.product_name = 'B' THEN 1 ELSE 0 END) > 0
+    AND SUM(CASE WHEN o.product_name = 'C' THEN 1 ELSE 0 END) = 0
+  ORDER BY c.customer_id;
+expected_columns: [customer_id, customer_name]

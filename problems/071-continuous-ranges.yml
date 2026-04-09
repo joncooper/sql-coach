@@ -1,0 +1,40 @@
+slug: continuous-ranges
+title: "Find the Start and End Number of Continuous Ranges"
+difficulty: medium
+category: gaps-and-islands
+tags: [row-number, gaps-and-islands, grouping]
+domain: leetcode
+tables: [leetcode.lc1420_logs]
+description: |
+  Given a table of log IDs, find the start and end number of each continuous range of IDs.
+
+  A continuous range is a sequence of IDs where each ID is exactly one more than the previous. For example, IDs 1, 2, 3 form a continuous range from 1 to 3.
+
+  Return the following columns in this exact order:
+  - `start_id` - the first ID in the continuous range
+  - `end_id` - the last ID in the continuous range
+
+  Order the results by `start_id` in **ascending** order.
+hints:
+  - "This is a classic gaps-and-islands problem. Consider what happens when you subtract a row number from each log_id."
+  - "If log_id values are consecutive, the difference (log_id - row_number) will be constant for the entire group."
+  - "Use ROW_NUMBER() to assign sequential numbers, compute the difference as a grouping key, then find MIN and MAX within each group."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1420_logs
+order_matters: true
+solution: |
+  WITH numbered AS (
+    SELECT
+      log_id,
+      log_id - ROW_NUMBER() OVER (ORDER BY log_id) AS grp
+    FROM leetcode.lc1420_logs
+  )
+  SELECT
+    MIN(log_id) AS start_id,
+    MAX(log_id) AS end_id
+  FROM numbered
+  GROUP BY grp
+  ORDER BY start_id;
+expected_columns: [start_id, end_id]

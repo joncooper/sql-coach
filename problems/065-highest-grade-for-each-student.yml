@@ -1,0 +1,40 @@
+slug: highest-grade-for-each-student
+title: "Highest Grade For Each Student"
+difficulty: medium
+category: window-functions
+tags: [rank, partition-by, ordering]
+domain: leetcode
+tables: [leetcode.lc1214_enrollments]
+description: |
+  You are given an **Enrollments** table containing student course enrollments with their grades.
+
+  Write a query to find the **highest grade** with its corresponding course for each student. In case of a tie (multiple courses with the same highest grade), return the course with the **smallest course_id**.
+
+  Return the following columns in this exact order:
+  - `student_id` - the student identifier
+  - `course_id` - the course with the highest grade (smallest course_id to break ties)
+  - `grade` - the highest grade achieved
+
+  Order the results by `student_id` in **ascending** order.
+hints:
+  - "You need the row with the highest grade per student, breaking ties by smallest course_id. A window function with multi-column ordering can handle this."
+  - "RANK() OVER (PARTITION BY student_id ORDER BY grade DESC, course_id ASC) ranks each enrollment within a student, preferring higher grades and lower course IDs."
+  - "Filter for rank = 1 in the outer query, then order by student_id."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1214_enrollments
+order_matters: true
+solution: |
+  SELECT student_id, course_id, grade
+  FROM (
+    SELECT
+      student_id,
+      course_id,
+      grade,
+      RANK() OVER (PARTITION BY student_id ORDER BY grade DESC, course_id ASC) AS rnk
+    FROM leetcode.lc1214_enrollments
+  ) s
+  WHERE rnk = 1
+  ORDER BY student_id;
+expected_columns: [student_id, course_id, grade]

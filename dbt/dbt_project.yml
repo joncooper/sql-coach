@@ -17,3 +17,5 @@ seeds:
       +schema: ecommerce
     analytics:
       +schema: analytics
+    leetcode:
+      +schema: leetcode

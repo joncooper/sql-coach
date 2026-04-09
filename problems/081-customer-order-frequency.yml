@@ -1,0 +1,36 @@
+slug: customer-monthly-spending
+title: "Customer Order Frequency"
+difficulty: easy
+category: aggregation
+tags: [group-by, having, date-functions]
+domain: leetcode
+tables: [leetcode.lc1654_customers, leetcode.lc1654_product, leetcode.lc1654_orders]
+description: |
+  Given tables of customers, products (with prices), and orders (with quantities), find the customers who spent at least $100 in **both** June 2020 and July 2020.
+
+  The total spending for a month is calculated as `SUM(quantity * price)` for all orders in that month.
+
+  Return the following columns:
+  - `customer_id` - the customer's ID
+  - `name` - the customer's name
+
+  Return the result in **any order**.
+hints:
+  - "Join orders with products to get the price, then calculate total spending per customer per month."
+  - "Use to_char(order_date, 'YYYY-MM') or extract() to group orders by month."
+  - "Use HAVING to filter for customers who spent >= 100 in June, then check that they also spent >= 100 in July."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1654_orders
+order_matters: false
+solution: |
+  SELECT o.customer_id, c.name
+  FROM leetcode.lc1654_orders o
+  JOIN leetcode.lc1654_customers c ON o.customer_id = c.customer_id
+  JOIN leetcode.lc1654_product p ON o.product_id = p.product_id
+  GROUP BY o.customer_id, c.name
+  HAVING
+    SUM(CASE WHEN to_char(o.order_date, 'YYYY-MM') = '2020-06' THEN o.quantity * p.price ELSE 0 END) >= 100
+    AND SUM(CASE WHEN to_char(o.order_date, 'YYYY-MM') = '2020-07' THEN o.quantity * p.price ELSE 0 END) >= 100;
+expected_columns: [customer_id, name]

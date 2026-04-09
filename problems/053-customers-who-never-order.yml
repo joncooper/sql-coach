@@ -1,0 +1,30 @@
+slug: customers-who-never-order
+title: "Customers Who Never Order"
+difficulty: easy
+category: joins
+tags: [left-join, null-check, anti-join]
+domain: leetcode
+tables: [leetcode.lc183_customers, leetcode.lc183_orders]
+description: |
+  Write a query to find all customers who have never placed an order.
+
+  Return the following column:
+  - `customers` - the name of the customer who never ordered
+
+  Return the result in **any order**.
+hints:
+  - "Think about which customers exist in the customers table but have no matching rows in the orders table."
+  - "A LEFT JOIN combined with a NULL check on the joined table's key column is one approach (an anti-join pattern)."
+  - "Alternatively, you can use a subquery with NOT IN to find customer IDs that don't appear in the orders table."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc183_customers
+order_matters: false
+solution: |
+  SELECT c.name AS customers
+  FROM leetcode.lc183_customers c
+  LEFT JOIN leetcode.lc183_orders o
+    ON c.id = o.customer_id
+  WHERE o.id IS NULL;
+expected_columns: [customers]

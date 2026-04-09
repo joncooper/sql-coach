@@ -1,0 +1,40 @@
+slug: rearrange-products-table
+title: "Rearrange Products Table"
+difficulty: easy
+category: pivoting
+tags: [union-all, unpivot, case]
+domain: leetcode
+tables: [leetcode.lc1948_products]
+description: |
+  You are given a **Products** table where each row contains a `product_id` and its price in three different stores: `store1`, `store2`, and `store3`. If a product is not available in a store, the price is NULL.
+
+  Write a query to rearrange the table so that each row has three columns: `product_id`, `store`, and `price`. If a product is not available in a store, do **not** include that row.
+
+  Return the following columns in this exact order:
+  - `product_id` - the product identifier
+  - `store` - the store name (one of 'store1', 'store2', 'store3')
+  - `price` - the price at that store
+
+  Return the result in **any order**.
+hints:
+  - "This is an unpivoting problem -- you need to transform columns into rows."
+  - "Use UNION ALL to create separate rows for each store column, filtering out NULLs."
+  - "Each SELECT in the UNION should produce the product_id, a literal string for the store name, and the corresponding price column."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1948_products
+order_matters: false
+solution: |
+  SELECT product_id, 'store1' AS store, store1 AS price
+  FROM leetcode.lc1948_products
+  WHERE store1 IS NOT NULL
+  UNION ALL
+  SELECT product_id, 'store2' AS store, store2 AS price
+  FROM leetcode.lc1948_products
+  WHERE store2 IS NOT NULL
+  UNION ALL
+  SELECT product_id, 'store3' AS store, store3 AS price
+  FROM leetcode.lc1948_products
+  WHERE store3 IS NOT NULL;
+expected_columns: [product_id, store, price]

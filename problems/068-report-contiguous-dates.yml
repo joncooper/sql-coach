@@ -1,0 +1,57 @@
+slug: report-contiguous-dates
+title: "Report Contiguous Dates"
+difficulty: hard
+category: gaps-and-islands
+tags: [row-number, union-all, gaps-and-islands]
+domain: leetcode
+tables: [leetcode.lc1357_failed, leetcode.lc1357_succeeded]
+description: |
+  A system runs one task every day. Each task either fails or succeeds, recorded in separate **Failed** and **Succeeded** tables.
+
+  Write a query to report the `period_state` for each continuous interval of days in the period from **2019-01-01** to **2019-12-31**.
+
+  - `period_state` is `'failed'` if tasks in the interval failed, or `'succeeded'` if tasks in the interval succeeded.
+  - Each interval should show its `start_date` and `end_date`.
+
+  Dates outside the year 2019 should be ignored.
+
+  Return the following columns in this exact order:
+  - `period_state` - either 'failed' or 'succeeded'
+  - `start_date` - the first date of the contiguous period
+  - `end_date` - the last date of the contiguous period
+
+  Order the results by `start_date` in **ascending** order.
+hints:
+  - "This is a gaps-and-islands problem. You need to identify contiguous runs of the same status (failed or succeeded)."
+  - "UNION ALL the two tables with a status label, then use ROW_NUMBER() to detect breaks in continuity. The key insight: for consecutive dates, (date - ROW_NUMBER()) produces the same value."
+  - "Subtract a ROW_NUMBER() (partitioned by status, ordered by date) from the date itself. Consecutive same-status dates will share the same difference, forming a group you can aggregate with MIN/MAX."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1357_failed
+order_matters: true
+solution: |
+  WITH all_dates AS (
+    SELECT 'failed' AS period_state, fail_date AS dt
+    FROM leetcode.lc1357_failed
+    WHERE fail_date >= '2019-01-01' AND fail_date <= '2019-12-31'
+    UNION ALL
+    SELECT 'succeeded' AS period_state, success_date AS dt
+    FROM leetcode.lc1357_succeeded
+    WHERE success_date >= '2019-01-01' AND success_date <= '2019-12-31'
+  ),
+  grouped AS (
+    SELECT
+      period_state,
+      dt,
+      dt - CAST(ROW_NUMBER() OVER (PARTITION BY period_state ORDER BY dt) AS int) * INTERVAL '1 day' AS grp
+    FROM all_dates
+  )
+  SELECT
+    period_state,
+    MIN(dt) AS start_date,
+    MAX(dt) AS end_date
+  FROM grouped
+  GROUP BY period_state, grp
+  ORDER BY start_date;
+expected_columns: [period_state, start_date, end_date]

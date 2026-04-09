@@ -1,0 +1,33 @@
+slug: bank-account-summary
+title: "Bank Account Summary II"
+difficulty: easy
+category: aggregation
+tags: [sum, having, joins]
+domain: leetcode
+tables: [leetcode.lc1734_users, leetcode.lc1734_transactions]
+description: |
+  Given a users table and a transactions table, find all users whose account balance exceeds 10,000.
+
+  All accounts start with a balance of 0. The balance is the sum of all transaction amounts (positive for deposits, negative for withdrawals).
+
+  Return the following columns:
+  - `name` - the user's name
+  - `balance` - the total account balance
+
+  Return the result in **any order**.
+hints:
+  - "Join users with transactions on the account column."
+  - "Use SUM(amount) to calculate each user's total balance."
+  - "Use HAVING to filter for balances greater than 10000."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1734_transactions
+order_matters: false
+solution: |
+  SELECT u.name, SUM(t.amount) AS balance
+  FROM leetcode.lc1734_transactions t
+  LEFT JOIN leetcode.lc1734_users u ON t.account = u.account
+  GROUP BY u.name
+  HAVING SUM(t.amount) > 10000;
+expected_columns: [name, balance]

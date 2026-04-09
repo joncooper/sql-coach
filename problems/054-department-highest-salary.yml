@@ -1,0 +1,43 @@
+slug: department-highest-salary
+title: "Department Highest Salary"
+difficulty: medium
+category: window-functions
+tags: [rank, partition-by, joins]
+domain: leetcode
+tables: [leetcode.lc184_employee, leetcode.lc184_department]
+description: |
+  Write a query to find the employees who have the highest salary in each department.
+
+  If multiple employees in the same department share the highest salary, include all of them.
+
+  Return the following columns in this exact order:
+  - `department` - the name of the department
+  - `employee` - the name of the employee with the highest salary
+  - `salary` - the highest salary value
+
+  Return the result in **any order**.
+hints:
+  - "You need to find the maximum salary per department, then find all employees matching that maximum."
+  - "Consider using RANK() with PARTITION BY department to rank employees by salary within each department."
+  - "Join the employee table with the department table to get department names, then filter for rank = 1."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc184_employee e
+  JOIN leetcode.lc184_department d ON d.id = e.department_id
+order_matters: false
+solution: |
+  WITH ranked AS (
+    SELECT
+      d.name AS department,
+      e.name AS employee,
+      e.salary,
+      RANK() OVER (PARTITION BY d.name ORDER BY e.salary DESC) AS rn
+    FROM leetcode.lc184_employee e
+    JOIN leetcode.lc184_department d
+      ON e.department_id = d.id
+  )
+  SELECT department, employee, salary
+  FROM ranked
+  WHERE rn = 1;
+expected_columns: [department, employee, salary]

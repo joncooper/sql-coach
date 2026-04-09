@@ -1,0 +1,38 @@
+slug: game-play-analysis-ii
+title: "Game Play Analysis II"
+difficulty: easy
+category: window-functions
+tags: [row-number, partition-by]
+domain: leetcode
+tables: [leetcode.lc1179_activity]
+description: |
+  You are given an **Activity** table that tracks player logins. Each row records a player logging in on a specific date using a device and playing some number of games.
+
+  Write a query to report the **device** that each player used to log in for the **first time**.
+
+  Return the following columns in this exact order:
+  - `player_id` - the player identifier
+  - `device_id` - the device used on the player's first login
+
+  Return the result in **any order**.
+hints:
+  - "You need the device_id from each player's earliest login. Unlike just finding the date, you also need to retrieve the device column from that specific row."
+  - "ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY event_date) assigns 1 to the first login row for each player."
+  - "Wrap in a subquery or CTE and filter where the row number equals 1."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1179_activity
+order_matters: false
+solution: |
+  WITH ranked AS (
+    SELECT
+      player_id,
+      device_id,
+      ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY event_date) AS rn
+    FROM leetcode.lc1179_activity
+  )
+  SELECT player_id, device_id
+  FROM ranked
+  WHERE rn = 1;
+expected_columns: [player_id, device_id]

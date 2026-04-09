@@ -1,0 +1,38 @@
+slug: banned-accounts
+title: "Banned Accounts"
+difficulty: medium
+category: joins
+tags: [self-join, overlap, distinct]
+domain: leetcode
+tables: [leetcode.lc1898_log_info]
+description: |
+  You are given a **LogInfo** table that records login sessions for user accounts. Each row contains an `account_id`, the `ip_address` used, and the `login`/`logout` timestamps for that session.
+
+  An account should be **banned** if it was logged in from **two different IP addresses** at the same time (i.e., their login sessions overlap).
+
+  Two sessions overlap if one session's login time falls within the other session's login-to-logout window (inclusive of endpoints).
+
+  Write a query to find all `account_id` values that should be banned.
+
+  Return the following column:
+  - `account_id` - the banned account identifier
+
+  Return the result in **any order**, with no duplicates.
+hints:
+  - "You need to compare pairs of sessions for the same account. Consider a self-join on account_id."
+  - "Two sessions overlap when one starts before the other ends. Make sure the IP addresses differ."
+  - "Use a condition like l1.ip_address < l2.ip_address to avoid comparing a session with itself and to avoid duplicate pairs."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1898_log_info
+order_matters: false
+solution: |
+  SELECT DISTINCT l1.account_id
+  FROM leetcode.lc1898_log_info l1
+  JOIN leetcode.lc1898_log_info l2
+    ON l1.account_id = l2.account_id
+    AND l1.ip_address < l2.ip_address
+  WHERE l1.logout >= l2.login
+    AND l2.logout >= l1.login;
+expected_columns: [account_id]

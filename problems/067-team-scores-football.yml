@@ -1,0 +1,68 @@
+slug: team-scores-football
+title: "Team Scores in Football Tournament"
+difficulty: medium
+category: conditional-logic
+tags: [case, union-all, aggregation]
+domain: leetcode
+tables: [leetcode.lc1339_teams, leetcode.lc1339_matches]
+description: |
+  You are given two tables: a **Teams** table listing football teams, and a **Matches** table recording finished matches with goals scored by each side.
+
+  Points are awarded as follows:
+  - **3 points** for a win (scored more goals than the opponent)
+  - **1 point** for a draw (same number of goals as the opponent)
+  - **0 points** for a loss (scored fewer goals than the opponent)
+
+  Write a query to compute the total points for each team across all matches.
+
+  Return the following columns in this exact order:
+  - `team_id` - the team identifier
+  - `team_name` - the team name
+  - `num_points` - the total points earned
+
+  Order the results by `num_points` in **descending** order. In case of a tie, order by `team_id` in **ascending** order.
+
+  **Note:** Teams that did not play any matches should appear with 0 points.
+hints:
+  - "Each match produces points for both the host and guest team. Consider computing each team's points from their perspective."
+  - "Use CASE expressions to assign 3, 1, or 0 points for each team in each match. Then use UNION ALL to combine host and guest results into a single list of (team, points) rows."
+  - "LEFT JOIN the teams table to the aggregated points to ensure teams with no matches still appear with 0 points. Use COALESCE for NULLs."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1339_teams
+order_matters: true
+solution: |
+  WITH match_points AS (
+    SELECT
+      host_team AS team_id,
+      CASE
+        WHEN host_goals > guest_goals THEN 3
+        WHEN host_goals = guest_goals THEN 1
+        ELSE 0
+      END AS points
+    FROM leetcode.lc1339_matches
+    UNION ALL
+    SELECT
+      guest_team AS team_id,
+      CASE
+        WHEN guest_goals > host_goals THEN 3
+        WHEN guest_goals = host_goals THEN 1
+        ELSE 0
+      END AS points
+    FROM leetcode.lc1339_matches
+  ),
+  team_points AS (
+    SELECT team_id, SUM(points) AS num_points
+    FROM match_points
+    GROUP BY team_id
+  )
+  SELECT
+    t.team_id,
+    t.team_name,
+    COALESCE(tp.num_points, 0) AS num_points
+  FROM leetcode.lc1339_teams t
+  LEFT JOIN team_points tp
+    ON t.team_id = tp.team_id
+  ORDER BY num_points DESC, t.team_id ASC;
+expected_columns: [team_id, team_name, num_points]

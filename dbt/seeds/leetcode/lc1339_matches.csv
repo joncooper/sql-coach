@@ -1,0 +1,6 @@
+match_id,host_team,guest_team,host_goals,guest_goals
+1,10,20,3,0
+2,30,10,2,2
+3,10,50,5,1
+4,20,30,1,0
+5,50,30,1,0

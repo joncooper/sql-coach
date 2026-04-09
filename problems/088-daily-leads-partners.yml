@@ -1,0 +1,35 @@
+slug: daily-leads-partners
+title: "Daily Leads and Partners"
+difficulty: easy
+category: aggregation
+tags: [count-distinct, group-by]
+domain: leetcode
+tables: [leetcode.lc1837_daily_sales]
+description: |
+  Given a daily sales table containing the date, product make name, lead ID, and partner ID for each sale, find the number of distinct leads and distinct partners for each combination of date and make name.
+
+  Return the following columns:
+  - `date_id` - the date of the sales
+  - `make_name` - the product make name
+  - `unique_leads` - the count of distinct lead IDs
+  - `unique_partners` - the count of distinct partner IDs
+
+  Return the result in **any order**.
+hints:
+  - "Use COUNT(DISTINCT column) to count unique values."
+  - "Group by both date_id and make_name to get counts per day per make."
+  - "You can compute both COUNT(DISTINCT lead_id) and COUNT(DISTINCT partner_id) in a single query."
+starter_code: |
+  SELECT
+    -- your query here
+  FROM leetcode.lc1837_daily_sales
+order_matters: false
+solution: |
+  SELECT
+    date_id,
+    make_name,
+    COUNT(DISTINCT lead_id) AS unique_leads,
+    COUNT(DISTINCT partner_id) AS unique_partners
+  FROM leetcode.lc1837_daily_sales
+  GROUP BY date_id, make_name;
+expected_columns: [date_id, make_name, unique_leads, unique_partners]
