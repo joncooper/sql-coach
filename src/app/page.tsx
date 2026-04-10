@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import DifficultyBadge from "@/components/DifficultyBadge";
 import MasteryIndicator from "@/components/MasteryIndicator";
+import GenerateProblem from "@/components/GenerateProblem";
+import { useLlmStatus } from "@/hooks/useLlmStatus";
 import {
   loadStats,
   computeMasteryLevel,
@@ -23,6 +25,7 @@ interface ProblemSummary {
   difficulty: "easy" | "medium" | "hard";
   category: string;
   tags: string[];
+  isGenerated?: boolean;
 }
 
 type Difficulty = "all" | "easy" | "medium" | "hard";
@@ -40,6 +43,7 @@ export default function Home() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [stats, setStats] = useState<StatsStore | null>(null);
+  const { available: llmAvailable } = useLlmStatus();
 
   useEffect(() => {
     fetch("/api/problems")
@@ -230,6 +234,11 @@ export default function Home() {
                       className="font-medium text-zinc-200 hover:text-blue-400"
                     >
                       {problem.title}
+                      {problem.isGenerated && (
+                        <span className="ml-1.5 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
+                          AI
+                        </span>
+                      )}
                     </a>
                   </td>
                   <td className="px-3 py-2">
@@ -361,6 +370,16 @@ export default function Home() {
             </div>
           );
         })()}
+
+        {llmAvailable && (
+          <div className="mb-5 border-t border-zinc-800 pt-4">
+            <GenerateProblem
+              onGenerated={(slug) => {
+                window.location.href = `/problems/${slug}`;
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

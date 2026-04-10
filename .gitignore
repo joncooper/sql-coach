@@ -7,3 +7,6 @@ dbt/logs/
 dbt/dbt_packages/
 *.pyc
 __pycache__/
+.gstack/
+evals/results/
+generated/

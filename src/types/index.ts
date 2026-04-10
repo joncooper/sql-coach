@@ -20,6 +20,7 @@ export interface ProblemSummary {
   difficulty: "easy" | "medium" | "hard";
   category: string;
   tags: string[];
+  isGenerated?: boolean;
 }
 
 export interface QueryResult {

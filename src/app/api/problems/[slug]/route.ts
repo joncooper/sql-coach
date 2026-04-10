@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProblem, getAdjacentSlugs } from "@/lib/problems";
 import { getTableSchema, getSampleData } from "@/lib/db";
+import { getGenerated, ensureGeneratedSchema } from "@/lib/generated";
 
 export async function GET(
   _request: NextRequest,
@@ -14,6 +15,12 @@ export async function GET(
       { error: "Problem not found" },
       { status: 404 }
     );
+  }
+
+  // Ensure generated problem schema exists in PG
+  const generated = await getGenerated(slug);
+  if (generated) {
+    await ensureGeneratedSchema(generated);
   }
 
   const schemaRows = await getTableSchema(problem.tables);

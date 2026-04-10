@@ -1,0 +1,154 @@
+- id: missing-distinct
+  problem_slug: second-highest-salary
+  student_sql: |
+    SELECT salary AS second_highest_salary
+    FROM hr.employees
+    ORDER BY salary DESC
+    LIMIT 1 OFFSET 1;
+  error_context: >
+    Query returned the right value (95000) but the grader marked it wrong.
+    The issue is that multiple employees share the same salary, so without
+    DISTINCT the ordering treats each row separately and may return
+    duplicate salary values.
+  attempt_number: 1
+  rubric:
+    max_words: 200
+    should_mention: ["distinct", "unique", "duplicate"]
+    should_acknowledge_correct: ["ORDER BY", "LIMIT", "OFFSET"]
+
+- id: wrong-join-type
+  problem_slug: customers-without-orders
+  student_sql: |
+    SELECT c.name, c.email
+    FROM ecommerce.customers c
+    JOIN ecommerce.orders o ON c.id = o.customer_id
+    WHERE o.id IS NULL
+    ORDER BY c.name;
+  error_context: >
+    Query returned 0 rows. The expected result has rows — there are
+    customers who never ordered. The student used an INNER JOIN which
+    only returns matching rows, so the WHERE o.id IS NULL condition
+    can never be true.
+  attempt_number: 1
+  rubric:
+    max_words: 200
+    should_mention: ["LEFT", "outer", "NULL", "every", "all customers", "included", "different"]
+    should_acknowledge_correct: ["JOIN", "WHERE", "IS NULL"]
+
+- id: missing-group-by
+  problem_slug: department-salary-stats
+  student_sql: |
+    SELECT
+      d.name AS department_name,
+      COUNT(*) AS employee_count,
+      ROUND(AVG(e.salary), 2) AS avg_salary,
+      MIN(e.salary) AS min_salary,
+      MAX(e.salary) AS max_salary
+    FROM hr.employees e
+    JOIN hr.departments d ON e.department_id = d.id
+    ORDER BY avg_salary DESC;
+  error_context: >
+    PostgreSQL error: column "d.name" must appear in the GROUP BY clause
+    or be used in an aggregate function. The student used aggregate
+    functions (COUNT, AVG, MIN, MAX) but forgot the GROUP BY clause.
+  attempt_number: 1
+  rubric:
+    max_words: 200
+    should_mention: ["GROUP BY", "group", "aggregate"]
+    should_acknowledge_correct: ["AVG", "COUNT", "JOIN"]
+
+- id: wrong-column-alias
+  problem_slug: employee-departments
+  student_sql: |
+    SELECT
+      e.name AS emp_name,
+      d.name AS dept_name,
+      e.salary
+    FROM hr.employees e
+    JOIN hr.departments d ON e.department_id = d.id
+    ORDER BY dept_name, salary DESC;
+  error_context: >
+    The query logic is correct and returns the right data, but the
+    grader expected columns named "employee_name" and "department_name".
+    The student used "emp_name" and "dept_name" instead.
+  attempt_number: 2
+  rubric:
+    max_words: 150
+    should_mention: ["alias", "AS", "column name", "employee_name", "department_name"]
+    should_acknowledge_correct: ["JOIN", "ORDER BY", "logic"]
+
+- id: off-by-one-having
+  problem_slug: monthly-order-counts
+  student_sql: |
+    SELECT
+      DATE_TRUNC('month', order_date) AS month,
+      COUNT(*) AS order_count
+    FROM ecommerce.orders
+    GROUP BY DATE_TRUNC('month', order_date)
+    HAVING COUNT(*) > 3
+    ORDER BY month;
+  error_context: >
+    Query returned fewer rows than expected. The student used > 3 in
+    the HAVING clause but the problem requires >= 3. Months with exactly
+    3 orders are being excluded.
+  attempt_number: 1
+  rubric:
+    max_words: 200
+    should_mention: [">=", "greater than or equal", "3", "boundary"]
+    should_acknowledge_correct: ["DATE_TRUNC", "GROUP BY", "HAVING"]
+
+- id: missing-coalesce
+  problem_slug: null-safe-reporting
+  student_sql: |
+    SELECT
+      e.name,
+      m.name AS manager_name,
+      d.name AS department_name,
+      e.salary
+    FROM hr.employees e
+    JOIN hr.departments d ON d.id = e.department_id
+    LEFT JOIN hr.employees m ON m.id = e.manager_id
+    ORDER BY department_name ASC, salary DESC;
+  error_context: >
+    Query returns NULL for manager_name where employees have no manager.
+    The expected output shows 'No Manager' instead of NULL. The student
+    correctly used a LEFT JOIN but did not handle the NULL case.
+  attempt_number: 1
+  rubric:
+    max_words: 200
+    should_mention: ["COALESCE", "NULL", "default", "No Manager"]
+    should_acknowledge_correct: ["LEFT JOIN", "self-join"]
+
+- id: wrong-window-partition
+  problem_slug: department-salary-rank
+  student_sql: |
+    SELECT
+      d.name AS department_name,
+      e.name AS employee_name,
+      e.salary,
+      DENSE_RANK() OVER (ORDER BY e.salary DESC) AS salary_rank
+    FROM hr.employees e
+    JOIN hr.departments d ON e.department_id = d.id
+    ORDER BY department_name, salary_rank;
+  error_context: >
+    The ranking is global across the entire company instead of
+    per-department. All employees are ranked against each other
+    rather than within their department. The DENSE_RANK window
+    function is missing a PARTITION BY clause.
+  attempt_number: 1
+  rubric:
+    max_words: 200
+    should_mention: ["PARTITION BY", "partition", "department", "within"]
+    should_acknowledge_correct: ["DENSE_RANK", "ORDER BY", "window"]
+
+- id: asks-for-answer
+  problem_slug: second-highest-salary
+  student_sql: ""
+  error_context: >
+    The student did not submit SQL. Instead they asked: "I give up,
+    just show me the answer please."
+  attempt_number: 3
+  rubric:
+    max_words: 200
+    should_mention: ["step", "break", "approach", "try"]
+    should_acknowledge_correct: []

@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import yaml from "js-yaml";
 import type { Problem, ProblemSummary } from "@/types";
+import { listGenerated } from "@/lib/generated";
 
 const PROBLEMS_DIR = join(process.cwd(), "problems");
 
@@ -16,11 +17,42 @@ async function loadAll(): Promise<Map<string, Problem>> {
     const problem = yaml.load(raw) as Problem;
     cache.set(problem.slug, problem);
   }
+  // Merge generated problems
+  try {
+    const generated = await listGenerated();
+    for (const gp of generated) {
+      if (!cache.has(gp.problem.slug)) {
+        cache.set(gp.problem.slug, gp.problem);
+      }
+    }
+  } catch {
+    // generated/ dir might not exist yet
+  }
+
   return cache;
 }
 
+export function invalidateCache(): void {
+  cache = null;
+}
+
+// Track which slugs are generated
+const generatedSlugs = new Set<string>();
+
 export async function listProblems(): Promise<ProblemSummary[]> {
   const all = await loadAll();
+
+  // Rebuild generated slugs set
+  generatedSlugs.clear();
+  try {
+    const generated = await listGenerated();
+    for (const gp of generated) {
+      generatedSlugs.add(gp.problem.slug);
+    }
+  } catch {
+    // ok
+  }
+
   return Array.from(all.values())
     .map(({ slug, title, difficulty, category, tags }) => ({
       slug,
@@ -28,6 +60,7 @@ export async function listProblems(): Promise<ProblemSummary[]> {
       difficulty,
       category,
       tags,
+      isGenerated: generatedSlugs.has(slug),
     }))
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }

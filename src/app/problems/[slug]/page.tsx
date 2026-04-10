@@ -8,6 +8,8 @@ import DifficultyBadge from "@/components/DifficultyBadge";
 import SchemaExplorer from "@/components/SchemaExplorer";
 import SampleData from "@/components/SampleData";
 import ResultsTable from "@/components/ResultsTable";
+import CoachingChat from "@/components/CoachingChat";
+import { useLlmStatus } from "@/hooks/useLlmStatus";
 import { loadStats, recordAttempt, recordHintReveal, recordSolutionViewed, isReviewDue, computeMasteryLevel, getSolvedCount } from "@/lib/stats";
 import type { QueryResult, RowDiff, MasteryLevel } from "@/types";
 
@@ -83,6 +85,8 @@ export default function ProblemPage({
   const [attemptCount, setAttemptCount] = useState(0);
   const [solution, setSolution] = useState<string | null>(null);
   const [reviewDue, setReviewDue] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const { available: llmAvailable } = useLlmStatus();
   const [masteryTransition, setMasteryTransition] = useState<{ from: MasteryLevel; to: MasteryLevel } | null>(null);
   const [totalSolved, setTotalSolved] = useState(0);
 
@@ -523,6 +527,32 @@ export default function ProblemPage({
                     <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-300">
                       {submitResult.coaching}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Coaching Chat */}
+              {isWrong && llmAvailable && (
+                <div className="shrink-0 border-b border-zinc-800">
+                  {!coachOpen ? (
+                    <button
+                      onClick={() => setCoachOpen(true)}
+                      className="w-full px-4 py-2 text-left text-sm text-blue-400 hover:bg-zinc-900/50"
+                    >
+                      Ask AI Coach for help&hellip;
+                    </button>
+                  ) : (
+                    <CoachingChat
+                      problemContext={{
+                        description: problem.description,
+                        tables: problem.tables,
+                        studentSql: code,
+                        errorContext: submitResult.coaching,
+                        attemptNumber: attemptCount,
+                      }}
+                      isOpen={coachOpen}
+                      onToggle={() => setCoachOpen(false)}
+                    />
                   )}
                 </div>
               )}
