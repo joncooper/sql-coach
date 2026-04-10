@@ -38,7 +38,7 @@ export default function CoachingChat({
   const [streamedContent, setStreamedContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [input, setInput] = useState("");
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const initializedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevSqlRef = useRef(problemContext.studentSql);
 
@@ -111,16 +111,16 @@ export default function CoachingChat({
 
   // Auto-send first coaching request when opened
   useEffect(() => {
-    if (isOpen && !hasInitialized) {
-      setHasInitialized(true);
+    if (isOpen && !initializedRef.current) {
+      initializedRef.current = true;
       sendCoachingRequest([]);
     }
-  }, [isOpen, hasInitialized, sendCoachingRequest]);
+  }, [isOpen, sendCoachingRequest]);
 
   // Detect re-submission (student SQL changed)
   useEffect(() => {
     if (
-      hasInitialized &&
+      initializedRef.current &&
       problemContext.studentSql !== prevSqlRef.current &&
       problemContext.studentSql.trim()
     ) {
