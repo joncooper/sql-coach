@@ -4,7 +4,7 @@ difficulty: medium
 category: set-operations
 tags: [intersect, joins, distinct, set-operations]
 domain: analytics
-tables: [analytics.users, analytics.sessions, analytics.page_views]
+tables: [users, sessions, page_views]
 description: |
   Find users who visited **both** `/dashboard` and `/reports` within the **same session**.
 
@@ -22,13 +22,13 @@ starter_code: |
   -- Find users who visited both /dashboard and /reports in the same session
   SELECT DISTINCT
     username
-  FROM analytics.users
+  FROM users
 order_matters: true
 solution: |
   SELECT DISTINCT u.username
-  FROM analytics.users u
-  JOIN analytics.sessions s ON s.user_id = u.id
-  JOIN analytics.page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/dashboard'
-  JOIN analytics.page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/reports'
+  FROM users u
+  JOIN sessions s ON s.user_id = u.id
+  JOIN page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/dashboard'
+  JOIN page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/reports'
   ORDER BY u.username;
 expected_columns: [username]

@@ -3,8 +3,8 @@ title: "Team Scores in Football Tournament"
 difficulty: medium
 category: conditional-logic
 tags: [case, union-all, aggregation]
-domain: leetcode
-tables: [leetcode.lc1339_teams, leetcode.lc1339_matches]
+domain: lc1339
+tables: [teams, matches]
 description: |
   You are given two tables: a **Teams** table listing football teams, and a **Matches** table recording finished matches with goals scored by each side.
 
@@ -30,7 +30,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1339_teams
+  FROM teams
 order_matters: true
 solution: |
   WITH match_points AS (
@@ -41,7 +41,7 @@ solution: |
         WHEN host_goals = guest_goals THEN 1
         ELSE 0
       END AS points
-    FROM leetcode.lc1339_matches
+    FROM matches
     UNION ALL
     SELECT
       guest_team AS team_id,
@@ -50,7 +50,7 @@ solution: |
         WHEN guest_goals = host_goals THEN 1
         ELSE 0
       END AS points
-    FROM leetcode.lc1339_matches
+    FROM matches
   ),
   team_points AS (
     SELECT team_id, SUM(points) AS num_points
@@ -61,7 +61,7 @@ solution: |
     t.team_id,
     t.team_name,
     COALESCE(tp.num_points, 0) AS num_points
-  FROM leetcode.lc1339_teams t
+  FROM teams t
   LEFT JOIN team_points tp
     ON t.team_id = tp.team_id
   ORDER BY num_points DESC, t.team_id ASC;

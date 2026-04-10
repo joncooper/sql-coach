@@ -4,7 +4,7 @@ difficulty: medium
 category: aggregations
 tags: [aggregation, window-functions, percentage, joins]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Calculate each customer's share of total **completed** order revenue.
 
@@ -29,8 +29,8 @@ starter_code: |
     SUM(o.total_amount) AS customer_revenue,
     -- calculate total_revenue
     -- calculate revenue_pct
-  FROM ecommerce.orders o
-  JOIN ecommerce.customers c ON c.id = o.customer_id
+  FROM orders o
+  JOIN customers c ON c.id = o.customer_id
   WHERE o.status = 'completed'
   GROUP BY c.name
   ORDER BY revenue_pct DESC
@@ -40,8 +40,8 @@ solution: |
     SELECT
       c.name AS customer_name,
       SUM(o.total_amount) AS customer_revenue
-    FROM ecommerce.orders o
-    JOIN ecommerce.customers c ON c.id = o.customer_id
+    FROM orders o
+    JOIN customers c ON c.id = o.customer_id
     WHERE o.status = 'completed'
     GROUP BY c.name
   )

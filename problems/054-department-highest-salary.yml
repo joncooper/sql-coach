@@ -3,8 +3,8 @@ title: "Department Highest Salary"
 difficulty: medium
 category: window-functions
 tags: [rank, partition-by, joins]
-domain: leetcode
-tables: [leetcode.lc184_employee, leetcode.lc184_department]
+domain: lc184
+tables: [employee, department]
 description: |
   Write a query to find the employees who have the highest salary in each department.
 
@@ -23,8 +23,8 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc184_employee e
-  JOIN leetcode.lc184_department d ON d.id = e.department_id
+  FROM employee e
+  JOIN department d ON d.id = e.department_id
 order_matters: false
 solution: |
   WITH ranked AS (
@@ -33,8 +33,8 @@ solution: |
       e.name AS employee,
       e.salary,
       RANK() OVER (PARTITION BY d.name ORDER BY e.salary DESC) AS rn
-    FROM leetcode.lc184_employee e
-    JOIN leetcode.lc184_department d
+    FROM employee e
+    JOIN department d
       ON e.department_id = d.id
   )
   SELECT department, employee, salary

@@ -3,8 +3,8 @@ title: "Duplicate Emails"
 difficulty: easy
 category: aggregation
 tags: [group-by, having, duplicates]
-domain: leetcode
-tables: [leetcode.lc182_person]
+domain: lc182
+tables: [person]
 description: |
   Write a query to report all duplicate email addresses.
 
@@ -21,11 +21,11 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc182_person
+  FROM person
 order_matters: false
 solution: |
   SELECT email
-  FROM leetcode.lc182_person
+  FROM person
   GROUP BY email
   HAVING COUNT(*) > 1;
 expected_columns: [email]

@@ -4,11 +4,11 @@ difficulty: hard
 category: gaps-and-islands
 tags: [generate-series, gaps-and-islands, date-arithmetic, cte]
 domain: ecommerce
-tables: [ecommerce.orders]
+tables: [orders]
 description: |
   Find gaps in daily order activity -- date ranges where **no orders were placed**.
 
-  Use `generate_series` to create a date spine from the first to the last order date in the `ecommerce.orders` table, then identify contiguous ranges of dates with no orders. This is a classic **gaps-and-islands** problem.
+  Use `generate_series` to create a date spine from the first to the last order date in the `orders` table, then identify contiguous ranges of dates with no orders. This is a classic **gaps-and-islands** problem.
 
   Return the following columns in this exact order:
   - `gap_start` - the first date in the gap (DATE)
@@ -17,7 +17,7 @@ description: |
 
   Order the results by `gap_start` ascending.
 hints:
-  - "Use generate_series((SELECT MIN(order_date) FROM ecommerce.orders), (SELECT MAX(order_date) FROM ecommerce.orders), '1 day'::interval) to build a complete date spine."
+  - "Use generate_series((SELECT MIN(order_date) FROM orders), (SELECT MAX(order_date) FROM orders), '1 day'::interval) to build a complete date spine."
   - "LEFT JOIN or use NOT EXISTS to find dates with no orders."
   - "To group consecutive no-order dates into ranges, subtract a ROW_NUMBER() sequence from each date -- consecutive dates will produce the same value, forming islands."
   - "GROUP BY the island identifier, then take MIN(date) as gap_start and MAX(date) as gap_end."
@@ -41,15 +41,15 @@ order_matters: true
 solution: |
   WITH date_spine AS (
     SELECT generate_series(
-      (SELECT MIN(order_date) FROM ecommerce.orders),
-      (SELECT MAX(order_date) FROM ecommerce.orders),
+      (SELECT MIN(order_date) FROM orders),
+      (SELECT MAX(order_date) FROM orders),
       '1 day'::interval
     )::date AS d
   ),
   no_order_dates AS (
     SELECT ds.d
     FROM date_spine ds
-    LEFT JOIN ecommerce.orders o ON o.order_date = ds.d
+    LEFT JOIN orders o ON o.order_date = ds.d
     WHERE o.id IS NULL
   ),
   grouped AS (

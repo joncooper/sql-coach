@@ -4,7 +4,7 @@ difficulty: easy
 category: data-quality
 tags: [group-by, having, joins]
 domain: hr
-tables: [hr.employees, hr.departments]
+tables: [employees, departments]
 description: |
   Find employees who share the **same salary** within the **same department**.
 
@@ -23,8 +23,8 @@ hints:
 starter_code: |
   SELECT
     -- department_name, salary, employee_count
-  FROM hr.employees e
-  JOIN hr.departments d ON d.id = e.department_id
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
   -- complete the query
 order_matters: true
 solution: |
@@ -32,8 +32,8 @@ solution: |
     d.name AS department_name,
     e.salary,
     COUNT(*) AS employee_count
-  FROM hr.employees e
-  JOIN hr.departments d ON d.id = e.department_id
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
   GROUP BY d.name, e.salary
   HAVING COUNT(*) > 1
   ORDER BY department_name ASC, salary DESC;

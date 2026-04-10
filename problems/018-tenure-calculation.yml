@@ -4,7 +4,7 @@ difficulty: medium
 category: date-functions
 tags: [date-functions, age, extract, casting]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Calculate each employee's tenure in complete years as of **2024-01-01**.
 
@@ -25,13 +25,13 @@ starter_code: |
     name,
     hire_date,
     -- calculate tenure in years
-  FROM hr.employees
+  FROM employees
 order_matters: true
 solution: |
   SELECT
     name,
     hire_date,
     EXTRACT(YEAR FROM AGE('2024-01-01'::date, hire_date))::INTEGER AS tenure_years
-  FROM hr.employees
+  FROM employees
   ORDER BY tenure_years DESC, name ASC;
 expected_columns: [name, hire_date, tenure_years]

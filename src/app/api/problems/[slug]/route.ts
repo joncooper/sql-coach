@@ -23,12 +23,13 @@ export async function GET(
     await ensureGeneratedSchema(generated);
   }
 
-  const schemaRows = await getTableSchema(problem.tables);
+  const domain = problem.domain;
+  const schemaRows = await getTableSchema(problem.tables, domain);
 
-  // Group schema rows by table
+  // Group schema rows by table (use just the table name, not schema-qualified)
   const tables: Record<string, { column_name: string; data_type: string; is_nullable: string }[]> = {};
   for (const row of schemaRows) {
-    const key = `${row.table_schema}.${row.table_name}`;
+    const key = row.table_name;
     if (!tables[key]) tables[key] = [];
     tables[key].push({
       column_name: row.column_name,
@@ -37,13 +38,13 @@ export async function GET(
     });
   }
 
-  const samples = await getSampleData(problem.tables);
+  const samples = await getSampleData(problem.tables, domain);
   const adjacent = await getAdjacentSlugs(slug);
 
   // Run solution to get expected output example
   let expectedOutput: { columns: string[]; rows: unknown[][] } | null = null;
   try {
-    const solResult = await executeAdminQuery(problem.solution);
+    const solResult = await executeAdminQuery(problem.solution, [domain]);
     expectedOutput = { columns: solResult.columns, rows: solResult.rows };
   } catch {
     // If solution fails (shouldn't happen), just omit expected output

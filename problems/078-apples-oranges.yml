@@ -3,8 +3,8 @@ title: "Apples & Oranges"
 difficulty: medium
 category: joins
 tags: [self-join, conditional, pivoting]
-domain: leetcode
-tables: [leetcode.lc1578_sales]
+domain: lc1578
+tables: [sales]
 description: |
   You have a sales table that records the number of apples and oranges sold each day.
 
@@ -22,14 +22,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1578_sales
+  FROM sales
 order_matters: true
 solution: |
   SELECT
     s1.sale_date,
     s1.sold_num - s2.sold_num AS diff
-  FROM leetcode.lc1578_sales s1
-  JOIN leetcode.lc1578_sales s2
+  FROM sales s1
+  JOIN sales s2
     ON s1.sale_date = s2.sale_date
     AND s1.fruit = 'apples'
     AND s2.fruit = 'oranges'

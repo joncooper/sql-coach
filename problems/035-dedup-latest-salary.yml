@@ -4,9 +4,9 @@ difficulty: medium
 category: data-quality
 tags: [row-number, deduplication, window-functions, joins]
 domain: hr
-tables: [hr.employees, hr.salaries]
+tables: [employees, salaries]
 description: |
-  Some employees have multiple salary records in the `hr.salaries` table. Using `ROW_NUMBER()`, find the **latest** (most recent `effective_date`) salary record for each employee.
+  Some employees have multiple salary records in the `salaries` table. Using `ROW_NUMBER()`, find the **latest** (most recent `effective_date`) salary record for each employee.
 
   Return the following columns in this exact order:
   - `name` - the employee's name
@@ -17,7 +17,7 @@ description: |
 hints:
   - "Use ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY effective_date DESC) to rank salary records per employee."
   - "Wrap in a CTE or subquery and filter where row_number = 1."
-  - "Join to hr.employees to get the employee name."
+  - "Join to employees to get the employee name."
 starter_code: |
   WITH latest AS (
     SELECT
@@ -27,12 +27,12 @@ starter_code: |
       ROW_NUMBER() OVER (
         -- partition and order here
       ) AS rn
-    FROM hr.salaries
+    FROM salaries
   )
   SELECT
     -- your query here
   FROM latest
-  JOIN hr.employees e ON e.id = latest.employee_id
+  JOIN employees e ON e.id = latest.employee_id
   WHERE rn = 1
   ORDER BY amount DESC
 order_matters: true
@@ -45,14 +45,14 @@ solution: |
       ROW_NUMBER() OVER (
         PARTITION BY employee_id ORDER BY effective_date DESC
       ) AS rn
-    FROM hr.salaries
+    FROM salaries
   )
   SELECT
     e.name,
     latest.effective_date,
     latest.amount
   FROM latest
-  JOIN hr.employees e ON e.id = latest.employee_id
+  JOIN employees e ON e.id = latest.employee_id
   WHERE latest.rn = 1
   ORDER BY latest.amount DESC;
 expected_columns: [name, effective_date, amount]

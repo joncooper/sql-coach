@@ -4,7 +4,7 @@ difficulty: medium
 category: joins
 tags: [left-join, null-check, anti-join]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Find customers who have **never** placed an order. These are customers that exist in the customers table but have no matching rows in the orders table.
 
@@ -20,15 +20,15 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM ecommerce.customers c
+  FROM customers c
   LEFT JOIN ...
 order_matters: true
 solution: |
   SELECT
     c.name,
     c.email
-  FROM ecommerce.customers c
-  LEFT JOIN ecommerce.orders o ON c.id = o.customer_id
+  FROM customers c
+  LEFT JOIN orders o ON c.id = o.customer_id
   WHERE o.id IS NULL
   ORDER BY c.name;
 expected_columns: [name, email]

@@ -4,7 +4,7 @@ difficulty: easy
 category: string-functions
 tags: [string-functions, aggregation, split-part]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Extract the email domain from each employee's email address and count how many employees use each domain.
 
@@ -22,13 +22,13 @@ starter_code: |
   SELECT
     -- extract domain from email
     -- count employees per domain
-  FROM hr.employees
+  FROM employees
 order_matters: true
 solution: |
   SELECT
     SPLIT_PART(email, '@', 2) AS domain,
     COUNT(*) AS employee_count
-  FROM hr.employees
+  FROM employees
   GROUP BY SPLIT_PART(email, '@', 2)
   ORDER BY employee_count DESC;
 expected_columns: [domain, employee_count]

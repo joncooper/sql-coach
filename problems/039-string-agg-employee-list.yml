@@ -4,7 +4,7 @@ difficulty: easy
 category: string-functions
 tags: [string-agg, aggregation, joins, ordering]
 domain: hr
-tables: [hr.departments, hr.employees]
+tables: [departments, employees]
 description: |
   For each department, create a **comma-separated list** of employee names, sorted alphabetically within each department.
 
@@ -17,14 +17,14 @@ description: |
   Order the results by `department_name` ascending.
 hints:
   - "Use STRING_AGG(e.name, ', ' ORDER BY e.name) to create a sorted comma-separated list."
-  - "Join hr.departments to hr.employees on department_id."
+  - "Join departments to employees on department_id."
   - "GROUP BY department name."
 starter_code: |
   SELECT
     d.name AS department_name,
     -- create comma-separated list
-  FROM hr.departments d
-  JOIN hr.employees e ON e.department_id = d.id
+  FROM departments d
+  JOIN employees e ON e.department_id = d.id
   GROUP BY d.name
   ORDER BY department_name
 order_matters: true
@@ -32,8 +32,8 @@ solution: |
   SELECT
     d.name AS department_name,
     STRING_AGG(e.name, ', ' ORDER BY e.name) AS employee_list
-  FROM hr.departments d
-  JOIN hr.employees e ON e.department_id = d.id
+  FROM departments d
+  JOIN employees e ON e.department_id = d.id
   GROUP BY d.name
   ORDER BY department_name ASC;
 expected_columns: [department_name, employee_list]

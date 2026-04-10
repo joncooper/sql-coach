@@ -97,18 +97,14 @@ export async function validateAndCreate(raw: {
 }): Promise<GeneratedProblem> {
   const genSchema = `gen_${raw.schema_name}`;
 
-  // Rewrite all SQL to use the gen_ prefix
+  // Rewrite DDL/DML to use the gen_ prefixed schema in PG
   const ddl = rewriteSchema(raw.ddl, raw.schema_name, genSchema);
   const dml = rewriteSchema(raw.seed_data, raw.schema_name, genSchema);
-  const solution = rewriteSchema(
-    raw.problem.solution,
-    raw.schema_name,
-    genSchema
-  );
 
-  // Rewrite table references in the problem
+  // Solution and table names stay clean (no schema prefix) — search_path handles resolution
+  const solution = rewriteSchema(raw.problem.solution, raw.schema_name + ".", "");
   const tables = raw.problem.tables.map((t) =>
-    rewriteSchema(t, raw.schema_name, genSchema)
+    t.replace(new RegExp(`^${raw.schema_name}\\.`, "i"), "")
   );
 
   try {
@@ -119,8 +115,10 @@ export async function validateAndCreate(raw: {
     // Execute seed data
     await pool.query(dml);
 
-    // Execute solution and verify it works
+    // Execute solution and verify it works (set search_path since solution uses clean names)
+    await pool.query(`SET search_path TO ${genSchema}, public`);
     const result = await pool.query(solution);
+    await pool.query(`RESET search_path`);
     if (!result.rows || result.rows.length === 0) {
       throw new Error("Solution returned 0 rows");
     }
@@ -148,8 +146,9 @@ export async function validateAndCreate(raw: {
     );
 
     // Sanitize starter_code — LLMs often put partial solutions in it.
-    // Only keep it if it's clearly a placeholder (short comment + SELECT ...).
     let starterCode = raw.problem.starter_code ?? "";
+    // Strip any schema prefixes the LLM added
+    starterCode = rewriteSchema(starterCode, raw.schema_name + ".", "");
     const starterHasRealSQL =
       starterCode.replace(/--.*$/gm, "").replace(/\s+/g, " ").trim().length > 30;
     if (starterHasRealSQL) {

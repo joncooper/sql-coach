@@ -4,7 +4,7 @@ difficulty: hard
 category: cohort-analysis
 tags: [cohort-analysis, date-functions, aggregation, retention]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Perform a **cohort retention analysis** based on customer signup month.
 
@@ -21,7 +21,7 @@ description: |
 
   Order the results by `signup_cohort` ascending, then `months_since_signup` ascending.
 hints:
-  - "Start by building a cohort CTE: SELECT id, DATE_TRUNC('month', signup_date)::date AS signup_cohort FROM ecommerce.customers."
+  - "Start by building a cohort CTE: SELECT id, DATE_TRUNC('month', signup_date)::date AS signup_cohort FROM customers."
   - "Join cohort customers to completed orders, and compute the month offset using EXTRACT(YEAR FROM age(...)) * 12 + EXTRACT(MONTH FROM age(...)) or a date subtraction approach."
   - "Use COUNT(DISTINCT customer_id) to get retained_customers per cohort per month offset."
   - "Calculate cohort_size separately and join it in, then divide to get retention_rate."
@@ -31,7 +31,7 @@ starter_code: |
     SELECT
       id AS customer_id,
       DATE_TRUNC('month', signup_date)::date AS signup_cohort
-    FROM ecommerce.customers
+    FROM customers
   )
   SELECT
     signup_cohort,
@@ -47,7 +47,7 @@ solution: |
     SELECT
       id AS customer_id,
       DATE_TRUNC('month', signup_date)::date AS signup_cohort
-    FROM ecommerce.customers
+    FROM customers
   ),
   cohort_sizes AS (
     SELECT
@@ -63,7 +63,7 @@ solution: |
         + EXTRACT(MONTH FROM age(DATE_TRUNC('month', o.order_date), c.signup_cohort)))::int AS months_since_signup,
       COUNT(DISTINCT c.customer_id) AS retained_customers
     FROM cohorts c
-    JOIN ecommerce.orders o ON o.customer_id = c.customer_id
+    JOIN orders o ON o.customer_id = c.customer_id
     WHERE o.status = 'completed'
     GROUP BY c.signup_cohort, months_since_signup
   )

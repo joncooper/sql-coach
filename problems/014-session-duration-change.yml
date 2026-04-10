@@ -4,7 +4,7 @@ difficulty: hard
 category: window-functions
 tags: [lag, window-function, extract, epoch, date-math]
 domain: analytics
-tables: [analytics.users, analytics.sessions]
+tables: [users, sessions]
 description: |
   For each user, calculate the duration of each session in minutes and the change in duration from their previous session.
 
@@ -29,8 +29,8 @@ starter_code: |
     s.started_at,
     -- duration calculation here AS duration_minutes,
     -- change calculation here AS prev_duration_change
-  FROM analytics.sessions s
-  JOIN analytics.users u ON s.user_id = u.id
+  FROM sessions s
+  JOIN users u ON s.user_id = u.id
 order_matters: true
 solution: |
   SELECT
@@ -41,7 +41,7 @@ solution: |
       - LAG((EXTRACT(EPOCH FROM (s.ended_at - s.started_at)) / 60)::INTEGER)
         OVER (PARTITION BY s.user_id ORDER BY s.started_at)
     AS prev_duration_change
-  FROM analytics.sessions s
-  JOIN analytics.users u ON s.user_id = u.id
+  FROM sessions s
+  JOIN users u ON s.user_id = u.id
   ORDER BY u.username, s.started_at;
 expected_columns: [username, started_at, duration_minutes, prev_duration_change]

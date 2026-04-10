@@ -3,8 +3,8 @@ title: "Students With Invalid Departments"
 difficulty: easy
 category: joins
 tags: [left-join, null-check, anti-join]
-domain: leetcode
-tables: [leetcode.lc1481_departments, leetcode.lc1481_students]
+domain: lc1481
+tables: [departments, students]
 description: |
   You have a table of university departments and a table of students. Some students are enrolled in departments that no longer exist in the departments table.
 
@@ -22,14 +22,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1481_students
+  FROM students
 order_matters: false
 solution: |
   SELECT
     s.id,
     s.name
-  FROM leetcode.lc1481_students s
-  LEFT JOIN leetcode.lc1481_departments d
+  FROM students s
+  LEFT JOIN departments d
     ON s.department_id = d.id
   WHERE d.id IS NULL;
 expected_columns: [id, name]

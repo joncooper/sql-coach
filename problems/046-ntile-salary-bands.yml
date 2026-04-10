@@ -4,7 +4,7 @@ difficulty: medium
 category: window-functions
 tags: [window-functions, ntile, case]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Divide employees into **4 salary bands** using the `NTILE(4)` window function.
 
@@ -31,7 +31,7 @@ starter_code: |
     salary,
     -- salary_band using NTILE
     -- band_label using CASE
-  FROM hr.employees
+  FROM employees
   ORDER BY salary_band, salary DESC;
 order_matters: true
 solution: |
@@ -45,6 +45,6 @@ solution: |
       WHEN 3 THEN 'Upper Middle'
       WHEN 4 THEN 'Top 25%'
     END AS band_label
-  FROM hr.employees
+  FROM employees
   ORDER BY salary_band ASC, salary DESC;
 expected_columns: [name, salary, salary_band, band_label]

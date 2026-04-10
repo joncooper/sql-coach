@@ -4,7 +4,7 @@ difficulty: medium
 category: subqueries
 tags: [subquery, distinct, limit, offset, scalar-subquery]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Find the **second highest distinct salary** in the company.
 
@@ -23,7 +23,7 @@ starter_code: |
 order_matters: false
 solution: |
   SELECT DISTINCT salary AS second_highest_salary
-  FROM hr.employees
+  FROM employees
   ORDER BY salary DESC
   LIMIT 1 OFFSET 1;
 expected_columns: [second_highest_salary]

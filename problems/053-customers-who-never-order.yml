@@ -3,8 +3,8 @@ title: "Customers Who Never Order"
 difficulty: easy
 category: joins
 tags: [left-join, null-check, anti-join]
-domain: leetcode
-tables: [leetcode.lc183_customers, leetcode.lc183_orders]
+domain: lc183
+tables: [customers, orders]
 description: |
   Write a query to find all customers who have never placed an order.
 
@@ -19,12 +19,12 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc183_customers
+  FROM customers
 order_matters: false
 solution: |
   SELECT c.name AS customers
-  FROM leetcode.lc183_customers c
-  LEFT JOIN leetcode.lc183_orders o
+  FROM customers c
+  LEFT JOIN orders o
     ON c.id = o.customer_id
   WHERE o.id IS NULL;
 expected_columns: [customers]

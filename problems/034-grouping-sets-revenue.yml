@@ -4,7 +4,7 @@ difficulty: medium
 category: aggregations
 tags: [grouping-sets, aggregation, joins]
 domain: ecommerce
-tables: [ecommerce.categories, ecommerce.products, ecommerce.order_items, ecommerce.orders]
+tables: [categories, products, order_items, orders]
 description: |
   Use **GROUPING SETS** to produce a revenue summary at three levels of granularity in a single query:
 
@@ -29,10 +29,10 @@ starter_code: |
     cat.name AS category_name,
     p.name AS product_name,
     SUM(oi.quantity * oi.unit_price) AS total_revenue
-  FROM ecommerce.order_items oi
-  JOIN ecommerce.orders o ON o.id = oi.order_id
-  JOIN ecommerce.products p ON p.id = oi.product_id
-  JOIN ecommerce.categories cat ON cat.id = p.category_id
+  FROM order_items oi
+  JOIN orders o ON o.id = oi.order_id
+  JOIN products p ON p.id = oi.product_id
+  JOIN categories cat ON cat.id = p.category_id
   WHERE o.status = 'completed'
   -- add GROUPING SETS here
 order_matters: true
@@ -41,10 +41,10 @@ solution: |
     cat.name AS category_name,
     p.name AS product_name,
     SUM(oi.quantity * oi.unit_price) AS total_revenue
-  FROM ecommerce.order_items oi
-  JOIN ecommerce.orders o ON o.id = oi.order_id
-  JOIN ecommerce.products p ON p.id = oi.product_id
-  JOIN ecommerce.categories cat ON cat.id = p.category_id
+  FROM order_items oi
+  JOIN orders o ON o.id = oi.order_id
+  JOIN products p ON p.id = oi.product_id
+  JOIN categories cat ON cat.id = p.category_id
   WHERE o.status = 'completed'
   GROUP BY GROUPING SETS (
     (cat.name, p.name),

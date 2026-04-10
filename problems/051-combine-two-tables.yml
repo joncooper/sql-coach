@@ -3,8 +3,8 @@ title: "Combine Two Tables"
 difficulty: easy
 category: joins
 tags: [left-join, select, basics]
-domain: leetcode
-tables: [leetcode.lc175_person, leetcode.lc175_address]
+domain: lc175
+tables: [person, address]
 description: |
   Write a query to report the first name, last name, city, and state of each person.
 
@@ -24,7 +24,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc175_person
+  FROM person
 order_matters: false
 solution: |
   SELECT
@@ -32,7 +32,7 @@ solution: |
     p.last_name,
     a.city,
     a.state
-  FROM leetcode.lc175_person p
-  LEFT JOIN leetcode.lc175_address a
+  FROM person p
+  LEFT JOIN address a
     ON p.person_id = a.person_id;
 expected_columns: [first_name, last_name, city, state]

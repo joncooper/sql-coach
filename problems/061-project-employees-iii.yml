@@ -3,8 +3,8 @@ title: "Project Employees III"
 difficulty: medium
 category: window-functions
 tags: [rank, partition-by, joins]
-domain: leetcode
-tables: [leetcode.lc1163_project, leetcode.lc1163_employee]
+domain: lc1163
+tables: [project, employee]
 description: |
   You are given two tables: a **Project** table that maps employees to projects, and an **Employee** table with each employee's name and years of experience.
 
@@ -22,7 +22,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1163_project
+  FROM project
 order_matters: false
 solution: |
   WITH ranked AS (
@@ -30,8 +30,8 @@ solution: |
       p.project_id,
       p.employee_id,
       RANK() OVER (PARTITION BY p.project_id ORDER BY e.experience_years DESC) AS rn
-    FROM leetcode.lc1163_project p
-    JOIN leetcode.lc1163_employee e
+    FROM project p
+    JOIN employee e
       ON p.employee_id = e.employee_id
   )
   SELECT project_id, employee_id

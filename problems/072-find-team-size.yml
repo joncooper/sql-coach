@@ -3,8 +3,8 @@ title: "Find the Team Size"
 difficulty: easy
 category: aggregation
 tags: [count, joins, subquery]
-domain: leetcode
-tables: [leetcode.lc1438_employee]
+domain: lc1438
+tables: [employee]
 description: |
   You have a table of employees where each employee belongs to a team. Write a query to find the team size for each employee.
 
@@ -20,20 +20,20 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1438_employee
+  FROM employee
 order_matters: false
 solution: |
   WITH team_counts AS (
     SELECT
       team_id,
       COUNT(*) AS team_size
-    FROM leetcode.lc1438_employee
+    FROM employee
     GROUP BY team_id
   )
   SELECT
     e.employee_id,
     tc.team_size
-  FROM leetcode.lc1438_employee e
+  FROM employee e
   JOIN team_counts tc
     ON e.team_id = tc.team_id;
 expected_columns: [employee_id, team_size]

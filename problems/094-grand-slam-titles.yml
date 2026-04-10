@@ -3,8 +3,8 @@ title: "Grand Slam Titles"
 difficulty: medium
 category: pivoting
 tags: [union-all, unpivot, aggregation]
-domain: leetcode
-tables: [leetcode.lc1932_players, leetcode.lc1932_championships]
+domain: lc1932
+tables: [players, championships]
 description: |
   You are given two tables:
 
@@ -26,24 +26,24 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1932_championships
+  FROM championships
 order_matters: false
 solution: |
   WITH all_wins AS (
-    SELECT wimbledon AS player_id FROM leetcode.lc1932_championships
+    SELECT wimbledon AS player_id FROM championships
     UNION ALL
-    SELECT fr_open FROM leetcode.lc1932_championships
+    SELECT fr_open FROM championships
     UNION ALL
-    SELECT us_open FROM leetcode.lc1932_championships
+    SELECT us_open FROM championships
     UNION ALL
-    SELECT au_open FROM leetcode.lc1932_championships
+    SELECT au_open FROM championships
   )
   SELECT
     w.player_id,
     p.player_name,
     COUNT(*) AS grand_slams_count
   FROM all_wins w
-  JOIN leetcode.lc1932_players p
+  JOIN players p
     ON w.player_id = p.player_id
   GROUP BY w.player_id, p.player_name;
 expected_columns: [player_id, player_name, grand_slams_count]

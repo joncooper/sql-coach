@@ -4,7 +4,7 @@ difficulty: easy
 category: joins
 tags: [left-join, null-check, anti-join]
 domain: ecommerce
-tables: [ecommerce.products, ecommerce.order_items]
+tables: [products, order_items]
 description: |
   Find all products that have **never been ordered** by any customer.
 
@@ -18,19 +18,19 @@ description: |
 hints:
   - "LEFT JOIN products to order_items — unmatched products will have NULL in the order_items columns."
   - "Filter with WHERE oi.id IS NULL to find products with no matching orders."
-  - "Alternatively, use WHERE p.id NOT IN (SELECT product_id FROM ecommerce.order_items)."
+  - "Alternatively, use WHERE p.id NOT IN (SELECT product_id FROM order_items)."
 starter_code: |
   SELECT
     -- product name and price
-  FROM ecommerce.products p
+  FROM products p
   -- your join or subquery here
 order_matters: true
 solution: |
   SELECT
     p.name,
     p.price
-  FROM ecommerce.products p
-  LEFT JOIN ecommerce.order_items oi ON oi.product_id = p.id
+  FROM products p
+  LEFT JOIN order_items oi ON oi.product_id = p.id
   WHERE oi.id IS NULL
   ORDER BY p.price DESC;
 expected_columns: [name, price]

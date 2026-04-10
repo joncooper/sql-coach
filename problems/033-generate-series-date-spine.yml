@@ -4,7 +4,7 @@ difficulty: medium
 category: date-functions
 tags: [generate-series, date-functions, left-join, coalesce]
 domain: ecommerce
-tables: [ecommerce.orders]
+tables: [orders]
 description: |
   Generate a **complete date spine** from January 1, 2023 through December 31, 2023 and LEFT JOIN daily **completed** order counts onto it.
 
@@ -37,7 +37,7 @@ solution: |
     '2023-12-31'::date,
     '1 day'::interval
   ) AS d(report_date)
-  LEFT JOIN ecommerce.orders o
+  LEFT JOIN orders o
     ON o.order_date = d.report_date::date
     AND o.status = 'completed'
   GROUP BY d.report_date

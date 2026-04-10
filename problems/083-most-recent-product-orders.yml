@@ -3,8 +3,8 @@ title: "The Most Recent Orders for Each Product"
 difficulty: medium
 category: window-functions
 tags: [rank, partition-by, joins]
-domain: leetcode
-tables: [leetcode.lc1688_customers, leetcode.lc1688_orders, leetcode.lc1688_products]
+domain: lc1688
+tables: [customers, orders, products]
 description: |
   Given tables of customers, orders, and products, find the most recent order(s) for each product. If a product has multiple orders on its most recent date, return all of them. Products that have never been ordered should not appear in the result.
 
@@ -22,7 +22,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1688_orders
+  FROM orders
 order_matters: true
 solution: |
   WITH ranked AS (
@@ -32,8 +32,8 @@ solution: |
       o.product_id,
       p.product_name,
       RANK() OVER (PARTITION BY o.product_id ORDER BY o.order_date DESC) AS rn
-    FROM leetcode.lc1688_orders o
-    LEFT JOIN leetcode.lc1688_products p ON o.product_id = p.product_id
+    FROM orders o
+    LEFT JOIN products p ON o.product_id = p.product_id
   )
   SELECT product_name, product_id, order_id, order_date
   FROM ranked

@@ -3,8 +3,8 @@ title: "Find Total Time Spent by Each Employee"
 difficulty: easy
 category: aggregation
 tags: [sum, group-by, arithmetic]
-domain: leetcode
-tables: [leetcode.lc1892_employees]
+domain: lc1892
+tables: [employees]
 description: |
   You are given an **Employees** table that logs office entry and exit events. Each row records an employee entering at `in_time` and leaving at `out_time` (both in minutes from midnight, between 1 and 1440). An employee can enter and leave multiple times on the same day.
 
@@ -23,13 +23,13 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1892_employees
+  FROM employees
 order_matters: false
 solution: |
   SELECT
     event_day AS day,
     emp_id,
     SUM(out_time - in_time) AS total_time
-  FROM leetcode.lc1892_employees
+  FROM employees
   GROUP BY event_day, emp_id;
 expected_columns: [day, emp_id, total_time]

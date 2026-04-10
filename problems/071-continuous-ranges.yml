@@ -3,8 +3,8 @@ title: "Find the Start and End Number of Continuous Ranges"
 difficulty: medium
 category: gaps-and-islands
 tags: [row-number, gaps-and-islands, grouping]
-domain: leetcode
-tables: [leetcode.lc1420_logs]
+domain: lc1420
+tables: [logs]
 description: |
   Given a table of log IDs, find the start and end number of each continuous range of IDs.
 
@@ -22,14 +22,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1420_logs
+  FROM logs
 order_matters: true
 solution: |
   WITH numbered AS (
     SELECT
       log_id,
       log_id - ROW_NUMBER() OVER (ORDER BY log_id) AS grp
-    FROM leetcode.lc1420_logs
+    FROM logs
   )
   SELECT
     MIN(log_id) AS start_id,

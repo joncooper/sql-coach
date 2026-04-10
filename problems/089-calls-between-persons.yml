@@ -3,8 +3,8 @@ title: "Number of Calls Between Two Persons"
 difficulty: medium
 category: conditional-logic
 tags: [case, group-by, aggregation]
-domain: leetcode
-tables: [leetcode.lc1842_calls]
+domain: lc1842
+tables: [calls]
 description: |
   Given a calls table with `from_id`, `to_id`, and `duration` columns, report the number of calls and the total call duration between each pair of distinct persons `(person1, person2)` where `person1 < person2`.
 
@@ -24,7 +24,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1842_calls
+  FROM calls
 order_matters: false
 solution: |
   SELECT
@@ -32,6 +32,6 @@ solution: |
     GREATEST(from_id, to_id) AS person2,
     COUNT(*) AS call_count,
     SUM(duration) AS total_duration
-  FROM leetcode.lc1842_calls
+  FROM calls
   GROUP BY LEAST(from_id, to_id), GREATEST(from_id, to_id);
 expected_columns: [person1, person2, call_count, total_duration]

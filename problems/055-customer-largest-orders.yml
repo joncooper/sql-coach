@@ -3,8 +3,8 @@ title: "Customer Placing the Largest Number of Orders"
 difficulty: easy
 category: aggregation
 tags: [group-by, count, order-by]
-domain: leetcode
-tables: [leetcode.lc586_orders]
+domain: lc586
+tables: [orders]
 description: |
   Write a query to find the customer who has placed the largest number of orders.
 
@@ -21,11 +21,11 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc586_orders
+  FROM orders
 order_matters: false
 solution: |
   SELECT customer_number
-  FROM leetcode.lc586_orders
+  FROM orders
   GROUP BY customer_number
   ORDER BY COUNT(*) DESC
   LIMIT 1;

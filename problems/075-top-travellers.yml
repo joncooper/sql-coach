@@ -3,8 +3,8 @@ title: "Top Travellers"
 difficulty: easy
 category: aggregation
 tags: [sum, coalesce, left-join]
-domain: leetcode
-tables: [leetcode.lc1541_users, leetcode.lc1541_rides]
+domain: lc1541
+tables: [users, rides]
 description: |
   You have a table of users and a table of rides. Each ride records the distance a user traveled.
 
@@ -22,14 +22,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1541_users
+  FROM users
 order_matters: true
 solution: |
   SELECT
     u.name,
     COALESCE(SUM(r.distance), 0) AS travelled_distance
-  FROM leetcode.lc1541_users u
-  LEFT JOIN leetcode.lc1541_rides r
+  FROM users u
+  LEFT JOIN rides r
     ON u.id = r.user_id
   GROUP BY u.id, u.name
   ORDER BY travelled_distance DESC, name ASC;

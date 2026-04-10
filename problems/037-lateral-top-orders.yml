@@ -4,7 +4,7 @@ difficulty: hard
 category: advanced-joins
 tags: [lateral-join, subquery, limit, ordering]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   For each customer, find their **2 most recent completed orders** using a `LATERAL` join.
 
@@ -19,7 +19,7 @@ description: |
 
   Order the results by `customer_name` ascending, then `order_date` descending.
 hints:
-  - "Use FROM ecommerce.customers c, LATERAL (SELECT ... FROM ecommerce.orders WHERE customer_id = c.id ... LIMIT 2) AS recent_orders."
+  - "Use FROM customers c, LATERAL (SELECT ... FROM orders WHERE customer_id = c.id ... LIMIT 2) AS recent_orders."
   - "Inside the LATERAL subquery, filter for completed status and ORDER BY order_date DESC LIMIT 2."
   - "A LATERAL join acts like an INNER JOIN by default — customers with no matching orders are excluded."
 starter_code: |
@@ -27,7 +27,7 @@ starter_code: |
     c.name AS customer_name,
     recent.order_date,
     recent.total_amount
-  FROM ecommerce.customers c,
+  FROM customers c,
   LATERAL (
     -- subquery referencing c.id here
   ) AS recent
@@ -38,10 +38,10 @@ solution: |
     c.name AS customer_name,
     recent.order_date,
     recent.total_amount
-  FROM ecommerce.customers c,
+  FROM customers c,
   LATERAL (
     SELECT o.order_date, o.total_amount
-    FROM ecommerce.orders o
+    FROM orders o
     WHERE o.customer_id = c.id
       AND o.status = 'completed'
     ORDER BY o.order_date DESC

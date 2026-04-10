@@ -3,8 +3,8 @@ title: "Page Recommendations"
 difficulty: medium
 category: joins
 tags: [joins, not-in, distinct]
-domain: leetcode
-tables: [leetcode.lc1399_friendship, leetcode.lc1399_likes]
+domain: lc1399
+tables: [friendship, likes]
 description: |
   You are given two tables: a **Friendship** table representing bidirectional friendships between users, and a **Likes** table showing which pages each user likes.
 
@@ -21,25 +21,25 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1399_friendship
+  FROM friendship
 order_matters: false
 solution: |
   WITH friends AS (
     SELECT user2_id AS friend_id
-    FROM leetcode.lc1399_friendship
+    FROM friendship
     WHERE user1_id = 1
     UNION
     SELECT user1_id AS friend_id
-    FROM leetcode.lc1399_friendship
+    FROM friendship
     WHERE user2_id = 1
   )
   SELECT DISTINCT l.page_id AS recommended_page
   FROM friends f
-  JOIN leetcode.lc1399_likes l
+  JOIN likes l
     ON f.friend_id = l.user_id
   WHERE l.page_id NOT IN (
     SELECT page_id
-    FROM leetcode.lc1399_likes
+    FROM likes
     WHERE user_id = 1
   );
 expected_columns: [recommended_page]

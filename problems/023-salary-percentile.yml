@@ -4,7 +4,7 @@ difficulty: medium
 category: window-functions
 tags: [window-functions, percent-rank, rounding]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Calculate the salary percentile for each employee using the `PERCENT_RANK()` window function.
 
@@ -25,13 +25,13 @@ starter_code: |
     name,
     salary,
     -- calculate percentile
-  FROM hr.employees
+  FROM employees
 order_matters: true
 solution: |
   SELECT
     name,
     salary,
     ROUND(PERCENT_RANK() OVER (ORDER BY salary)::numeric, 2) AS percentile
-  FROM hr.employees
+  FROM employees
   ORDER BY percentile DESC, name ASC;
 expected_columns: [name, salary, percentile]

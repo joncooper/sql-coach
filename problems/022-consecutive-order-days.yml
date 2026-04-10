@@ -4,7 +4,7 @@ difficulty: hard
 category: window-functions
 tags: [window-functions, lag, date-arithmetic, distinct]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Find customers who have placed orders on **consecutive days** (i.e., the difference between two order dates is exactly 1 day) or on the **same day** (difference of 0 days).
 
@@ -35,8 +35,8 @@ solution: |
       c.name AS customer_name,
       o.order_date,
       LAG(o.order_date) OVER (PARTITION BY c.id ORDER BY o.order_date) AS prev_order_date
-    FROM ecommerce.customers c
-    JOIN ecommerce.orders o ON o.customer_id = c.id
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.id
   ) sub
   WHERE order_date - prev_order_date <= 1
   ORDER BY customer_name;

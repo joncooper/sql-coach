@@ -3,8 +3,8 @@ title: "Sales Person"
 difficulty: easy
 category: subqueries
 tags: [not-in, subquery, joins]
-domain: leetcode
-tables: [leetcode.lc607_sales_person, leetcode.lc607_company, leetcode.lc607_orders]
+domain: lc607
+tables: [sales_person, company, orders]
 description: |
   Write a query to find the names of all salespersons who did not have any orders related to the company named "RED".
 
@@ -19,15 +19,15 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc607_sales_person
+  FROM sales_person
 order_matters: false
 solution: |
   SELECT name
-  FROM leetcode.lc607_sales_person
+  FROM sales_person
   WHERE sales_id NOT IN (
     SELECT o.sales_id
-    FROM leetcode.lc607_orders o
-    JOIN leetcode.lc607_company c
+    FROM orders o
+    JOIN company c
       ON o.com_id = c.com_id
     WHERE c.name = 'RED'
   );

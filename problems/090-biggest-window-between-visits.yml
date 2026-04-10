@@ -3,8 +3,8 @@ title: "Biggest Window Between Visits"
 difficulty: medium
 category: window-functions
 tags: [lag, date-arithmetic, window-functions]
-domain: leetcode
-tables: [leetcode.lc1852_user_visits]
+domain: lc1852
+tables: [user_visits]
 description: |
   Given a table of user visits with `user_id` and `visit_date`, find the largest gap (in days) between consecutive visits for each user.
 
@@ -22,7 +22,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1852_user_visits
+  FROM user_visits
 order_matters: true
 solution: |
   WITH visit_gaps AS (
@@ -32,7 +32,7 @@ solution: |
         LEAD(visit_date) OVER (PARTITION BY user_id ORDER BY visit_date),
         DATE '2021-01-01'
       ) - visit_date AS gap
-    FROM leetcode.lc1852_user_visits
+    FROM user_visits
   )
   SELECT user_id, MAX(gap) AS biggest_window
   FROM visit_gaps

@@ -4,7 +4,7 @@ difficulty: medium
 category: subqueries
 tags: [subquery, window-functions, aggregation, comparison]
 domain: hr
-tables: [hr.employees, hr.departments]
+tables: [employees, departments]
 description: |
   Find employees whose salary is **above** their department's average salary.
 
@@ -42,8 +42,8 @@ solution: |
       d.name AS department_name,
       e.salary,
       ROUND(AVG(e.salary) OVER (PARTITION BY e.department_id))::numeric AS dept_avg_salary
-    FROM hr.employees e
-    JOIN hr.departments d ON d.id = e.department_id
+    FROM employees e
+    JOIN departments d ON d.id = e.department_id
   ) sub
   WHERE salary > dept_avg_salary
   ORDER BY salary DESC;

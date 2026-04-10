@@ -4,7 +4,7 @@ difficulty: easy
 category: aggregations
 tags: [group-by, aggregate-functions, round, count, avg, min, max]
 domain: hr
-tables: [hr.employees, hr.departments]
+tables: [employees, departments]
 description: |
   Calculate salary statistics for each department. Join employees with departments to get department names.
 
@@ -23,8 +23,8 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM hr.employees e
-  JOIN hr.departments d ON e.department_id = d.id
+  FROM employees e
+  JOIN departments d ON e.department_id = d.id
   GROUP BY ...
 order_matters: true
 solution: |
@@ -34,8 +34,8 @@ solution: |
     ROUND(AVG(e.salary), 2) AS avg_salary,
     MIN(e.salary) AS min_salary,
     MAX(e.salary) AS max_salary
-  FROM hr.employees e
-  JOIN hr.departments d ON e.department_id = d.id
+  FROM employees e
+  JOIN departments d ON e.department_id = d.id
   GROUP BY d.name
   ORDER BY avg_salary DESC;
 expected_columns: [department_name, employee_count, avg_salary, min_salary, max_salary]

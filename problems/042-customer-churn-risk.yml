@@ -4,7 +4,7 @@ difficulty: hard
 category: business-analysis
 tags: [subquery, case, date-arithmetic, aggregation]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Identify customers at risk of churning.
 
@@ -27,8 +27,8 @@ hints:
 starter_code: |
   SELECT
     -- customer_name, last_order_date, days_since_last_order, risk_status
-  FROM ecommerce.customers c
-  JOIN ecommerce.orders o ON o.customer_id = c.id
+  FROM customers c
+  JOIN orders o ON o.customer_id = c.id
   WHERE o.status = 'completed'
   -- complete the query
 order_matters: true
@@ -36,13 +36,13 @@ solution: |
   SELECT
     c.name AS customer_name,
     MAX(o.order_date) AS last_order_date,
-    (SELECT MAX(order_date) FROM ecommerce.orders) - MAX(o.order_date) AS days_since_last_order,
+    (SELECT MAX(order_date) FROM orders) - MAX(o.order_date) AS days_since_last_order,
     CASE
-      WHEN (SELECT MAX(order_date) FROM ecommerce.orders) - MAX(o.order_date) > 90 THEN 'at risk'
+      WHEN (SELECT MAX(order_date) FROM orders) - MAX(o.order_date) > 90 THEN 'at risk'
       ELSE 'active'
     END AS risk_status
-  FROM ecommerce.customers c
-  JOIN ecommerce.orders o ON o.customer_id = c.id
+  FROM customers c
+  JOIN orders o ON o.customer_id = c.id
   WHERE o.status = 'completed'
   GROUP BY c.id, c.name
   ORDER BY days_since_last_order DESC;

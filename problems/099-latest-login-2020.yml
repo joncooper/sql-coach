@@ -3,8 +3,8 @@ title: "The Latest Login in 2020"
 difficulty: easy
 category: aggregation
 tags: [max, filtering, date-functions]
-domain: leetcode
-tables: [leetcode.lc2041_logins]
+domain: lc2041
+tables: [logins]
 description: |
   You are given a **Logins** table with `user_id` and `time_stamp` (a timestamp recording when the user logged in).
 
@@ -22,13 +22,13 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc2041_logins
+  FROM logins
 order_matters: false
 solution: |
   SELECT
     user_id,
     MAX(time_stamp) AS last_stamp
-  FROM leetcode.lc2041_logins
+  FROM logins
   WHERE EXTRACT(YEAR FROM time_stamp) = 2020
   GROUP BY user_id;
 expected_columns: [user_id, last_stamp]

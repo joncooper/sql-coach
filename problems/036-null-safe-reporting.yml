@@ -4,7 +4,7 @@ difficulty: easy
 category: null-handling
 tags: [coalesce, null-handling, joins, self-join]
 domain: hr
-tables: [hr.employees, hr.departments]
+tables: [employees, departments]
 description: |
   Create a clean employee report that handles NULL values gracefully.
 
@@ -20,15 +20,15 @@ description: |
 hints:
   - "Use a LEFT JOIN from employees to employees (aliased as m) on e.manager_id = m.id to get the manager."
   - "Use COALESCE(m.name, 'No Manager') to handle NULLs."
-  - "Join to hr.departments for the department name."
+  - "Join to departments for the department name."
 starter_code: |
   SELECT
     e.name,
     -- handle NULL manager
     d.name AS department_name,
     e.salary
-  FROM hr.employees e
-  JOIN hr.departments d ON d.id = e.department_id
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
   -- add manager join
   ORDER BY department_name, salary DESC
 order_matters: true
@@ -38,8 +38,8 @@ solution: |
     COALESCE(m.name, 'No Manager') AS manager_name,
     d.name AS department_name,
     e.salary
-  FROM hr.employees e
-  JOIN hr.departments d ON d.id = e.department_id
-  LEFT JOIN hr.employees m ON m.id = e.manager_id
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
+  LEFT JOIN employees m ON m.id = e.manager_id
   ORDER BY department_name ASC, salary DESC;
 expected_columns: [name, manager_name, department_name, salary]

@@ -3,8 +3,8 @@ title: "Rearrange Products Table"
 difficulty: easy
 category: pivoting
 tags: [union-all, unpivot, case]
-domain: leetcode
-tables: [leetcode.lc1948_products]
+domain: lc1948
+tables: [products]
 description: |
   You are given a **Products** table where each row contains a `product_id` and its price in three different stores: `store1`, `store2`, and `store3`. If a product is not available in a store, the price is NULL.
 
@@ -23,18 +23,18 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1948_products
+  FROM products
 order_matters: false
 solution: |
   SELECT product_id, 'store1' AS store, store1 AS price
-  FROM leetcode.lc1948_products
+  FROM products
   WHERE store1 IS NOT NULL
   UNION ALL
   SELECT product_id, 'store2' AS store, store2 AS price
-  FROM leetcode.lc1948_products
+  FROM products
   WHERE store2 IS NOT NULL
   UNION ALL
   SELECT product_id, 'store3' AS store, store3 AS price
-  FROM leetcode.lc1948_products
+  FROM products
   WHERE store3 IS NOT NULL;
 expected_columns: [product_id, store, price]

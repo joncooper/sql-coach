@@ -4,7 +4,7 @@ difficulty: medium
 category: aggregations
 tags: [date-trunc, group-by, having, count]
 domain: ecommerce
-tables: [ecommerce.orders]
+tables: [orders]
 description: |
   Count the number of orders placed each month using PostgreSQL's `DATE_TRUNC` function.
 
@@ -23,7 +23,7 @@ starter_code: |
   SELECT
     DATE_TRUNC('month', order_date) AS month,
     -- your query here
-  FROM ecommerce.orders
+  FROM orders
   GROUP BY ...
   HAVING ...
 order_matters: true
@@ -31,7 +31,7 @@ solution: |
   SELECT
     DATE_TRUNC('month', order_date) AS month,
     COUNT(*) AS order_count
-  FROM ecommerce.orders
+  FROM orders
   GROUP BY DATE_TRUNC('month', order_date)
   HAVING COUNT(*) >= 3
   ORDER BY month;

@@ -3,8 +3,8 @@ title: "Report Contiguous Dates"
 difficulty: hard
 category: gaps-and-islands
 tags: [row-number, union-all, gaps-and-islands]
-domain: leetcode
-tables: [leetcode.lc1357_failed, leetcode.lc1357_succeeded]
+domain: lc1357
+tables: [failed, succeeded]
 description: |
   A system runs one task every day. Each task either fails or succeeds, recorded in separate **Failed** and **Succeeded** tables.
 
@@ -28,16 +28,16 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1357_failed
+  FROM failed
 order_matters: true
 solution: |
   WITH all_dates AS (
     SELECT 'failed' AS period_state, fail_date AS dt
-    FROM leetcode.lc1357_failed
+    FROM failed
     WHERE fail_date >= '2019-01-01' AND fail_date <= '2019-12-31'
     UNION ALL
     SELECT 'succeeded' AS period_state, success_date AS dt
-    FROM leetcode.lc1357_succeeded
+    FROM succeeded
     WHERE success_date >= '2019-01-01' AND success_date <= '2019-12-31'
   ),
   grouped AS (

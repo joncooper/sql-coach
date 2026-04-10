@@ -22,9 +22,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const searchPath = [problem.domain];
     const [userResult, expectedResult] = await Promise.all([
-      executeUserQuery(sql),
-      executeAdminQuery(problem.solution),
+      executeUserQuery(sql, searchPath),
+      executeAdminQuery(problem.solution, searchPath),
     ]);
 
     const comparison = compareResults(

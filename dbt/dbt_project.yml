@@ -17,5 +17,99 @@ seeds:
       +schema: ecommerce
     analytics:
       +schema: analytics
-    leetcode:
-      +schema: leetcode
+    lc1136:
+      +schema: lc1136
+    lc1163:
+      +schema: lc1163
+    lc1179:
+      +schema: lc1179
+    lc1214:
+      +schema: lc1214
+    lc1291:
+      +schema: lc1291
+    lc1339:
+      +schema: lc1339
+    lc1357:
+      +schema: lc1357
+    lc1399:
+      +schema: lc1399
+    lc1405:
+      +schema: lc1405
+    lc1420:
+      +schema: lc1420
+    lc1438:
+      +schema: lc1438
+    lc1481:
+      +schema: lc1481
+    lc1536:
+      +schema: lc1536
+    lc1541:
+      +schema: lc1541
+    lc1546:
+      +schema: lc1546
+    lc1565:
+      +schema: lc1565
+    lc1578:
+      +schema: lc1578
+    lc1639:
+      +schema: lc1639
+    lc1641:
+      +schema: lc1641
+    lc1654:
+      +schema: lc1654
+    lc1671:
+      +schema: lc1671
+    lc1688:
+      +schema: lc1688
+    lc1718:
+      +schema: lc1718
+    lc1734:
+      +schema: lc1734
+    lc1735:
+      +schema: lc1735
+    lc1749:
+      +schema: lc1749
+    lc175:
+      +schema: lc175
+    lc182:
+      +schema: lc182
+    lc183:
+      +schema: lc183
+    lc1837:
+      +schema: lc1837
+    lc184:
+      +schema: lc184
+    lc1842:
+      +schema: lc1842
+    lc1852:
+      +schema: lc1852
+    lc1892:
+      +schema: lc1892
+    lc1898:
+      +schema: lc1898
+    lc1914:
+      +schema: lc1914
+    lc1932:
+      +schema: lc1932
+    lc1948:
+      +schema: lc1948
+    lc1974:
+      +schema: lc1974
+    lc1981:
+      +schema: lc1981
+    lc2024:
+      +schema: lc2024
+    lc2041:
+      +schema: lc2041
+    lc2110:
+      +schema: lc2110
+    lc586:
+      +schema: lc586
+    lc603:
+      +schema: lc603
+    lc607:
+      +schema: lc607
+    lc608:
+      +schema: lc608
+    lc613:
+      +schema: lc613

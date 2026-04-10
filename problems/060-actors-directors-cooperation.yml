@@ -3,8 +3,8 @@ title: "Actors and Directors Who Cooperated at Least Three Times"
 difficulty: easy
 category: aggregation
 tags: [group-by, having, count]
-domain: leetcode
-tables: [leetcode.lc1136_actor_director]
+domain: lc1136
+tables: [actor_director]
 description: |
   Write a query to find all (actor_id, director_id) pairs where the actor has cooperated with the director at least three times.
 
@@ -20,11 +20,11 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1136_actor_director
+  FROM actor_director
 order_matters: false
 solution: |
   SELECT actor_id, director_id
-  FROM leetcode.lc1136_actor_director
+  FROM actor_director
   GROUP BY actor_id, director_id
   HAVING COUNT(*) >= 3;
 expected_columns: [actor_id, director_id]

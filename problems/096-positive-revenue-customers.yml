@@ -3,8 +3,8 @@ title: "Find Customers With Positive Revenue This Year"
 difficulty: easy
 category: basic-select
 tags: [where, filtering, basics]
-domain: leetcode
-tables: [leetcode.lc1974_customers]
+domain: lc1974
+tables: [customers]
 description: |
   You are given a **Customers** table containing `customer_id`, `year`, and `revenue` for each customer across different years. Note that revenue can be negative.
 
@@ -21,11 +21,11 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1974_customers
+  FROM customers
 order_matters: false
 solution: |
   SELECT customer_id
-  FROM leetcode.lc1974_customers
+  FROM customers
   WHERE year = 2021
     AND revenue > 0;
 expected_columns: [customer_id]

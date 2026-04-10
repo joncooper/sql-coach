@@ -3,8 +3,8 @@ title: "Warehouse Manager"
 difficulty: easy
 category: aggregation
 tags: [sum, multiplication, joins]
-domain: leetcode
-tables: [leetcode.lc1718_warehouse, leetcode.lc1718_products]
+domain: lc1718
+tables: [warehouse, products]
 description: |
   Given a warehouse inventory table and a products table with dimensions, calculate the total volume of inventory in each warehouse.
 
@@ -22,13 +22,13 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1718_warehouse
+  FROM warehouse
 order_matters: false
 solution: |
   SELECT
     w.name AS warehouse_name,
     SUM(w.units * p.width * p.length * p.height) AS volume
-  FROM leetcode.lc1718_warehouse w
-  LEFT JOIN leetcode.lc1718_products p ON w.product_id = p.product_id
+  FROM warehouse w
+  LEFT JOIN products p ON w.product_id = p.product_id
   GROUP BY w.name;
 expected_columns: [warehouse_name, volume]

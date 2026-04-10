@@ -3,8 +3,8 @@ title: "Calculate Special Bonus"
 difficulty: easy
 category: conditional-logic
 tags: [case, modulo, string-functions]
-domain: leetcode
-tables: [leetcode.lc2024_employees]
+domain: lc2024
+tables: [employees]
 description: |
   You are given an **Employees** table with `employee_id`, `name`, and `salary`.
 
@@ -24,7 +24,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc2024_employees
+  FROM employees
 order_matters: true
 solution: |
   SELECT
@@ -33,6 +33,6 @@ solution: |
       WHEN employee_id % 2 = 1 AND left(name, 1) <> 'M' THEN salary
       ELSE 0
     END AS bonus
-  FROM leetcode.lc2024_employees
+  FROM employees
   ORDER BY employee_id;
 expected_columns: [employee_id, bonus]

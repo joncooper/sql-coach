@@ -3,8 +3,8 @@ title: "Find the Quiet Students in All Exams"
 difficulty: hard
 category: window-functions
 tags: [min, max, window-functions, not-in]
-domain: leetcode
-tables: [leetcode.lc1546_student, leetcode.lc1546_exam]
+domain: lc1546
+tables: [student, exam]
 description: |
   A "quiet" student is one who took at least one exam and never scored the highest or the lowest score in any exam they took.
 
@@ -22,7 +22,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1546_student
+  FROM student
 order_matters: false
 solution: |
   WITH exam_extremes AS (
@@ -32,7 +32,7 @@ solution: |
       score,
       MIN(score) OVER (PARTITION BY exam_id) AS min_score,
       MAX(score) OVER (PARTITION BY exam_id) AS max_score
-    FROM leetcode.lc1546_exam
+    FROM exam
   ),
   loud_students AS (
     SELECT DISTINCT student_id
@@ -41,12 +41,12 @@ solution: |
   ),
   exam_takers AS (
     SELECT DISTINCT student_id
-    FROM leetcode.lc1546_exam
+    FROM exam
   )
   SELECT
     s.student_id,
     s.student_name
-  FROM leetcode.lc1546_student s
+  FROM student s
   JOIN exam_takers et ON s.student_id = et.student_id
   WHERE s.student_id NOT IN (SELECT student_id FROM loud_students)
   ORDER BY s.student_id;

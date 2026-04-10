@@ -3,8 +3,8 @@ title: "Consecutive Available Seats"
 difficulty: easy
 category: window-functions
 tags: [lag, lead, consecutive]
-domain: leetcode
-tables: [leetcode.lc603_cinema]
+domain: lc603
+tables: [cinema]
 description: |
   Find all seats in the cinema that are part of a group of two or more consecutive free seats.
 
@@ -21,7 +21,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc603_cinema
+  FROM cinema
 order_matters: true
 solution: |
   SELECT seat_id
@@ -30,7 +30,7 @@ solution: |
       seat_id,
       CASE WHEN seat_id - LAG(seat_id) OVER (ORDER BY seat_id) = 1 THEN 1 ELSE 0 END AS has_prev,
       CASE WHEN LEAD(seat_id) OVER (ORDER BY seat_id) - seat_id = 1 THEN 1 ELSE 0 END AS has_next
-    FROM leetcode.lc603_cinema
+    FROM cinema
     WHERE free = true
   ) s
   WHERE has_prev = 1 OR has_next = 1

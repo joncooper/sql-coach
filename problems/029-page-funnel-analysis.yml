@@ -4,7 +4,7 @@ difficulty: hard
 category: ctes
 tags: [cte, funnel, aggregation, joins]
 domain: analytics
-tables: [analytics.users, analytics.sessions, analytics.page_views]
+tables: [users, sessions, page_views]
 description: |
   Analyze the conversion funnel across three pages: `/`, `/pricing`, and `/signup`.
 
@@ -42,23 +42,23 @@ order_matters: true
 solution: |
   WITH step1 AS (
     SELECT DISTINCT s.user_id
-    FROM analytics.sessions s
-    JOIN analytics.page_views pv ON pv.session_id = s.id
+    FROM sessions s
+    JOIN page_views pv ON pv.session_id = s.id
     WHERE pv.url = '/'
   ),
   step2 AS (
     SELECT DISTINCT s.user_id
-    FROM analytics.sessions s
-    JOIN analytics.page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/'
-    JOIN analytics.page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/pricing'
+    FROM sessions s
+    JOIN page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/'
+    JOIN page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/pricing'
     WHERE pv2.viewed_at > pv1.viewed_at
   ),
   step3 AS (
     SELECT DISTINCT s.user_id
-    FROM analytics.sessions s
-    JOIN analytics.page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/'
-    JOIN analytics.page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/pricing'
-    JOIN analytics.page_views pv3 ON pv3.session_id = s.id AND pv3.url = '/signup'
+    FROM sessions s
+    JOIN page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/'
+    JOIN page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/pricing'
+    JOIN page_views pv3 ON pv3.session_id = s.id AND pv3.url = '/signup'
     WHERE pv2.viewed_at > pv1.viewed_at
       AND pv3.viewed_at > pv2.viewed_at
   )

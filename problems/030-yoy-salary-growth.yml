@@ -4,7 +4,7 @@ difficulty: hard
 category: window-functions
 tags: [window-functions, lag, percentage, date-functions]
 domain: hr
-tables: [hr.employees, hr.salaries]
+tables: [employees, salaries]
 description: |
   For employees with salary history records, calculate the **year-over-year salary growth percentage** for each salary change.
 
@@ -30,8 +30,8 @@ starter_code: |
     s.effective_date,
     s.amount,
     -- calculate growth percentage
-  FROM hr.salaries s
-  JOIN hr.employees e ON e.id = s.employee_id
+  FROM salaries s
+  JOIN employees e ON e.id = s.employee_id
 order_matters: true
 solution: |
   SELECT
@@ -43,7 +43,7 @@ solution: |
       / LAG(s.amount) OVER (PARTITION BY s.employee_id ORDER BY s.effective_date) * 100,
       1
     ) AS growth_pct
-  FROM hr.salaries s
-  JOIN hr.employees e ON e.id = s.employee_id
+  FROM salaries s
+  JOIN employees e ON e.id = s.employee_id
   ORDER BY e.name ASC, s.effective_date ASC;
 expected_columns: [name, effective_date, amount, growth_pct]

@@ -4,7 +4,7 @@ difficulty: medium
 category: aggregations
 tags: [rollup, grouping, aggregation]
 domain: hr
-tables: [hr.employees, hr.departments]
+tables: [employees, departments]
 description: |
   Use `ROLLUP` to show **average salary** by location and department, with subtotals per location and a grand total.
 
@@ -29,8 +29,8 @@ starter_code: |
     d.location,
     d.name AS department_name,
     -- avg_salary, employee_count
-  FROM hr.employees e
-  JOIN hr.departments d ON d.id = e.department_id
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
   GROUP BY ROLLUP(d.location, d.name)
   ORDER BY d.location NULLS LAST, d.name NULLS LAST;
 order_matters: true
@@ -40,8 +40,8 @@ solution: |
     d.name AS department_name,
     ROUND(AVG(e.salary), 0) AS avg_salary,
     COUNT(*) AS employee_count
-  FROM hr.employees e
-  JOIN hr.departments d ON d.id = e.department_id
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
   GROUP BY ROLLUP(d.location, d.name)
   ORDER BY d.location NULLS LAST, d.name NULLS LAST;
 expected_columns: [location, department_name, avg_salary, employee_count]

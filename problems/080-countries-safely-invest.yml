@@ -3,8 +3,8 @@ title: "Countries You Can Safely Invest In"
 difficulty: medium
 category: aggregation
 tags: [union-all, avg, subquery]
-domain: leetcode
-tables: [leetcode.lc1641_person, leetcode.lc1641_country, leetcode.lc1641_calls]
+domain: lc1641
+tables: [person, country, calls]
 description: |
   A telecommunications company wants to invest in countries where the average call duration is strictly greater than the global average call duration.
 
@@ -23,23 +23,23 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1641_country
+  FROM country
 order_matters: false
 solution: |
   WITH all_calls AS (
     SELECT c.caller_id AS person_id, c.duration
-    FROM leetcode.lc1641_calls c
+    FROM calls c
     UNION ALL
     SELECT c.callee_id AS person_id, c.duration
-    FROM leetcode.lc1641_calls c
+    FROM calls c
   ),
   call_countries AS (
     SELECT
       co.name AS country,
       ac.duration
     FROM all_calls ac
-    JOIN leetcode.lc1641_person p ON ac.person_id = p.id
-    JOIN leetcode.lc1641_country co ON LEFT(p.phone_number, 3) = co.country_code
+    JOIN person p ON ac.person_id = p.id
+    JOIN country co ON LEFT(p.phone_number, 3) = co.country_code
   )
   SELECT country
   FROM call_countries

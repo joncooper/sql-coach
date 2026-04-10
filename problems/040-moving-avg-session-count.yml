@@ -4,7 +4,7 @@ difficulty: medium
 category: window-functions
 tags: [window-functions, moving-average, date-functions, aggregation]
 domain: analytics
-tables: [analytics.sessions]
+tables: [sessions]
 description: |
   Calculate a **3-day moving average** of daily session counts from the analytics schema.
 
@@ -28,7 +28,7 @@ starter_code: |
     SELECT
       started_at::date AS session_date,
       COUNT(*) AS daily_sessions
-    FROM analytics.sessions
+    FROM sessions
     GROUP BY started_at::date
   )
   SELECT
@@ -43,7 +43,7 @@ solution: |
     SELECT
       started_at::date AS session_date,
       COUNT(*) AS daily_sessions
-    FROM analytics.sessions
+    FROM sessions
     GROUP BY started_at::date
   )
   SELECT

@@ -3,8 +3,8 @@ title: "Game Play Analysis II"
 difficulty: easy
 category: window-functions
 tags: [row-number, partition-by]
-domain: leetcode
-tables: [leetcode.lc1179_activity]
+domain: lc1179
+tables: [activity]
 description: |
   You are given an **Activity** table that tracks player logins. Each row records a player logging in on a specific date using a device and playing some number of games.
 
@@ -22,7 +22,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1179_activity
+  FROM activity
 order_matters: false
 solution: |
   WITH ranked AS (
@@ -30,7 +30,7 @@ solution: |
       player_id,
       device_id,
       ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY event_date) AS rn
-    FROM leetcode.lc1179_activity
+    FROM activity
   )
   SELECT player_id, device_id
   FROM ranked

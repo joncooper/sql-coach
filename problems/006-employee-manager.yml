@@ -4,7 +4,7 @@ difficulty: medium
 category: joins
 tags: [self-join, inner-join, aliases]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Write a self-join query to show each employee alongside their manager's name. The `manager_id` column in the employees table references another row in the same table.
 
@@ -22,14 +22,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM hr.employees e
-  JOIN hr.employees m ON ...
+  FROM employees e
+  JOIN employees m ON ...
 order_matters: true
 solution: |
   SELECT
     e.name AS employee_name,
     m.name AS manager_name
-  FROM hr.employees e
-  JOIN hr.employees m ON e.manager_id = m.id
+  FROM employees e
+  JOIN employees m ON e.manager_id = m.id
   ORDER BY employee_name;
 expected_columns: [employee_name, manager_name]

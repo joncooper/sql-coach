@@ -4,7 +4,7 @@ difficulty: hard
 category: window-functions
 tags: [window-functions, rank, aggregation, joins]
 domain: ecommerce
-tables: [ecommerce.categories, ecommerce.products, ecommerce.order_items, ecommerce.orders]
+tables: [categories, products, order_items, orders]
 description: |
   Find the **top 2 best-selling products** (by total quantity sold) in each category, considering only items from **completed** orders.
 
@@ -46,10 +46,10 @@ solution: |
       p.name AS product_name,
       SUM(oi.quantity) AS total_quantity,
       RANK() OVER (PARTITION BY cat.name ORDER BY SUM(oi.quantity) DESC) AS category_rank
-    FROM ecommerce.categories cat
-    JOIN ecommerce.products p ON p.category_id = cat.id
-    JOIN ecommerce.order_items oi ON oi.product_id = p.id
-    JOIN ecommerce.orders o ON o.id = oi.order_id
+    FROM categories cat
+    JOIN products p ON p.category_id = cat.id
+    JOIN order_items oi ON oi.product_id = p.id
+    JOIN orders o ON o.id = oi.order_id
     WHERE o.status = 'completed'
     GROUP BY cat.name, p.name
   ) ranked

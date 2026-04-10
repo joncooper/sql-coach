@@ -4,7 +4,7 @@ difficulty: medium
 category: aggregations
 tags: [group-by, join, having, sum, multi-table]
 domain: ecommerce
-tables: [ecommerce.categories, ecommerce.products, ecommerce.order_items, ecommerce.orders]
+tables: [categories, products, order_items, orders]
 description: |
   Calculate the total revenue for each product category, considering only **completed** orders.
 
@@ -25,10 +25,10 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM ecommerce.categories c
-  JOIN ecommerce.products p ON ...
-  JOIN ecommerce.order_items oi ON ...
-  JOIN ecommerce.orders o ON ...
+  FROM categories c
+  JOIN products p ON ...
+  JOIN order_items oi ON ...
+  JOIN orders o ON ...
   WHERE ...
   GROUP BY ...
   HAVING ...
@@ -37,10 +37,10 @@ solution: |
   SELECT
     c.name AS category_name,
     SUM(oi.quantity * oi.unit_price) AS total_revenue
-  FROM ecommerce.categories c
-  JOIN ecommerce.products p ON c.id = p.category_id
-  JOIN ecommerce.order_items oi ON p.id = oi.product_id
-  JOIN ecommerce.orders o ON oi.order_id = o.id
+  FROM categories c
+  JOIN products p ON c.id = p.category_id
+  JOIN order_items oi ON p.id = oi.product_id
+  JOIN orders o ON oi.order_id = o.id
   WHERE o.status = 'completed'
   GROUP BY c.name
   HAVING SUM(oi.quantity * oi.unit_price) > 500

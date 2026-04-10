@@ -4,7 +4,7 @@ difficulty: easy
 category: basic-select
 tags: [select, where, order-by, filtering]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Find all employees who earn more than $100,000 per year.
 
@@ -20,7 +20,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM hr.employees
+  FROM employees
   WHERE ...
 order_matters: true
 solution: |
@@ -28,7 +28,7 @@ solution: |
     name,
     department_id,
     salary
-  FROM hr.employees
+  FROM employees
   WHERE salary > 100000
   ORDER BY salary DESC;
 expected_columns: [name, department_id, salary]

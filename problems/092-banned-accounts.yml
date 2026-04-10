@@ -3,8 +3,8 @@ title: "Banned Accounts"
 difficulty: medium
 category: joins
 tags: [self-join, overlap, distinct]
-domain: leetcode
-tables: [leetcode.lc1898_log_info]
+domain: lc1898
+tables: [log_info]
 description: |
   You are given a **LogInfo** table that records login sessions for user accounts. Each row contains an `account_id`, the `ip_address` used, and the `login`/`logout` timestamps for that session.
 
@@ -25,12 +25,12 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1898_log_info
+  FROM log_info
 order_matters: false
 solution: |
   SELECT DISTINCT l1.account_id
-  FROM leetcode.lc1898_log_info l1
-  JOIN leetcode.lc1898_log_info l2
+  FROM log_info l1
+  JOIN log_info l2
     ON l1.account_id = l2.account_id
     AND l1.ip_address < l2.ip_address
   WHERE l1.logout >= l2.login

@@ -3,8 +3,8 @@ title: "Maximum Transaction Each Day"
 difficulty: medium
 category: window-functions
 tags: [rank, partition-by, date-functions]
-domain: leetcode
-tables: [leetcode.lc1981_transactions]
+domain: lc1981
+tables: [transactions]
 description: |
   You are given a **Transactions** table with columns `transaction_id`, `day` (a timestamp), and `amount`.
 
@@ -21,14 +21,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1981_transactions
+  FROM transactions
 order_matters: true
 solution: |
   WITH ranked AS (
     SELECT
       transaction_id,
       RANK() OVER (PARTITION BY day::date ORDER BY amount DESC) AS rn
-    FROM leetcode.lc1981_transactions
+    FROM transactions
   )
   SELECT transaction_id
   FROM ranked

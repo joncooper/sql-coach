@@ -3,8 +3,8 @@ title: "Most Frequently Ordered Products"
 difficulty: medium
 category: aggregation
 tags: [count, max, subquery]
-domain: leetcode
-tables: [leetcode.lc1735_customers, leetcode.lc1735_orders, leetcode.lc1735_products]
+domain: lc1735
+tables: [customers, orders, products]
 description: |
   Given tables of customers, orders, and products, find the most frequently ordered product(s) for each customer.
 
@@ -23,7 +23,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1735_orders
+  FROM orders
 order_matters: false
 solution: |
   WITH product_counts AS (
@@ -32,9 +32,9 @@ solution: |
       o.product_id,
       p.product_name,
       COUNT(o.product_id) AS cnt
-    FROM leetcode.lc1735_orders o
-    LEFT JOIN leetcode.lc1735_customers c ON o.customer_id = c.customer_id
-    LEFT JOIN leetcode.lc1735_products p ON o.product_id = p.product_id
+    FROM orders o
+    LEFT JOIN customers c ON o.customer_id = c.customer_id
+    LEFT JOIN products p ON o.product_id = p.product_id
     GROUP BY o.customer_id, o.product_id, p.product_name
   ),
   max_counts AS (

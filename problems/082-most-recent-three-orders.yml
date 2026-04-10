@@ -3,8 +3,8 @@ title: "The Most Recent Three Orders"
 difficulty: medium
 category: window-functions
 tags: [rank, partition-by, top-n]
-domain: leetcode
-tables: [leetcode.lc1671_customers, leetcode.lc1671_orders]
+domain: lc1671
+tables: [customers, orders]
 description: |
   Given tables of customers and their orders, find the most recent **three orders** of each customer. If a customer has fewer than three orders, return all of their orders.
 
@@ -22,7 +22,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1671_orders
+  FROM orders
 order_matters: true
 solution: |
   WITH ranked AS (
@@ -32,8 +32,8 @@ solution: |
       o.order_id,
       o.order_date,
       RANK() OVER (PARTITION BY c.name, c.customer_id ORDER BY o.order_date DESC) AS rn
-    FROM leetcode.lc1671_orders o
-    LEFT JOIN leetcode.lc1671_customers c ON o.customer_id = c.customer_id
+    FROM orders o
+    LEFT JOIN customers c ON o.customer_id = c.customer_id
   )
   SELECT customer_name, customer_id, order_id, order_date
   FROM ranked

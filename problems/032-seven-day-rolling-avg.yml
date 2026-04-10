@@ -4,7 +4,7 @@ difficulty: hard
 category: window-functions
 tags: [window-functions, rolling-average, aggregation, date-functions]
 domain: ecommerce
-tables: [ecommerce.orders]
+tables: [orders]
 description: |
   Calculate a **7-day rolling average** of daily completed order revenue.
 
@@ -30,7 +30,7 @@ starter_code: |
     SELECT
       order_date,
       SUM(total_amount) AS daily_revenue
-    FROM ecommerce.orders
+    FROM orders
     WHERE status = 'completed'
     GROUP BY order_date
   )
@@ -46,7 +46,7 @@ solution: |
     SELECT
       order_date,
       SUM(total_amount) AS daily_revenue
-    FROM ecommerce.orders
+    FROM orders
     WHERE status = 'completed'
     GROUP BY order_date
   )

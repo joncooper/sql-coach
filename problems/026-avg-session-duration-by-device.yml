@@ -4,7 +4,7 @@ difficulty: easy
 category: aggregations
 tags: [aggregation, date-arithmetic, extract, rounding]
 domain: analytics
-tables: [analytics.sessions]
+tables: [sessions]
 description: |
   Calculate the average session duration in **minutes** for each device type.
 
@@ -23,14 +23,14 @@ starter_code: |
   SELECT
     device,
     -- calculate average duration in minutes
-  FROM analytics.sessions
+  FROM sessions
   GROUP BY device
 order_matters: true
 solution: |
   SELECT
     device,
     ROUND(AVG(EXTRACT(EPOCH FROM (ended_at - started_at)) / 60)::numeric, 1) AS avg_duration_minutes
-  FROM analytics.sessions
+  FROM sessions
   GROUP BY device
   ORDER BY avg_duration_minutes DESC;
 expected_columns: [device, avg_duration_minutes]

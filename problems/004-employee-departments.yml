@@ -4,7 +4,7 @@ difficulty: easy
 category: joins
 tags: [join, inner-join, basics]
 domain: hr
-tables: [hr.employees, hr.departments]
+tables: [employees, departments]
 description: |
   Join the employees table with the departments table to show which department each employee belongs to.
 
@@ -21,15 +21,15 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM hr.employees
-  JOIN hr.departments ON ...
+  FROM employees
+  JOIN departments ON ...
 order_matters: true
 solution: |
   SELECT
     e.name AS employee_name,
     d.name AS department_name,
     e.salary
-  FROM hr.employees e
-  JOIN hr.departments d ON e.department_id = d.id
+  FROM employees e
+  JOIN departments d ON e.department_id = d.id
   ORDER BY department_name, salary DESC;
 expected_columns: [employee_name, department_name, salary]

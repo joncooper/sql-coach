@@ -4,7 +4,7 @@ difficulty: medium
 category: subqueries
 tags: [exists, correlated-subquery, filtering]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Find customers who have placed **at least one** order with a `total_amount` greater than $1,000.
 
@@ -23,7 +23,7 @@ starter_code: |
   SELECT
     c.name,
     c.email
-  FROM ecommerce.customers c
+  FROM customers c
   WHERE EXISTS (
     -- your subquery here
   )
@@ -32,10 +32,10 @@ solution: |
   SELECT
     c.name,
     c.email
-  FROM ecommerce.customers c
+  FROM customers c
   WHERE EXISTS (
     SELECT 1
-    FROM ecommerce.orders o
+    FROM orders o
     WHERE o.customer_id = c.id
       AND o.total_amount > 1000
   )

@@ -19,6 +19,21 @@ echo "==> Running dbt test..."
 .venv/bin/dbt test
 cd ..
 
+echo "==> Granting readonly access to all schemas..."
+docker exec sql-coach-db psql -U coach_admin -d sql_coach -c "
+DO \$\$
+DECLARE s TEXT;
+BEGIN
+  FOR s IN
+    SELECT schema_name FROM information_schema.schemata
+    WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+  LOOP
+    EXECUTE format('GRANT USAGE ON SCHEMA %I TO coach_readonly', s);
+    EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA %I TO coach_readonly', s);
+  END LOOP;
+END \$\$;
+"
+
 echo "==> Installing JS dependencies..."
 bun install
 

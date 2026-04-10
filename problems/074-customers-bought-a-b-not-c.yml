@@ -3,8 +3,8 @@ title: "Customers Who Bought Products A and B but Not C"
 difficulty: medium
 category: aggregation
 tags: [group-by, having, conditional]
-domain: leetcode
-tables: [leetcode.lc1536_customers, leetcode.lc1536_orders]
+domain: lc1536
+tables: [customers, orders]
 description: |
   You have a table of customers and a table of orders. Each order records which product a customer bought.
 
@@ -22,14 +22,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1536_customers
+  FROM customers
 order_matters: true
 solution: |
   SELECT
     c.customer_id,
     c.customer_name
-  FROM leetcode.lc1536_customers c
-  JOIN leetcode.lc1536_orders o
+  FROM customers c
+  JOIN orders o
     ON c.customer_id = o.customer_id
   GROUP BY c.customer_id, c.customer_name
   HAVING

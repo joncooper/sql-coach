@@ -3,8 +3,8 @@ title: "Customer Order Frequency"
 difficulty: easy
 category: aggregation
 tags: [group-by, having, date-functions]
-domain: leetcode
-tables: [leetcode.lc1654_customers, leetcode.lc1654_product, leetcode.lc1654_orders]
+domain: lc1654
+tables: [customers, product, orders]
 description: |
   Given tables of customers, products (with prices), and orders (with quantities), find the customers who spent at least $100 in **both** June 2020 and July 2020.
 
@@ -22,13 +22,13 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1654_orders
+  FROM orders
 order_matters: false
 solution: |
   SELECT o.customer_id, c.name
-  FROM leetcode.lc1654_orders o
-  JOIN leetcode.lc1654_customers c ON o.customer_id = c.customer_id
-  JOIN leetcode.lc1654_product p ON o.product_id = p.product_id
+  FROM orders o
+  JOIN customers c ON o.customer_id = c.customer_id
+  JOIN product p ON o.product_id = p.product_id
   GROUP BY o.customer_id, c.name
   HAVING
     SUM(CASE WHEN to_char(o.order_date, 'YYYY-MM') = '2020-06' THEN o.quantity * p.price ELSE 0 END) >= 100

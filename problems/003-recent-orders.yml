@@ -4,7 +4,7 @@ difficulty: easy
 category: basic-select
 tags: [select, where, date-filtering, and]
 domain: ecommerce
-tables: [ecommerce.orders]
+tables: [orders]
 description: |
   Find all **completed** orders from Q3 2023 (July 1 through September 30, 2023).
 
@@ -22,7 +22,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM ecommerce.orders
+  FROM orders
   WHERE ...
 order_matters: true
 solution: |
@@ -31,7 +31,7 @@ solution: |
     customer_id,
     order_date,
     total_amount
-  FROM ecommerce.orders
+  FROM orders
   WHERE status = 'completed'
     AND order_date >= '2023-07-01'
     AND order_date <= '2023-09-30'

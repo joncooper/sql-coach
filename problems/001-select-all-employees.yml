@@ -4,7 +4,7 @@ difficulty: easy
 category: basic-select
 tags: [select, order-by, basics]
 domain: hr
-tables: [hr.employees]
+tables: [employees]
 description: |
   Write a query to retrieve all employees from the HR database.
 
@@ -21,7 +21,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM hr.employees
+  FROM employees
 order_matters: true
 solution: |
   SELECT
@@ -29,6 +29,6 @@ solution: |
     email,
     salary,
     hire_date
-  FROM hr.employees
+  FROM employees
   ORDER BY hire_date DESC;
 expected_columns: [name, email, salary, hire_date]

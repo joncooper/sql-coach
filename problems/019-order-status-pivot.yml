@@ -4,7 +4,7 @@ difficulty: medium
 category: case-expressions
 tags: [case, aggregation, pivot, conditional]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Create a pivot table showing the count of each order status per customer.
 
@@ -26,8 +26,8 @@ starter_code: |
   SELECT
     c.name AS customer_name,
     -- pivot order statuses into columns
-  FROM ecommerce.customers c
-  JOIN ecommerce.orders o ON o.customer_id = c.id
+  FROM customers c
+  JOIN orders o ON o.customer_id = c.id
   GROUP BY c.name
 order_matters: true
 solution: |
@@ -37,8 +37,8 @@ solution: |
     SUM(CASE WHEN o.status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
     SUM(CASE WHEN o.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count,
     SUM(CASE WHEN o.status = 'refunded' THEN 1 ELSE 0 END) AS refunded_count
-  FROM ecommerce.customers c
-  JOIN ecommerce.orders o ON o.customer_id = c.id
+  FROM customers c
+  JOIN orders o ON o.customer_id = c.id
   GROUP BY c.name
   ORDER BY completed_count DESC, customer_name ASC;
 expected_columns: [customer_name, completed_count, pending_count, cancelled_count, refunded_count]

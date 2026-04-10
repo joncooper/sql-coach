@@ -3,8 +3,8 @@ title: "All People Report to the Given Manager"
 difficulty: medium
 category: joins
 tags: [self-join, hierarchical]
-domain: leetcode
-tables: [leetcode.lc1405_employees]
+domain: lc1405
+tables: [employees]
 description: |
   You are given an **Employees** table where each employee has a manager. The head of the company has `employee_id = 1` and reports to themselves (`manager_id = 1`).
 
@@ -25,14 +25,14 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1405_employees
+  FROM employees
 order_matters: false
 solution: |
   SELECT e1.employee_id
-  FROM leetcode.lc1405_employees e1
-  JOIN leetcode.lc1405_employees e2
+  FROM employees e1
+  JOIN employees e2
     ON e1.manager_id = e2.employee_id
-  JOIN leetcode.lc1405_employees e3
+  JOIN employees e3
     ON e2.manager_id = e3.employee_id
   WHERE e1.employee_id <> 1
     AND e3.manager_id = 1;

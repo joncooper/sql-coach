@@ -4,7 +4,7 @@ difficulty: medium
 category: window-functions
 tags: [window-function, sum, running-total, order-by]
 domain: ecommerce
-tables: [ecommerce.orders]
+tables: [orders]
 description: |
   Calculate a running total of revenue from **completed** orders, ordered by `order_date`.
 
@@ -24,7 +24,7 @@ starter_code: |
     total_amount,
     -- your window function here
     AS running_total
-  FROM ecommerce.orders
+  FROM orders
   WHERE ...
 order_matters: true
 solution: |
@@ -32,7 +32,7 @@ solution: |
     order_date,
     total_amount,
     SUM(total_amount) OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total
-  FROM ecommerce.orders
+  FROM orders
   WHERE status = 'completed'
   ORDER BY order_date;
 expected_columns: [order_date, total_amount, running_total]

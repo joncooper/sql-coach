@@ -4,7 +4,7 @@ difficulty: hard
 category: business-analysis
 tags: [window-functions, cumulative-sum, business-analysis]
 domain: ecommerce
-tables: [ecommerce.customers, ecommerce.orders]
+tables: [customers, orders]
 description: |
   Perform a **Pareto analysis** on customer revenue. Calculate each customer's cumulative share of total completed-order revenue.
 
@@ -29,8 +29,8 @@ starter_code: |
   WITH customer_rev AS (
     SELECT
       -- aggregate customer revenue from completed orders
-    FROM ecommerce.customers c
-    JOIN ecommerce.orders o ON o.customer_id = c.id
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.id
     WHERE o.status = 'completed'
     GROUP BY c.id, c.name
   )
@@ -47,8 +47,8 @@ solution: |
     SELECT
       c.name AS customer_name,
       SUM(o.total_amount) AS customer_revenue
-    FROM ecommerce.customers c
-    JOIN ecommerce.orders o ON o.customer_id = c.id
+    FROM customers c
+    JOIN orders o ON o.customer_id = c.id
     WHERE o.status = 'completed'
     GROUP BY c.id, c.name
   )

@@ -3,8 +3,8 @@ title: "Tree Node"
 difficulty: medium
 category: conditional-logic
 tags: [case, self-join, tree]
-domain: leetcode
-tables: [leetcode.lc608_tree]
+domain: lc608
+tables: [tree]
 description: |
   Each node in a binary tree can be one of three types:
 
@@ -26,16 +26,16 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc608_tree
+  FROM tree
 order_matters: true
 solution: |
   SELECT
     id,
     CASE
       WHEN p_id IS NULL THEN 'Root'
-      WHEN id IN (SELECT DISTINCT p_id FROM leetcode.lc608_tree WHERE p_id IS NOT NULL) THEN 'Inner'
+      WHEN id IN (SELECT DISTINCT p_id FROM tree WHERE p_id IS NOT NULL) THEN 'Inner'
       ELSE 'Leaf'
     END AS type
-  FROM leetcode.lc608_tree
+  FROM tree
   ORDER BY id;
 expected_columns: [id, type]

@@ -4,7 +4,7 @@ difficulty: hard
 category: ctes
 tags: [recursive-cte, with-recursive, string-concatenation, hierarchy]
 domain: ecommerce
-tables: [ecommerce.categories]
+tables: [categories]
 description: |
   Use a **recursive CTE** to build the full hierarchy path for each product category.
 
@@ -26,14 +26,14 @@ starter_code: |
   WITH RECURSIVE category_tree AS (
     -- base case: top-level categories
     SELECT ...
-    FROM ecommerce.categories
+    FROM categories
     WHERE parent_category_id IS NULL
 
     UNION ALL
 
     -- recursive case: child categories
     SELECT ...
-    FROM ecommerce.categories c
+    FROM categories c
     JOIN category_tree ct ON ...
   )
   SELECT name, full_path
@@ -46,7 +46,7 @@ solution: |
       id,
       name,
       name::TEXT AS full_path
-    FROM ecommerce.categories
+    FROM categories
     WHERE parent_category_id IS NULL
 
     UNION ALL
@@ -55,7 +55,7 @@ solution: |
       c.id,
       c.name,
       ct.full_path || ' > ' || c.name
-    FROM ecommerce.categories c
+    FROM categories c
     JOIN category_tree ct ON c.parent_category_id = ct.id
   )
   SELECT name, full_path

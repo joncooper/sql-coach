@@ -3,8 +3,8 @@ title: "Highest Grade For Each Student"
 difficulty: medium
 category: window-functions
 tags: [rank, partition-by, ordering]
-domain: leetcode
-tables: [leetcode.lc1214_enrollments]
+domain: lc1214
+tables: [enrollments]
 description: |
   You are given an **Enrollments** table containing student course enrollments with their grades.
 
@@ -23,7 +23,7 @@ hints:
 starter_code: |
   SELECT
     -- your query here
-  FROM leetcode.lc1214_enrollments
+  FROM enrollments
 order_matters: true
 solution: |
   SELECT student_id, course_id, grade
@@ -33,7 +33,7 @@ solution: |
       course_id,
       grade,
       RANK() OVER (PARTITION BY student_id ORDER BY grade DESC, course_id ASC) AS rnk
-    FROM leetcode.lc1214_enrollments
+    FROM enrollments
   ) s
   WHERE rnk = 1
   ORDER BY student_id;
