@@ -14,6 +14,27 @@ interface ProblemDescriptionProps {
   reviewDue?: boolean;
 }
 
+export function ProblemDescriptionText({
+  description,
+  reviewDue,
+}: {
+  description: string;
+  reviewDue?: boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      {reviewDue && (
+        <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-300">
+          Due for review — solve again to strengthen mastery
+        </div>
+      )}
+      <div className="prose prose-invert prose-sm max-w-none prose-p:text-zinc-300 prose-code:rounded prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-blue-400 prose-code:before:content-none prose-code:after:content-none prose-strong:text-zinc-200">
+        <Markdown remarkPlugins={[remarkGfm]}>{description}</Markdown>
+      </div>
+    </div>
+  );
+}
+
 export default function ProblemDescription({
   description,
   hints,
@@ -33,15 +54,6 @@ export default function ProblemDescription({
 
   return (
     <div className="space-y-4">
-      {reviewDue && (
-        <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-300">
-          Due for review — solve again to strengthen mastery
-        </div>
-      )}
-      <div className="prose prose-invert prose-sm max-w-none prose-p:text-zinc-300 prose-code:rounded prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-blue-400 prose-code:before:content-none prose-code:after:content-none prose-strong:text-zinc-200">
-        <Markdown remarkPlugins={[remarkGfm]}>{description}</Markdown>
-      </div>
-
       {hints.length > 0 && (
         <div className="border-t border-zinc-800 pt-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">

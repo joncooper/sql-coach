@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, use } from "react";
 import dynamic from "next/dynamic";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import ProblemDescription from "@/components/ProblemDescription";
+import { ProblemDescriptionText } from "@/components/ProblemDescription";
 import DifficultyBadge from "@/components/DifficultyBadge";
 import SchemaExplorer from "@/components/SchemaExplorer";
 import SampleData from "@/components/SampleData";
@@ -306,46 +307,54 @@ export default function ProblemPage({
       {/* Left: Problem description + schema */}
       <Panel defaultSize={35} minSize={20}>
         <div className="flex h-full flex-col">
-          {/* Pinned header */}
-          <div className="shrink-0 border-b border-zinc-800 px-4 pt-4 pb-3">
-            <div className="mb-2 flex items-center justify-between">
-              <a
-                href="/"
-                className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300"
-              >
-                &larr; Problems
-              </a>
-              <div className="flex items-center gap-2">
-                {problem.adjacent.prev && (
-                  <a
-                    href={`/problems/${problem.adjacent.prev}`}
-                    className="text-xs text-zinc-500 hover:text-zinc-300"
-                    title="Previous problem"
-                  >
-                    &larr; Prev
-                  </a>
-                )}
-                {problem.adjacent.next && (
-                  <a
-                    href={`/problems/${problem.adjacent.next}`}
-                    className="text-xs text-zinc-500 hover:text-zinc-300"
-                    title="Next problem"
-                  >
-                    Next &rarr;
-                  </a>
-                )}
+          {/* Pinned header: title + description */}
+          <div className="max-h-[60%] shrink-0 overflow-y-auto border-b border-zinc-800" style={{ scrollbarWidth: "thin" }}>
+            <div className="px-4 pt-4 pb-3">
+              <div className="mb-2 flex items-center justify-between">
+                <a
+                  href="/"
+                  className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300"
+                >
+                  &larr; Problems
+                </a>
+                <div className="flex items-center gap-2">
+                  {problem.adjacent.prev && (
+                    <a
+                      href={`/problems/${problem.adjacent.prev}`}
+                      className="text-xs text-zinc-500 hover:text-zinc-300"
+                      title="Previous problem"
+                    >
+                      &larr; Prev
+                    </a>
+                  )}
+                  {problem.adjacent.next && (
+                    <a
+                      href={`/problems/${problem.adjacent.next}`}
+                      className="text-xs text-zinc-500 hover:text-zinc-300"
+                      title="Next problem"
+                    >
+                      Next &rarr;
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-            <h1 className="text-lg font-bold text-zinc-100">{problem.title}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <DifficultyBadge difficulty={problem.difficulty} />
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
-                {formatCategory(problem.category)}
-              </span>
+              <h1 className="text-lg font-bold text-zinc-100">{problem.title}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <DifficultyBadge difficulty={problem.difficulty} />
+                <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+                  {formatCategory(problem.category)}
+                </span>
+              </div>
+              <div className="mt-3">
+                <ProblemDescriptionText
+                  description={problem.description}
+                  reviewDue={reviewDue}
+                />
+              </div>
             </div>
           </div>
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex-1 overflow-y-auto border-t border-zinc-800 px-4 py-4">
             <ProblemDescription
               description={problem.description}
               hints={problem.hints}
@@ -353,7 +362,6 @@ export default function ProblemPage({
               solution={solution}
               canShowSolution={canShowSolution}
               onShowSolution={handleShowSolution}
-              reviewDue={reviewDue}
             />
             <div className="mt-4 border-t border-zinc-800 pt-4">
               <SchemaExplorer schema={problem.schema} />
