@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import DifficultyBadge from "@/components/DifficultyBadge";
 import MasteryIndicator from "@/components/MasteryIndicator";
 import GenerateProblem from "@/components/GenerateProblem";
+import SkillTreeView from "@/components/SkillTreeView";
 import { useLlmStatus } from "@/hooks/useLlmStatus";
 import {
   loadStats,
@@ -43,6 +44,7 @@ export default function Home() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [stats, setStats] = useState<StatsStore | null>(null);
+  const [viewMode, setViewMode] = useState<"tree" | "list">("tree");
   const { available: llmAvailable } = useLlmStatus();
 
   useEffect(() => {
@@ -99,6 +101,16 @@ export default function Home() {
   const hasAnyActivity = stats
     ? Object.keys(stats.problems).length > 0
     : false;
+
+  // Category stats for skill tree
+  const treeCategoryStats = new Map<string, { total: number; solved: number; easy: number; medium: number; hard: number }>();
+  for (const p of problems) {
+    const entry = treeCategoryStats.get(p.category) ?? { total: 0, solved: 0, easy: 0, medium: 0, hard: 0 };
+    entry.total++;
+    entry[p.difficulty]++;
+    if (stats?.problems[p.slug]?.solvedAt) entry.solved++;
+    treeCategoryStats.set(p.category, entry);
+  }
 
   // Difficulty counts
   const easySolved = problems.filter(
@@ -213,10 +225,44 @@ export default function Home() {
                 ? `${filtered.length} of ${problems.length}`
                 : problems.length}
             </span>
+            <div className="flex rounded-lg border border-zinc-800 bg-zinc-900 p-0.5">
+              <button
+                onClick={() => setViewMode("tree")}
+                className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+                  viewMode === "tree"
+                    ? "bg-zinc-700 text-zinc-100"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                Tree
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+                  viewMode === "list"
+                    ? "bg-zinc-700 text-zinc-100"
+                    : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                List
+              </button>
+            </div>
           </div>
         </div>
 
+        {/* Tree view */}
+        {viewMode === "tree" && (
+          <SkillTreeView
+            categoryStats={treeCategoryStats}
+            onSelectCategory={(cat) => {
+              setCategoryFilter(cat);
+              setViewMode("list");
+            }}
+          />
+        )}
+
         {/* Scrollable table */}
+        {viewMode === "list" && (
         <div className="min-h-0 flex-1 overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
@@ -270,6 +316,7 @@ export default function Home() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {/* RIGHT SIDEBAR — Progress & Stats */}
