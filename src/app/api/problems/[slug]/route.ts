@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProblem, getAdjacentSlugs } from "@/lib/problems";
-import { getTableSchema, getSampleData } from "@/lib/db";
+import { getTableSchema, getSampleData, executeAdminQuery } from "@/lib/db";
 import { getGenerated, ensureGeneratedSchema } from "@/lib/generated";
 
 export async function GET(
@@ -40,7 +40,16 @@ export async function GET(
   const samples = await getSampleData(problem.tables);
   const adjacent = await getAdjacentSlugs(slug);
 
+  // Run solution to get expected output example
+  let expectedOutput: { columns: string[]; rows: unknown[][] } | null = null;
+  try {
+    const solResult = await executeAdminQuery(problem.solution);
+    expectedOutput = { columns: solResult.columns, rows: solResult.rows };
+  } catch {
+    // If solution fails (shouldn't happen), just omit expected output
+  }
+
   // Strip solution from response
   const { solution, ...safe } = problem;
-  return NextResponse.json({ ...safe, schema: tables, samples, adjacent });
+  return NextResponse.json({ ...safe, schema: tables, samples, adjacent, expectedOutput });
 }

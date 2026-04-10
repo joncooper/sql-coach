@@ -55,6 +55,20 @@ export default function Home() {
 
   const categories = Array.from(new Set(problems.map((p) => p.category))).sort();
 
+  // Categories filtered to those with problems at the active difficulty
+  const visibleCategories = difficultyFilter === "all"
+    ? categories
+    : categories.filter((cat) =>
+        problems.some((p) => p.category === cat && p.difficulty === difficultyFilter)
+      );
+
+  // Reset category filter if it's no longer visible after difficulty change
+  useEffect(() => {
+    if (categoryFilter !== "all" && !visibleCategories.includes(categoryFilter)) {
+      setCategoryFilter("all");
+    }
+  }, [difficultyFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const filtered = problems.filter((p) => {
     if (difficultyFilter !== "all" && p.difficulty !== difficultyFilter)
       return false;
@@ -117,12 +131,19 @@ export default function Home() {
             }`}
           >
             <span>All Problems</span>
-            <span className="text-xs text-zinc-600">{problems.length}</span>
+            <span className="text-xs text-zinc-600">
+              {difficultyFilter === "all"
+                ? problems.length
+                : problems.filter((p) => p.difficulty === difficultyFilter).length}
+            </span>
           </button>
-          {categories.map((cat) => {
+          {visibleCategories.map((cat) => {
             const cp = categoryProgress.find((c) => c.category === cat);
+            const catProblems = problems.filter(
+              (p) => p.category === cat && (difficultyFilter === "all" || p.difficulty === difficultyFilter)
+            );
             const done = cp ? cp.solved + cp.practiced + cp.mastered : 0;
-            const total = cp?.total ?? 0;
+            const total = catProblems.length;
             return (
               <button
                 key={cat}

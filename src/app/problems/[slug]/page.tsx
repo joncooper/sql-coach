@@ -55,6 +55,7 @@ interface ProblemDetail {
     { column_name: string; data_type: string; is_nullable: string }[]
   >;
   samples: Record<string, { columns: string[]; rows: unknown[][] }>;
+  expectedOutput: { columns: string[]; rows: unknown[][] } | null;
   adjacent: { prev: string | null; next: string | null };
 }
 
@@ -360,6 +361,54 @@ export default function ProblemPage({
             {problem.samples && (
               <div className="mt-4 border-t border-zinc-800 pt-4">
                 <SampleData samples={problem.samples} />
+              </div>
+            )}
+            {problem.expectedOutput && problem.expectedOutput.rows.length > 0 && (
+              <div className="mt-4 border-t border-zinc-800 pt-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  Expected Output
+                </h3>
+                <div className="mt-2 overflow-x-auto rounded border border-zinc-800">
+                  <table className="w-full border-collapse font-mono text-[11px]">
+                    <thead>
+                      <tr className="bg-zinc-900">
+                        {problem.expectedOutput.columns.map((col) => (
+                          <th
+                            key={col}
+                            className="border-b border-zinc-800 px-2 py-1 text-left font-semibold text-zinc-500"
+                          >
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {problem.expectedOutput.rows.map((row, i) => (
+                        <tr
+                          key={i}
+                          className="border-b border-zinc-800/50 last:border-0"
+                        >
+                          {row.map((cell, j) => (
+                            <td
+                              key={j}
+                              className={`whitespace-nowrap px-2 py-0.5 ${
+                                cell === null
+                                  ? "italic text-zinc-600"
+                                  : "text-zinc-400"
+                              }`}
+                            >
+                              {cell === null || cell === undefined
+                                ? "NULL"
+                                : String(cell).length > 30
+                                  ? String(cell).slice(0, 27) + "..."
+                                  : String(cell)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
