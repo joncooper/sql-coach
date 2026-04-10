@@ -21,7 +21,7 @@ export default function RootLayout({
           </a>
           <StreakBadge />
         </nav>
-        <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
       </body>
     </html>
   );
