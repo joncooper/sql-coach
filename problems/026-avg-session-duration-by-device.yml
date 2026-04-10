@@ -1,7 +1,7 @@
 slug: avg-session-duration-by-device
 title: "Average Session Duration by Device"
 difficulty: easy
-category: aggregations
+category: aggregation
 tags: [aggregation, date-arithmetic, extract, rounding]
 domain: analytics
 tables: [sessions]

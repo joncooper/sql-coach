@@ -1,7 +1,7 @@
 slug: monthly-order-counts
 title: "Monthly Order Counts"
 difficulty: medium
-category: aggregations
+category: aggregation
 tags: [date-trunc, group-by, having, count]
 domain: ecommerce
 tables: [orders]

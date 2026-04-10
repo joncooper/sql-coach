@@ -1,7 +1,7 @@
 slug: grouping-sets-revenue
 title: "Revenue Summary with GROUPING SETS"
 difficulty: medium
-category: aggregations
+category: aggregation
 tags: [grouping-sets, aggregation, joins]
 domain: ecommerce
 tables: [categories, products, order_items, orders]

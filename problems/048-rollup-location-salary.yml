@@ -1,7 +1,7 @@
 slug: rollup-location-salary
 title: "Salary Rollup by Location"
 difficulty: medium
-category: aggregations
+category: aggregation
 tags: [rollup, grouping, aggregation]
 domain: hr
 tables: [employees, departments]

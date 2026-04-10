@@ -1,7 +1,7 @@
 slug: conditional-multi-metric
 title: "Monthly Order Dashboard"
 difficulty: medium
-category: case-expressions
+category: conditional-logic
 tags: [case, aggregation, date-trunc, conditional-aggregation]
 domain: ecommerce
 tables: [orders]

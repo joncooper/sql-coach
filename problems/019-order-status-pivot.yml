@@ -1,7 +1,7 @@
 slug: order-status-pivot
 title: "Order Status Pivot by Customer"
 difficulty: medium
-category: case-expressions
+category: conditional-logic
 tags: [case, aggregation, pivot, conditional]
 domain: ecommerce
 tables: [customers, orders]

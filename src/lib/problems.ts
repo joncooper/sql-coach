@@ -3,6 +3,7 @@ import { join } from "node:path";
 import yaml from "js-yaml";
 import type { Problem, ProblemSummary } from "@/types";
 import { listGenerated } from "@/lib/generated";
+import { sortBySkillTree } from "@/lib/skill-tree";
 
 const PROBLEMS_DIR = join(process.cwd(), "problems");
 
@@ -53,7 +54,7 @@ export async function listProblems(): Promise<ProblemSummary[]> {
     // ok
   }
 
-  return Array.from(all.values())
+  const summaries = Array.from(all.values())
     .map(({ slug, title, difficulty, category, tags }) => ({
       slug,
       title,
@@ -61,8 +62,9 @@ export async function listProblems(): Promise<ProblemSummary[]> {
       category,
       tags,
       isGenerated: generatedSlugs.has(slug),
-    }))
-    .sort((a, b) => a.slug.localeCompare(b.slug));
+    }));
+
+  return sortBySkillTree(summaries);
 }
 
 export async function getProblem(slug: string): Promise<Problem | null> {
@@ -72,9 +74,11 @@ export async function getProblem(slug: string): Promise<Problem | null> {
 
 export async function getAdjacentSlugs(slug: string): Promise<{ prev: string | null; next: string | null }> {
   const list = await listProblems();
-  const idx = list.findIndex((p) => p.slug === slug);
+  // Sort by skill tree order (category tiers, then easy → medium → hard)
+  const sorted = sortBySkillTree(list);
+  const idx = sorted.findIndex((p) => p.slug === slug);
   return {
-    prev: idx > 0 ? list[idx - 1].slug : null,
-    next: idx < list.length - 1 ? list[idx + 1].slug : null,
+    prev: idx > 0 ? sorted[idx - 1].slug : null,
+    next: idx < sorted.length - 1 ? sorted[idx + 1].slug : null,
   };
 }
