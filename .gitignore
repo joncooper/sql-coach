@@ -9,4 +9,5 @@ dbt/dbt_packages/
 __pycache__/
 .gstack/
 evals/results/
+evals/traces/
 generated/

@@ -69,11 +69,14 @@ export default function GenerateProblem({
 
             if (msg.type === "thinking") {
               setThinking((prev) => prev + msg.content);
-              // Auto-scroll thinking area
               if (thinkingRef.current) {
                 thinkingRef.current.scrollTop =
                   thinkingRef.current.scrollHeight;
               }
+            } else if (msg.type === "retrying") {
+              setStage("thinking");
+              setPreview(null);
+              setError(null);
             } else if (msg.type === "preview") {
               setStage("preview");
               setPreview(msg.problem);
