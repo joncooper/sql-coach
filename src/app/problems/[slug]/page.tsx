@@ -105,9 +105,12 @@ export default function ProblemPage({
       .then((data: ProblemDetail) => {
         setProblem(data);
         const saved = localStorage.getItem(`sql-coach:code:${slug}`);
-        if (saved) {
+        // Invalidate cached code that uses old schema-qualified names
+        const isStale = saved && /\b(hr|ecommerce|analytics|leetcode)\.\w/.test(saved);
+        if (saved && !isStale) {
           setCode(saved);
         } else if (data.starter_code) {
+          if (isStale) localStorage.removeItem(`sql-coach:code:${slug}`);
           setCode(data.starter_code);
         }
       });
