@@ -1,24 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DifficultyBadge from "@/components/DifficultyBadge";
 import MasteryIndicator from "@/components/MasteryIndicator";
 import GenerateProblem from "@/components/GenerateProblem";
-import SkillTreeView from "@/components/SkillTreeView";
 import { useLlmStatus } from "@/hooks/useLlmStatus";
+import { SKILL_TREE, sortBySkillTree } from "@/lib/skill-tree";
 import {
   loadStats,
   computeMasteryLevel,
+  computeStreak,
   getSolvedCount,
   getReviewDueProblems,
-  getCategoryProgress,
-  computeStreak,
+  getStarredProblems,
+  toggleStar,
 } from "@/lib/stats";
 import type { StatsStore, MasteryLevel } from "@/types";
-
-function formatCategory(s: string) {
-  return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 interface ProblemSummary {
   slug: string;
@@ -29,418 +26,325 @@ interface ProblemSummary {
   isGenerated?: boolean;
 }
 
-type Difficulty = "all" | "easy" | "medium" | "hard";
+type ViewMode = "skills" | "problems";
+type DifficultyFilter = "all" | "easy" | "medium" | "hard";
 
-const difficultyPills: { value: Difficulty; label: string }[] = [
+const DIFFICULTY_FILTERS: { value: DifficultyFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "easy", label: "Easy" },
   { value: "medium", label: "Medium" },
   { value: "hard", label: "Hard" },
 ];
 
+const SKILL_GROUPS: { name: string; categories: string[] }[] = [
+  {
+    name: "Fundamentals",
+    categories: ["basic-select", "joins", "subqueries", "ctes"],
+  },
+  {
+    name: "Analytics",
+    categories: [
+      "aggregation",
+      "window-functions",
+      "gaps-and-islands",
+      "cohort-analysis",
+    ],
+  },
+  {
+    name: "Logic & Transformation",
+    categories: ["conditional-logic", "null-handling", "pivoting"],
+  },
+  {
+    name: "Text & Dates",
+    categories: ["date-functions", "string-functions"],
+  },
+  {
+    name: "Applied",
+    categories: [
+      "advanced-joins",
+      "data-quality",
+      "set-operations",
+      "business-analysis",
+    ],
+  },
+];
+
+function getSkillLabel(category: string): string {
+  const node = SKILL_TREE.find((n) => n.category === category);
+  if (node) return node.label;
+  return category.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function Home() {
   const [problems, setProblems] = useState<ProblemSummary[]>([]);
-  const [difficultyFilter, setDifficultyFilter] = useState<Difficulty>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("skills");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [difficultyFilter, setDifficultyFilter] =
+    useState<DifficultyFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
   const [stats, setStats] = useState<StatsStore | null>(null);
-  const [viewMode, setViewMode] = useState<"tree" | "list">("tree");
   const { available: llmAvailable } = useLlmStatus();
 
   useEffect(() => {
     fetch("/api/problems")
       .then((r) => r.json())
       .then(setProblems);
-
     setStats(loadStats());
   }, []);
 
-  const categories = Array.from(new Set(problems.map((p) => p.category))).sort();
-
-  // Categories filtered to those with problems at the active difficulty
-  const visibleCategories = difficultyFilter === "all"
-    ? categories
-    : categories.filter((cat) =>
-        problems.some((p) => p.category === cat && p.difficulty === difficultyFilter)
-      );
-
-  // Reset category filter if it's no longer visible after difficulty change
-  useEffect(() => {
-    if (categoryFilter !== "all" && !visibleCategories.includes(categoryFilter)) {
-      setCategoryFilter("all");
+  const categoryStats = useMemo(() => {
+    const m = new Map<string, { total: number; solved: number }>();
+    for (const p of problems) {
+      const entry = m.get(p.category) ?? { total: 0, solved: 0 };
+      entry.total++;
+      if (stats?.problems[p.slug]?.solvedAt) entry.solved++;
+      m.set(p.category, entry);
     }
-  }, [difficultyFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    return m;
+  }, [problems, stats]);
 
-  const filtered = problems.filter((p) => {
-    if (difficultyFilter !== "all" && p.difficulty !== difficultyFilter)
-      return false;
-    if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
-    if (
-      search &&
-      !p.title.toLowerCase().includes(search.toLowerCase()) &&
-      !p.tags.some((t) => t.toLowerCase().includes(search.toLowerCase()))
-    )
-      return false;
-    return true;
-  });
+  const groupsToShow = useMemo(() => {
+    const known = new Set(SKILL_GROUPS.flatMap((g) => g.categories));
+    const extras = Array.from(categoryStats.keys())
+      .filter((c) => !known.has(c))
+      .sort();
+    const groups = SKILL_GROUPS.map((g) => ({
+      ...g,
+      categories: g.categories.filter((c) => categoryStats.has(c)),
+    })).filter((g) => g.categories.length > 0);
+    if (extras.length > 0) groups.push({ name: "Other", categories: extras });
+    return groups;
+  }, [categoryStats]);
+
+  const problemBySlug = useMemo(() => {
+    const m = new Map<string, ProblemSummary>();
+    for (const p of problems) m.set(p.slug, p);
+    return m;
+  }, [problems]);
+
+  const allProblemsSorted = useMemo(
+    () => sortBySkillTree(problems),
+    [problems]
+  );
 
   const solvedCount = stats ? getSolvedCount(stats) : 0;
-  const streak = stats ? computeStreak(stats.global.activeDays) : 0;
-  const categoryProgress = stats && problems.length > 0
-    ? getCategoryProgress(stats, problems)
-    : [];
   const reviewSlugs = stats ? getReviewDueProblems(stats) : [];
-  const reviewProblems = problems.filter((p) => reviewSlugs.includes(p.slug));
-
-  function getMastery(slug: string): MasteryLevel {
-    if (!stats) return "unattempted";
-    const p = problems.find((pr) => pr.slug === slug);
-    return computeMasteryLevel(stats.problems[slug], p?.difficulty ?? "easy");
-  }
-
+  const starredSlugs = stats ? getStarredProblems(stats) : [];
+  const currentStreak = stats ? computeStreak(stats.global.activeDays) : 0;
+  const longestStreak = stats?.global.longestStreak ?? 0;
   const hasAnyActivity = stats
     ? Object.keys(stats.problems).length > 0
     : false;
 
-  // Category stats for skill tree
-  const treeCategoryStats = new Map<string, { total: number; solved: number; easy: number; medium: number; hard: number }>();
-  for (const p of problems) {
-    const entry = treeCategoryStats.get(p.category) ?? { total: 0, solved: 0, easy: 0, medium: 0, hard: 0 };
-    entry.total++;
-    entry[p.difficulty]++;
-    if (stats?.problems[p.slug]?.solvedAt) entry.solved++;
-    treeCategoryStats.set(p.category, entry);
+  function getMastery(slug: string): MasteryLevel {
+    if (!stats) return "unattempted";
+    const p = problemBySlug.get(slug);
+    return computeMasteryLevel(stats.problems[slug], p?.difficulty ?? "easy");
   }
 
-  // Difficulty counts
-  const easySolved = problems.filter(
-    (p) => p.difficulty === "easy" && stats?.problems[p.slug]?.solvedAt
-  ).length;
-  const easyTotal = problems.filter((p) => p.difficulty === "easy").length;
-  const medSolved = problems.filter(
-    (p) => p.difficulty === "medium" && stats?.problems[p.slug]?.solvedAt
-  ).length;
-  const medTotal = problems.filter((p) => p.difficulty === "medium").length;
-  const hardSolved = problems.filter(
-    (p) => p.difficulty === "hard" && stats?.problems[p.slug]?.solvedAt
-  ).length;
-  const hardTotal = problems.filter((p) => p.difficulty === "hard").length;
+  function isStarred(slug: string): boolean {
+    return !!stats?.problems[slug]?.starred;
+  }
+
+  function handleToggleStar(slug: string) {
+    const updated = toggleStar(slug);
+    setStats({ ...updated });
+  }
+
+  const centerProblems = useMemo(() => {
+    if (viewMode !== "problems") return [];
+    const base = selectedCategory
+      ? problems.filter((p) => p.category === selectedCategory)
+      : allProblemsSorted;
+    return base.filter((p) => {
+      if (difficultyFilter !== "all" && p.difficulty !== difficultyFilter)
+        return false;
+      if (
+        !selectedCategory &&
+        categoryFilter !== "all" &&
+        p.category !== categoryFilter
+      )
+        return false;
+      return true;
+    });
+  }, [
+    viewMode,
+    selectedCategory,
+    problems,
+    allProblemsSorted,
+    difficultyFilter,
+    categoryFilter,
+  ]);
+
+  const allCategoriesSorted = useMemo(() => {
+    const known = SKILL_GROUPS.flatMap((g) => g.categories);
+    const present = new Set(categoryStats.keys());
+    const ordered = known.filter((c) => present.has(c));
+    const extras = Array.from(present)
+      .filter((c) => !known.includes(c))
+      .sort();
+    return [...ordered, ...extras];
+  }, [categoryStats]);
+
+  function resetFilters() {
+    setDifficultyFilter("all");
+    setCategoryFilter("all");
+  }
+
+  function showSkills() {
+    setViewMode("skills");
+    setSelectedCategory(null);
+    resetFilters();
+  }
+
+  function showAllProblems() {
+    setViewMode("problems");
+    setSelectedCategory(null);
+    resetFilters();
+  }
+
+  function selectSkill(cat: string) {
+    setViewMode("problems");
+    setSelectedCategory(cat);
+    resetFilters();
+  }
 
   return (
     <div className="flex h-full">
-      {/* LEFT SIDEBAR — Categories */}
-      <div className="w-52 shrink-0 overflow-y-auto border-r border-zinc-800 px-3 py-4">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          Categories
-        </h2>
-        <div className="space-y-0.5">
-          <button
-            onClick={() => setCategoryFilter("all")}
-            className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-              categoryFilter === "all"
-                ? "bg-zinc-800 text-zinc-100"
-                : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-            }`}
-          >
-            <span>All Problems</span>
-            <span className="text-xs text-zinc-600">
-              {difficultyFilter === "all"
-                ? problems.length
-                : problems.filter((p) => p.difficulty === difficultyFilter).length}
-            </span>
-          </button>
-          {visibleCategories.map((cat) => {
-            const cp = categoryProgress.find((c) => c.category === cat);
-            const catProblems = problems.filter(
-              (p) => p.category === cat && (difficultyFilter === "all" || p.difficulty === difficultyFilter)
-            );
-            const done = cp ? cp.solved + cp.practiced + cp.mastered : 0;
-            const total = catProblems.length;
-            return (
-              <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat === categoryFilter ? "all" : cat)}
-                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                  categoryFilter === cat
-                    ? "bg-zinc-800 text-zinc-100"
-                    : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                }`}
-              >
-                <span className="truncate">{formatCategory(cat)}</span>
-                <span className="ml-1 shrink-0 text-xs text-zinc-600">
-                  {done > 0 ? (
-                    <span>
-                      <span className="text-emerald-500">{done}</span>/{total}
-                    </span>
-                  ) : (
-                    total
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* CENTER — Problem list */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Filters bar */}
-        <div className="shrink-0 border-b border-zinc-800 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-lg border border-zinc-800 bg-zinc-900 p-0.5">
-              {difficultyPills.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setDifficultyFilter(value)}
-                  className={`rounded-md px-3 py-1 text-sm transition-colors ${
-                    difficultyFilter === value
-                      ? "bg-zinc-700 text-zinc-100"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search problems..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 pr-7 text-sm text-zinc-300 placeholder-zinc-600 outline-none focus:border-zinc-700"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300"
-                  aria-label="Clear search"
-                >
-                  &times;
-                </button>
-              )}
-            </div>
-            <span className="text-xs text-zinc-600">
-              {filtered.length !== problems.length
-                ? `${filtered.length} of ${problems.length}`
-                : problems.length}
-            </span>
-            <div className="flex rounded-lg border border-zinc-800 bg-zinc-900 p-0.5">
-              <button
-                onClick={() => setViewMode("tree")}
-                className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-                  viewMode === "tree"
-                    ? "bg-zinc-700 text-zinc-100"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                Tree
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-                  viewMode === "list"
-                    ? "bg-zinc-700 text-zinc-100"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                List
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tree view */}
-        {viewMode === "tree" && (
-          <SkillTreeView
-            categoryStats={treeCategoryStats}
-            onSelectCategory={(cat) => {
-              setCategoryFilter(cat);
-              setViewMode("list");
-            }}
+      {/* LEFT SIDEBAR */}
+      <aside className="w-52 shrink-0 overflow-y-auto border-r border-zinc-800 px-4 py-6">
+        <nav className="space-y-1">
+          <SidebarButton
+            active={viewMode === "skills"}
+            onClick={showSkills}
+            label="Skills"
           />
-        )}
+          <SidebarButton
+            active={viewMode === "problems" && selectedCategory === null}
+            onClick={showAllProblems}
+            label="All problems"
+            count={problems.length || undefined}
+          />
+        </nav>
 
-        {/* Scrollable table */}
-        {viewMode === "list" && (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10">
-              <tr className="border-b border-zinc-800 bg-zinc-950">
-                <th className="w-10 px-3 py-2 text-center text-xs font-medium text-zinc-500">
-                  #
-                </th>
-                {hasAnyActivity && (
-                  <th className="w-8 px-2 py-2 text-center text-zinc-500"></th>
-                )}
-                <th className="px-3 py-2 text-left font-medium text-zinc-400">
-                  Title
-                </th>
-                <th className="w-20 px-3 py-2 text-left font-medium text-zinc-400">
-                  Difficulty
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((problem, i) => (
-                <tr
-                  key={problem.slug}
-                  className="border-b border-zinc-800/50 transition-colors hover:bg-zinc-900/50"
-                >
-                  <td className="px-3 py-2 text-center text-xs text-zinc-600">
-                    {i + 1}
-                  </td>
-                  {hasAnyActivity && (
-                    <td className="px-2 py-2 text-center">
-                      <MasteryIndicator level={getMastery(problem.slug)} />
-                    </td>
-                  )}
-                  <td className="px-3 py-2">
-                    <a
-                      href={`/problems/${problem.slug}`}
-                      className="font-medium text-zinc-200 hover:text-blue-400"
-                    >
-                      {problem.title}
-                      {problem.isGenerated && (
-                        <span className="ml-1.5 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
-                          AI
-                        </span>
-                      )}
-                    </a>
-                  </td>
-                  <td className="px-3 py-2">
-                    <DifficultyBadge difficulty={problem.difficulty} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        )}
-      </div>
-
-      {/* RIGHT SIDEBAR — Progress & Stats */}
-      <div className="w-56 shrink-0 overflow-y-auto border-l border-zinc-800 px-4 py-4">
-        {/* Progress */}
-        <div className="mb-5">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Progress
-          </h2>
-          <div className="space-y-2">
-            <ProgressRing
-              label="Easy"
-              solved={easySolved}
-              total={easyTotal}
-              color="text-emerald-500"
-              bg="bg-emerald-500"
-            />
-            <ProgressRing
-              label="Medium"
-              solved={medSolved}
-              total={medTotal}
-              color="text-amber-400"
-              bg="bg-amber-400"
-            />
-            <ProgressRing
-              label="Hard"
-              solved={hardSolved}
-              total={hardTotal}
-              color="text-red-400"
-              bg="bg-red-400"
-            />
-          </div>
-        </div>
-
-        {/* Streak */}
-        {streak > 0 && (
-          <div className="mb-5">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Streak
-            </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">&#128293;</span>
-              <div>
-                <div className="text-lg font-bold text-amber-400">
-                  {streak} day{streak !== 1 ? "s" : ""}
-                </div>
-                {stats && stats.global.longestStreak > streak && (
-                  <div className="text-xs text-zinc-600">
-                    Best: {stats.global.longestStreak}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Due for Review */}
-        {reviewProblems.length > 0 && (
-          <div className="mb-5">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Due for Review
-            </h2>
-            <div className="space-y-1">
-              {reviewProblems.slice(0, 5).map((p) => (
+        {reviewSlugs.length > 0 && (
+          <SidebarSection title="Due for review">
+            {reviewSlugs.slice(0, 8).map((slug) => {
+              const p = problemBySlug.get(slug);
+              if (!p) return null;
+              return (
                 <a
-                  key={p.slug}
-                  href={`/problems/${p.slug}`}
-                  className="block truncate text-sm text-zinc-400 hover:text-blue-400"
+                  key={slug}
+                  href={`/problems/${slug}`}
+                  className="block truncate py-1 text-xs text-zinc-400 hover:text-zinc-100"
                 >
                   {p.title}
                 </a>
-              ))}
-              {reviewProblems.length > 5 && (
-                <span className="text-xs text-zinc-600">
-                  +{reviewProblems.length - 5} more
-                </span>
-              )}
+              );
+            })}
+            {reviewSlugs.length > 8 && (
+              <div className="pt-1 text-[10px] text-zinc-600">
+                +{reviewSlugs.length - 8} more
+              </div>
+            )}
+          </SidebarSection>
+        )}
+
+        <SidebarSection title="Starred">
+          {starredSlugs.length === 0 ? (
+            <div className="text-[11px] leading-relaxed text-zinc-600">
+              Star a problem to save it for later.
             </div>
+          ) : (
+            starredSlugs.map((slug) => {
+              const p = problemBySlug.get(slug);
+              if (!p) return null;
+              return (
+                <a
+                  key={slug}
+                  href={`/problems/${slug}`}
+                  className="block truncate py-1 text-xs text-zinc-400 hover:text-zinc-100"
+                >
+                  {p.title}
+                </a>
+              );
+            })
+          )}
+        </SidebarSection>
+      </aside>
+
+      {/* CENTER */}
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex h-full w-full max-w-xl flex-col px-6">
+          <div className="shrink-0 pt-10 pb-6">
+            {viewMode === "skills" ? (
+              <h1 className="text-lg text-zinc-100">Pick a skill</h1>
+            ) : selectedCategory ? (
+              <>
+                <button
+                  onClick={showSkills}
+                  className="text-xs text-zinc-500 hover:text-zinc-300"
+                >
+                  ← All skills
+                </button>
+                <h1 className="mt-1 text-lg text-zinc-100">
+                  {getSkillLabel(selectedCategory)}
+                </h1>
+              </>
+            ) : (
+              <h1 className="text-lg text-zinc-100">All problems</h1>
+            )}
+          </div>
+
+          {viewMode === "problems" && (
+            <ProblemsFilterBar
+              difficulty={difficultyFilter}
+              onDifficultyChange={setDifficultyFilter}
+              categoryFilter={categoryFilter}
+              onCategoryChange={setCategoryFilter}
+              categories={allCategoriesSorted}
+              showCategoryFilter={selectedCategory === null}
+            />
+          )}
+
+          <div className="min-h-0 flex-1 pb-10">
+            {viewMode === "skills" ? (
+              <SkillsList
+                groups={groupsToShow}
+                categoryStats={categoryStats}
+                onSelect={selectSkill}
+              />
+            ) : (
+              <ProblemsList
+                problems={centerProblems}
+                hasAnyActivity={hasAnyActivity}
+                getMastery={getMastery}
+                isStarred={isStarred}
+                onToggleStar={handleToggleStar}
+              />
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* RIGHT SIDEBAR */}
+      <aside className="w-60 shrink-0 overflow-y-auto border-l border-zinc-800 px-4 py-6">
+        <StreakCard
+          current={currentStreak}
+          longest={longestStreak}
+          activeDays={stats?.global.activeDays ?? []}
+          solvedCount={solvedCount}
+          totalCount={problems.length}
+        />
+
+        {hasAnyActivity && (
+          <div className="mt-6 border-t border-zinc-800 pt-5">
+            <MasteryLegend />
           </div>
         )}
 
-        {/* Weak Areas */}
-        {categoryProgress.length > 0 && (() => {
-          const attempted = categoryProgress.filter(
-            (c) => c.attempted > 0 || c.solved > 0
-          );
-          const weak = attempted
-            .map((c) => ({
-              ...c,
-              pct: (c.solved + c.practiced + c.mastered) / c.total,
-            }))
-            .filter((c) => c.pct < 0.5 && c.pct > 0)
-            .sort((a, b) => a.pct - b.pct)
-            .slice(0, 3);
-          if (weak.length === 0) return null;
-          return (
-            <div className="mb-5">
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                Needs Work
-              </h2>
-              <div className="space-y-1.5">
-                {weak.map((c) => (
-                  <button
-                    key={c.category}
-                    onClick={() => setCategoryFilter(c.category)}
-                    className="block w-full text-left"
-                  >
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="truncate text-zinc-400 hover:text-blue-400">
-                        {formatCategory(c.category)}
-                      </span>
-                      <span className="ml-1 shrink-0 text-xs text-zinc-600">
-                        {Math.round(c.pct * 100)}%
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-
         {llmAvailable && (
-          <div className="mb-5 border-t border-zinc-800 pt-4">
+          <div className="mt-6 border-t border-zinc-800 pt-5">
             <GenerateProblem
               onGenerated={(slug) => {
                 window.location.href = `/problems/${slug}`;
@@ -448,37 +352,335 @@ export default function Home() {
             />
           </div>
         )}
-      </div>
+      </aside>
     </div>
   );
 }
 
-function ProgressRing({
+function SidebarButton({
+  active,
+  onClick,
   label,
-  solved,
-  total,
-  color,
-  bg,
+  count,
 }: {
+  active: boolean;
+  onClick: () => void;
   label: string;
-  solved: number;
-  total: number;
-  color: string;
-  bg: string;
+  count?: number;
 }) {
-  const pct = total > 0 ? (solved / total) * 100 : 0;
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="h-1.5 w-16 rounded-full bg-zinc-800">
-        <div
-          className={`h-full rounded-full ${bg} transition-all`}
-          style={{ width: `${pct}%` }}
-        />
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+        active
+          ? "bg-zinc-800 text-zinc-100"
+          : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
+      }`}
+    >
+      <span>{label}</span>
+      {count != null && (
+        <span className="text-xs text-zinc-600">{count}</span>
+      )}
+    </button>
+  );
+}
+
+function SidebarSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-6">
+      <h2 className="mb-2 px-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        {title}
+      </h2>
+      <div className="px-2">{children}</div>
+    </div>
+  );
+}
+
+function ProblemsFilterBar({
+  difficulty,
+  onDifficultyChange,
+  categoryFilter,
+  onCategoryChange,
+  categories,
+  showCategoryFilter,
+}: {
+  difficulty: DifficultyFilter;
+  onDifficultyChange: (d: DifficultyFilter) => void;
+  categoryFilter: string;
+  onCategoryChange: (c: string) => void;
+  categories: string[];
+  showCategoryFilter: boolean;
+}) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="flex rounded-md border border-zinc-800 bg-zinc-900 p-0.5">
+        {DIFFICULTY_FILTERS.map(({ value, label }) => (
+          <button
+            key={value}
+            onClick={() => onDifficultyChange(value)}
+            className={`rounded px-2.5 py-1 text-xs transition-colors ${
+              difficulty === value
+                ? "bg-zinc-700 text-zinc-100"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      <span className={`text-xs font-medium ${color}`}>{label}</span>
-      <span className="ml-auto text-xs text-zinc-600">
-        {solved}/{total}
-      </span>
+
+      {showCategoryFilter && (
+        <select
+          value={categoryFilter}
+          onChange={(e) => onCategoryChange(e.target.value)}
+          className="rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1 text-xs text-zinc-300 outline-none focus:border-zinc-700"
+        >
+          <option value="all">All categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {getSkillLabel(cat)}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
+function SkillsList({
+  groups,
+  categoryStats,
+  onSelect,
+}: {
+  groups: { name: string; categories: string[] }[];
+  categoryStats: Map<string, { total: number; solved: number }>;
+  onSelect: (category: string) => void;
+}) {
+  return (
+    <div className="space-y-8">
+      {groups.map((group) => (
+        <div key={group.name}>
+          <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            {group.name}
+          </h2>
+          <ul>
+            {group.categories.map((cat) => {
+              const cs = categoryStats.get(cat);
+              const total = cs?.total ?? 0;
+              const solved = cs?.solved ?? 0;
+              const done = total > 0 && solved >= total;
+              return (
+                <li key={cat}>
+                  <button
+                    onClick={() => onSelect(cat)}
+                    className="flex w-full items-baseline justify-between py-1.5 text-left text-sm text-zinc-300 hover:text-zinc-100"
+                  >
+                    <span>
+                      {getSkillLabel(cat)}
+                      {done && (
+                        <span className="ml-2 text-emerald-500">✓</span>
+                      )}
+                    </span>
+                    <span className="text-xs tabular-nums text-zinc-600">
+                      {solved}/{total}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProblemsList({
+  problems,
+  hasAnyActivity,
+  getMastery,
+  isStarred,
+  onToggleStar,
+}: {
+  problems: ProblemSummary[];
+  hasAnyActivity: boolean;
+  getMastery: (slug: string) => MasteryLevel;
+  isStarred: (slug: string) => boolean;
+  onToggleStar: (slug: string) => void;
+}) {
+  if (problems.length === 0) {
+    return (
+      <div className="py-16 text-center text-sm text-zinc-500">
+        No problems yet.
+      </div>
+    );
+  }
+
+  return (
+    <ul>
+      {problems.map((problem) => {
+        const starred = isStarred(problem.slug);
+        return (
+          <li
+            key={problem.slug}
+            className="flex items-center gap-2 py-2 text-sm"
+          >
+            <button
+              onClick={() => onToggleStar(problem.slug)}
+              aria-label={starred ? "Unstar" : "Star"}
+              className={`shrink-0 text-base leading-none transition-colors ${
+                starred
+                  ? "text-amber-400 hover:text-amber-300"
+                  : "text-zinc-700 hover:text-zinc-400"
+              }`}
+            >
+              {starred ? "★" : "☆"}
+            </button>
+            {hasAnyActivity && (
+              <MasteryIndicator level={getMastery(problem.slug)} />
+            )}
+            <a
+              href={`/problems/${problem.slug}`}
+              className="min-w-0 flex-1 truncate text-zinc-300 hover:text-zinc-100"
+            >
+              {problem.title}
+              {problem.isGenerated && (
+                <span className="ml-1.5 rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
+                  AI
+                </span>
+              )}
+            </a>
+            <DifficultyBadge difficulty={problem.difficulty} />
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function MasteryLegend() {
+  const items: { level: MasteryLevel; label: string; hint: string }[] = [
+    { level: "attempted", label: "Attempted", hint: "tried, not solved" },
+    { level: "solved", label: "Solved", hint: "passed once" },
+    { level: "practiced", label: "Practiced", hint: "solved 2+ times" },
+    { level: "mastered", label: "Mastered", hint: "3+ days, no peek" },
+  ];
+  return (
+    <div>
+      <h2 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        Mastery
+      </h2>
+      <ul className="space-y-1.5">
+        {items.map((item) => (
+          <li key={item.level} className="flex items-baseline gap-2">
+            <span className="w-5 shrink-0 text-center">
+              <MasteryIndicator level={item.level} />
+            </span>
+            <span className="text-[11px] text-zinc-400">{item.label}</span>
+            <span className="text-[10px] text-zinc-600">{item.hint}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function StreakCard({
+  current,
+  longest,
+  activeDays,
+  solvedCount,
+  totalCount,
+}: {
+  current: number;
+  longest: number;
+  activeDays: string[];
+  solvedCount: number;
+  totalCount: number;
+}) {
+  const last7 = useMemo(() => {
+    const days: { date: string; active: boolean }[] = [];
+    const set = new Set(activeDays);
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days.push({ date: key, active: set.has(key) });
+    }
+    return days;
+  }, [activeDays]);
+
+  return (
+    <div>
+      <h2 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        Streak
+      </h2>
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-medium tabular-nums text-zinc-100">
+          {current}
+        </span>
+        <span className="text-xs text-zinc-500">
+          {current === 1 ? "day" : "days"}
+        </span>
+      </div>
+      {longest > 0 && (
+        <div className="mt-0.5 text-[11px] text-zinc-600">
+          Longest {longest}
+        </div>
+      )}
+      <div className="mt-4">
+        <div className="mb-1.5 flex items-baseline justify-between">
+          <span className="text-[10px] uppercase tracking-wider text-zinc-600">
+            Last 7 days
+          </span>
+          <span className="text-[10px] text-zinc-600">
+            {last7.filter((d) => d.active).length}/7
+          </span>
+        </div>
+        <div className="flex gap-1">
+          {last7.map((d) => (
+            <div
+              key={d.date}
+              title={`${d.date}${d.active ? " — active" : ""}`}
+              className={`h-2 flex-1 rounded-sm ${
+                d.active ? "bg-emerald-500/70" : "bg-zinc-800"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {totalCount > 0 && (
+        <div className="mt-5">
+          <h2 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            Progress
+          </h2>
+          <div className="flex items-baseline justify-between text-xs">
+            <span className="text-zinc-400">
+              <span className="text-zinc-200">{solvedCount}</span>
+              <span className="text-zinc-600"> / {totalCount}</span>
+            </span>
+            <span className="text-zinc-600">
+              {Math.round((solvedCount / totalCount) * 100)}%
+            </span>
+          </div>
+          <div className="mt-1.5 h-1 rounded-full bg-zinc-800">
+            <div
+              className="h-full rounded-full bg-zinc-400 transition-all"
+              style={{
+                width: `${(solvedCount / totalCount) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

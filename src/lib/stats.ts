@@ -313,6 +313,20 @@ export function getCategoryProgress(
   );
 }
 
+export function toggleStar(slug: string): StatsStore {
+  const store = loadStats();
+  const stats = getOrCreate(store, slug);
+  stats.starred = !stats.starred;
+  saveStats(store);
+  return store;
+}
+
+export function getStarredProblems(store: StatsStore): string[] {
+  return Object.entries(store.problems)
+    .filter(([, s]) => s.starred)
+    .map(([slug]) => slug);
+}
+
 export function getReviewDueProblems(store: StatsStore): string[] {
   const today = todayStr();
   return Object.entries(store.problems)

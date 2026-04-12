@@ -77,6 +77,7 @@ export interface ProblemStats {
   bestTimeMs: number | null;
   solveHistory: string[];
   nextReviewAt: string | null;
+  starred?: boolean;
 }
 
 export interface GlobalStats {
