@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import StreakBadge from "@/components/StreakBadge";
+import PendingAnalysesPill from "@/components/PendingAnalysesPill";
 
 export const metadata: Metadata = {
   title: "SQL Coach",
@@ -19,7 +20,10 @@ export default function RootLayout({
           <a href="/" className="text-sm font-bold tracking-tight text-zinc-100">
             SQL Coach
           </a>
-          <StreakBadge />
+          <div className="flex items-center gap-3">
+            <PendingAnalysesPill />
+            <StreakBadge />
+          </div>
         </nav>
         <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
       </body>

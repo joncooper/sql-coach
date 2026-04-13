@@ -61,20 +61,34 @@ export async function ensureGeneratedSchema(
 ): Promise<void> {
   const genSchema = gp.gen_schema;
 
-  // Check if schema exists
-  const check = await pool.query(
-    `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-    [genSchema]
+  // Check that the expected tables actually exist — not just the schema.
+  // A DB reset can leave an empty schema behind while the generated/*.json
+  // file persists, so schema-only checks mis-diagnose this as "healthy".
+  const tableCheck = await pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text AS count
+       FROM information_schema.tables
+      WHERE table_schema = $1
+        AND table_name = ANY($2)`,
+    [genSchema, gp.problem.tables]
   );
-  if (check.rows.length > 0) return; // already exists
+  if (Number(tableCheck.rows[0].count) === gp.problem.tables.length) return;
 
-  // Re-create from stored DDL + seed data
+  // Missing or partial — rebuild from stored DDL + seed data.
   const ddl = rewriteSchema(gp.ddl, gp.schema_name, genSchema);
   const dml = rewriteSchema(gp.seed_data, gp.schema_name, genSchema);
 
-  await pool.query(`CREATE SCHEMA IF NOT EXISTS ${genSchema}`);
-  await pool.query(ddl);
-  await pool.query(dml);
+  const client = await pool.connect();
+  try {
+    await client.query(`DROP SCHEMA IF EXISTS ${genSchema} CASCADE`);
+    await client.query(`CREATE SCHEMA ${genSchema}`);
+    // Pin search_path so unqualified CREATE TABLE statements land in genSchema.
+    // Generated DDL sometimes omits schema prefixes on table definitions.
+    await client.query(`SET search_path TO ${genSchema}`);
+    await client.query(ddl);
+    await client.query(dml);
+  } finally {
+    client.release();
+  }
 
   // Grant readonly access
   await pool.query(
@@ -107,18 +121,17 @@ export async function validateAndCreate(raw: {
     t.replace(new RegExp(`^${raw.schema_name}\\.`, "i"), "")
   );
 
+  const client = await pool.connect();
   try {
-    // Create schema and execute DDL
-    await pool.query(`CREATE SCHEMA IF NOT EXISTS ${genSchema}`);
-    await pool.query(ddl);
+    // Create schema and execute DDL. Pin search_path first so unqualified
+    // CREATE TABLE statements (which LLMs often produce) land in genSchema.
+    await client.query(`CREATE SCHEMA IF NOT EXISTS ${genSchema}`);
+    await client.query(`SET search_path TO ${genSchema}`);
+    await client.query(ddl);
+    await client.query(dml);
 
-    // Execute seed data
-    await pool.query(dml);
-
-    // Execute solution and verify it works (set search_path since solution uses clean names)
-    await pool.query(`SET search_path TO ${genSchema}, public`);
-    const result = await pool.query(solution);
-    await pool.query(`RESET search_path`);
+    // Execute solution and verify it works
+    const result = await client.query(solution);
     if (!result.rows || result.rows.length === 0) {
       throw new Error("Solution returned 0 rows");
     }
@@ -176,5 +189,7 @@ export async function validateAndCreate(raw: {
       .query(`DROP SCHEMA IF EXISTS ${genSchema} CASCADE`)
       .catch(() => {});
     throw err;
+  } finally {
+    client.release();
   }
 }

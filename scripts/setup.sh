@@ -34,6 +34,9 @@ BEGIN
 END \$\$;
 "
 
+echo "==> Applying coaching telemetry schema..."
+docker exec -i sql-coach-db psql -U coach_admin -d sql_coach < scripts/init-tracking.sql
+
 echo "==> Installing JS dependencies..."
 bun install
 

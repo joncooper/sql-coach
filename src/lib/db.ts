@@ -5,7 +5,7 @@ import type { QueryResult } from "@/types";
 types.setTypeParser(20, parseFloat); // int8
 types.setTypeParser(1700, parseFloat); // numeric
 
-const adminPool = new Pool({
+export const adminPool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 

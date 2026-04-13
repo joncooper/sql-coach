@@ -12,6 +12,7 @@ import ResultsTable from "@/components/ResultsTable";
 import CoachingChat from "@/components/CoachingChat";
 import { useLlmStatus } from "@/hooks/useLlmStatus";
 import { loadStats, recordAttempt, recordHintReveal, recordSolutionViewed, isReviewDue, computeMasteryLevel, getSolvedCount } from "@/lib/stats";
+import { enqueuePendingAnalysis } from "@/hooks/usePendingAnalyses";
 import type { QueryResult, RowDiff, MasteryLevel } from "@/types";
 
 function formatCategory(s: string) {
@@ -45,6 +46,7 @@ interface ProblemDetail {
   difficulty: "easy" | "medium" | "hard";
   category: string;
   tags: string[];
+  domain: string;
   tables: string[];
   description: string;
   hints: string[];
@@ -69,6 +71,7 @@ interface SubmitResponse {
   diff: RowDiff[];
   executionTimeMs: number;
   error?: string;
+  submissionId?: number | null;
 }
 
 export default function ProblemPage({
@@ -177,7 +180,7 @@ export default function ProblemPage({
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sql: code, domain: problem?.domain }),
+        body: JSON.stringify({ sql: code, domain: problem?.domain, slug }),
       });
       const data = await res.json();
       if (data.error) {
@@ -210,8 +213,22 @@ export default function ProblemPage({
       if (data.error) {
         setError(data.error);
         setSubmitResult(null);
+        if (typeof data.submissionId === "number") {
+          enqueuePendingAnalysis({
+            id: data.submissionId,
+            slug,
+            startedAt: Date.now(),
+          });
+        }
       } else {
         setSubmitResult(data);
+        if (!data.pass && typeof data.submissionId === "number") {
+          enqueuePendingAnalysis({
+            id: data.submissionId,
+            slug,
+            startedAt: Date.now(),
+          });
+        }
         const difficulty = problem?.difficulty ?? "easy";
 
         // Compute mastery before recording

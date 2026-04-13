@@ -16,7 +16,7 @@ export async function GET(
     );
   }
 
-  const schemaRows = await getTableSchema(problem.tables);
+  const schemaRows = await getTableSchema(problem.tables, problem.domain);
 
   const tables: Record<string, { column_name: string; data_type: string; is_nullable: string }[]> = {};
   for (const row of schemaRows) {

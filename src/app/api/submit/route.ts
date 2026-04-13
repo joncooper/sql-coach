@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { executeUserQuery, executeAdminQuery } from "@/lib/db";
 import { getProblem } from "@/lib/problems";
 import { compareResults } from "@/lib/compare";
+import { recordSubmission } from "@/lib/tracking";
+import { analyzeSubmission } from "@/lib/analyzeSubmission";
 
 export async function POST(request: NextRequest) {
   const { sql, slug } = await request.json();
@@ -37,16 +39,59 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    const submissionId = await recordSubmission({
+      slug,
+      sql,
+      passed: comparison.pass,
+      executionMs: userResult.executionTimeMs,
+      error: null,
+    }).catch((e) => {
+      console.error("recordSubmission failed", e);
+      return null;
+    });
+
+    if (!comparison.pass && submissionId !== null) {
+      void analyzeSubmission({
+        submissionId,
+        slug,
+        studentSql: sql,
+        error: null,
+        diffSummary: comparison.coaching,
+      }).catch((e) => console.error("analyzeSubmission failed", e));
+    }
+
     return NextResponse.json({
       ...comparison,
       expected: { columns: expectedResult.columns, rows: expectedResult.rows },
       actual: { columns: userResult.columns, rows: userResult.rows },
       executionTimeMs: userResult.executionTimeMs,
+      submissionId,
     });
   } catch (err: unknown) {
     const pgErr = err as { message: string; position?: string };
+
+    const submissionId = await recordSubmission({
+      slug,
+      sql,
+      passed: false,
+      error: pgErr.message,
+    }).catch((e) => {
+      console.error("recordSubmission failed", e);
+      return null;
+    });
+
+    if (submissionId !== null) {
+      void analyzeSubmission({
+        submissionId,
+        slug,
+        studentSql: sql,
+        error: pgErr.message,
+        diffSummary: null,
+      }).catch((e) => console.error("analyzeSubmission failed", e));
+    }
+
     return NextResponse.json(
-      { error: pgErr.message, position: pgErr.position },
+      { error: pgErr.message, position: pgErr.position, submissionId },
       { status: 422 }
     );
   }
