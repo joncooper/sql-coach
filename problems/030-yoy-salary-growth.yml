@@ -1,37 +1,26 @@
 slug: yoy-salary-growth
-title: "Year-over-Year Salary Growth"
+title: "Salary Growth Between Records"
 difficulty: hard
 category: window-functions
-tags: [window-functions, lag, percentage, date-functions]
+tags: [window-functions, percentage, per-row-comparison]
 domain: hr
 tables: [employees, salaries]
 description: |
-  For employees with salary history records, calculate the **year-over-year salary growth percentage** for each salary change.
+  For each row in the salary history, report the **percentage growth** from that employee's previous salary record. The first record per employee has no previous to compare against — its growth should be `NULL`.
 
-  Use the `LAG()` window function to access each employee's previous salary amount, then compute the growth percentage.
+  The growth formula is `(current_amount - previous_amount) / previous_amount * 100`.
 
   Return the following columns in this exact order:
   - `name` - the employee's name
   - `effective_date` - the date the salary took effect
   - `amount` - the salary amount
-  - `growth_pct` - the percentage growth from the previous salary, rounded to **1 decimal place**. Should be `NULL` for an employee's first (earliest) salary record.
-
-  The growth percentage formula is: `(current_amount - previous_amount) / previous_amount * 100`
+  - `growth_pct` - the percentage growth from the previous salary, rounded to **1 decimal place**; `NULL` for an employee's first (earliest) salary record
 
   Order the results by `name` ascending, then `effective_date` ascending.
 hints:
-  - "Use LAG(amount) OVER (PARTITION BY employee_id ORDER BY effective_date) to get the previous salary."
-  - "Calculate growth: (amount - prev_amount) / prev_amount * 100."
-  - "Use ROUND(..., 1) for 1 decimal place."
-  - "The first record per employee will have a NULL previous salary, so growth_pct should be NULL."
-starter_code: |
-  SELECT
-    e.name,
-    s.effective_date,
-    s.amount,
-    -- calculate growth percentage
-  FROM salaries s
-  JOIN employees e ON e.id = s.employee_id
+  - "For each row, you need the *same employee's* previous salary in scope. Think about which Postgres feature lets you reach back N rows within a group without a self-join."
+  - "The family of 'peek at neighboring row' window functions is what you want. Paired with `PARTITION BY employee ORDER BY effective_date`, it'll give you the prior amount per row — and NULL on the first row of each group, which is exactly the NULL-for-first-record behavior the problem asks for."
+  - "`LAG(amount) OVER (PARTITION BY employee_id ORDER BY effective_date)` gives the previous amount. Compute `(amount - prev) / prev * 100`, cast to numeric for ROUND, and round to 1 decimal."
 order_matters: true
 solution: |
   SELECT

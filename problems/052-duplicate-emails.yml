@@ -18,10 +18,6 @@ hints:
   - "GROUP BY the email column to group identical emails together."
   - "Use HAVING to filter groups — it works like WHERE but for aggregated results."
   - "HAVING COUNT(*) > 1 will keep only emails that appear more than once."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM person
 order_matters: false
 solution: |
   SELECT email

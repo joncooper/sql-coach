@@ -20,12 +20,13 @@ Return a JSON object with this exact structure:
     "tables": ["schema_name.table1", "schema_name.table2"],
     "description": "Clear problem description with **bold** for emphasis. Specify exact column names to return and ordering.",
     "hints": ["First hint - gentle nudge", "Second hint - more specific", "Third hint - nearly gives it away"],
-    "starter_code": "-- comment\\nSELECT ...",
     "order_matters": true,
     "solution": "Complete working PostgreSQL SQL",
     "expected_columns": ["col1", "col2"]
   }
 }
+
+Do NOT include a "starter_code" field. The editor always starts blank.
 
 Rules:
 - schema_name must be a single lowercase word (no hyphens or spaces)

@@ -2,11 +2,11 @@ slug: salary-above-dept-avg
 title: "Employees Above Department Average Salary"
 difficulty: medium
 category: subqueries
-tags: [subquery, window-functions, aggregation, comparison]
+tags: [subqueries, aggregation, comparison]
 domain: hr
 tables: [employees, departments]
 description: |
-  Find employees whose salary is **above** their department's average salary.
+  Find employees whose salary is **strictly above** their own department's average salary. Each employee should be compared only against their own department.
 
   Return the following columns in this exact order:
   - `name` - the employee's name
@@ -16,19 +16,9 @@ description: |
 
   Order the results by `salary` in **descending** order.
 hints:
-  - "Use a window function AVG(salary) OVER (PARTITION BY department_id) to calculate the department average alongside each row."
-  - "Alternatively, use a subquery or CTE to compute department averages, then join back."
-  - "Use ROUND(..., 0) to round to 0 decimal places."
-starter_code: |
-  SELECT
-    name,
-    department_name,
-    salary,
-    dept_avg_salary
-  FROM (
-    -- your subquery here
-  ) sub
-  WHERE salary > dept_avg_salary
+  - "You need the department's average next to each employee's row so you can compare them. A plain `GROUP BY department` collapses the rows and loses the individual salaries — not what you want."
+  - "Two idiomatic ways: (a) compute per-department averages in a subquery/CTE and JOIN back to the employee rows, or (b) use a per-row window function that carries the department average alongside every employee without collapsing."
+  - "The per-row window approach: `AVG(salary) OVER (PARTITION BY department_id)` inside a subquery, then filter the outer query where `salary > dept_avg`. Wrap the AVG in `ROUND(..., 0)` for the display column."
 order_matters: true
 solution: |
   SELECT

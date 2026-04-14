@@ -18,6 +18,12 @@ function formatCell(value: unknown): string {
   return String(value);
 }
 
+function getEmptyMessage(mode: "run" | "submit" | "expected"): string {
+  if (mode === "expected") return "The reference query returns no rows here.";
+  if (mode === "submit") return "Your submitted query returned no rows.";
+  return "Run a query to see results.";
+}
+
 export default function ResultsTable({
   columns,
   rows,
@@ -30,7 +36,7 @@ export default function ResultsTable({
   if (error) {
     return (
       <div className="p-4">
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 font-mono text-sm text-red-400 whitespace-pre-wrap">
+        <div className="rounded-lg border border-[color:var(--danger-soft)] bg-[color:var(--danger-soft)] p-4 font-[family-name:var(--font-mono)] text-sm whitespace-pre-wrap text-[color:var(--danger)]">
           {error}
         </div>
       </div>
@@ -39,8 +45,8 @@ export default function ResultsTable({
 
   if (columns.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zinc-600">
-        Run a query to see results
+      <div className="flex h-full items-center justify-center px-6 text-center text-sm leading-6 text-[color:var(--text-muted)]">
+        {getEmptyMessage(mode)}
       </div>
     );
   }
@@ -52,13 +58,16 @@ export default function ResultsTable({
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse font-mono text-xs">
+        <table className="w-full border-collapse font-[family-name:var(--font-mono)] text-xs">
           <thead>
-            <tr className="sticky top-0 z-10 bg-zinc-900">
+            <tr className="sticky top-0 z-10 bg-[color:var(--panel-muted)]">
+              <th className="border-b border-[color:var(--border)] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
+                #
+              </th>
               {columns.map((col, i) => (
                 <th
                   key={i}
-                  className="border-b border-zinc-700 px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500"
+                  className="border-b border-[color:var(--border)] px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]"
                 >
                   {col}
                 </th>
@@ -66,58 +75,68 @@ export default function ResultsTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => {
-              const key = JSON.stringify(row);
-              const diffType = diffMap.get(key);
-              let rowClass = "border-b border-zinc-800/50";
-              let cellHighlight = "";
-              if (mode === "submit" && diffType === "extra") {
-                rowClass = "border-b border-red-900/30 bg-red-500/8";
-                cellHighlight = "text-red-300";
-              } else if (mode === "expected" && diffType === "missing") {
-                rowClass = "border-b border-emerald-900/30 bg-emerald-500/8";
-                cellHighlight = "text-emerald-300";
-              }
-              return (
-                <tr key={i} className={rowClass}>
-                  {row.map((cell, j) => (
-                    <td
-                      key={j}
-                      className={`px-3 py-1 ${
-                        cell === null ? "italic text-zinc-600" : "text-zinc-300"
-                      } ${cellHighlight}`}
-                    >
-                      {formatCell(cell)}
+            {rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={columns.length + 1}
+                  className="px-4 py-8 text-center text-sm text-[color:var(--text-muted)]"
+                >
+                  {getEmptyMessage(mode)}
+                </td>
+              </tr>
+            ) : (
+              rows.map((row, i) => {
+                const key = JSON.stringify(row);
+                const diffType = diffMap.get(key);
+                let rowClass =
+                  "border-b border-[color:var(--border-subtle)] odd:bg-[color:var(--panel-muted)]";
+                let cellHighlight = "";
+                if (mode === "submit" && diffType === "extra") {
+                  rowClass =
+                    "border-b border-[color:var(--danger-soft)] bg-[color:var(--danger-soft)]";
+                  cellHighlight = "text-[color:var(--danger)]";
+                } else if (mode === "expected" && diffType === "missing") {
+                  rowClass =
+                    "border-b border-[color:var(--positive-soft)] bg-[color:var(--positive-soft)]";
+                  cellHighlight = "text-[color:var(--positive)]";
+                }
+
+                return (
+                  <tr key={i} className={rowClass}>
+                    <td className="px-3 py-2 align-top text-[11px] text-[color:var(--text-muted)]">
+                      {i + 1}
                     </td>
-                  ))}
-                </tr>
-              );
-            })}
-            {mode === "submit" &&
-              diff
-                ?.filter((d) => d.type === "missing")
-                .map((d, i) => (
-                  <tr
-                    key={`missing-${i}`}
-                    className="border-b border-emerald-900/30 bg-emerald-500/8"
-                  >
-                    {d.row.map((cell, j) => (
-                      <td
-                        key={j}
-                        className={`px-3 py-1 text-emerald-400/60 ${
-                          cell === null ? "italic" : ""
-                        }`}
-                      >
-                        {formatCell(cell)}
-                      </td>
-                    ))}
+                    {row.map((cell, j) => {
+                      const isNull = cell === null || cell === undefined;
+
+                      return (
+                        <td
+                          key={j}
+                          className={`px-3 py-2 align-top ${
+                            isNull
+                              ? "text-[color:var(--text-muted)]"
+                              : "text-[color:var(--text-soft)]"
+                          } ${cellHighlight}`}
+                        >
+                          {isNull ? (
+                            <span className="rounded bg-[color:var(--panel-muted)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+                              NULL
+                            </span>
+                          ) : (
+                            formatCell(cell)
+                          )}
+                        </td>
+                      );
+                    })}
                   </tr>
-                ))}
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
       {executionTimeMs !== undefined && (
-        <div className="flex items-center gap-4 border-t border-zinc-800 px-3 py-1 text-[11px] text-zinc-600">
+        <div className="flex items-center gap-4 border-t border-[color:var(--border)] px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
           <span>{rowCount ?? rows.length} rows</span>
           <span>{executionTimeMs}ms</span>
         </div>

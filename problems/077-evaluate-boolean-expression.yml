@@ -21,10 +21,6 @@ hints:
   - "Join the expressions table to the variables table twice: once for the left operand and once for the right operand."
   - "SQL cannot dynamically evaluate an operator stored as a string. Use a CASE expression to handle each operator separately."
   - "Use nested CASE: first match the operator, then compare the values, and return 'true' or 'false'."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM expressions
 order_matters: false
 solution: |
   SELECT

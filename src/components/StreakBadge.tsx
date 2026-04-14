@@ -3,6 +3,16 @@
 import { useEffect, useState } from "react";
 import { loadStats, computeStreak } from "@/lib/stats";
 
+function localDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}-${parts.find((part) => part.type === "day")?.value}`;
+}
+
 export default function StreakBadge() {
   const [streak, setStreak] = useState(0);
   const [pulse, setPulse] = useState(false);
@@ -12,8 +22,7 @@ export default function StreakBadge() {
     const currentStreak = computeStreak(stats.global.activeDays);
     setStreak(currentStreak);
 
-    // Pulse if user was active today (streak was just maintained/started)
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey(new Date());
     const days = stats.global.activeDays;
     if (days.length > 0 && days[days.length - 1] === today) {
       setPulse(true);
@@ -26,9 +35,17 @@ export default function StreakBadge() {
   const pulseClass = pulse ? "animate-streak-pulse" : "";
 
   return (
-    <div className={`flex items-center gap-1 text-sm text-amber-400 ${pulseClass}`}>
-      <span className={glowClass}>&#128293;</span>
-      <span className="font-medium">{streak}</span>
+    <div
+      className={`flex items-center gap-1.5 rounded-full border border-[color:var(--border)] bg-[color:var(--highlight-soft)] px-3 py-1 text-xs font-medium text-[color:var(--highlight)] ${pulseClass}`}
+      title={`${streak}-day streak`}
+    >
+      <span className={glowClass} aria-hidden>
+        &#128293;
+      </span>
+      <span className="num font-semibold tabular-nums">{streak}</span>
+      <span className="text-[color:var(--text-muted)]">
+        {streak === 1 ? "day" : "days"}
+      </span>
     </div>
   );
 }

@@ -19,10 +19,6 @@ hints:
   - "Join orders with products to get the price, then calculate total spending per customer per month."
   - "Use to_char(order_date, 'YYYY-MM') or extract() to group orders by month."
   - "Use HAVING to filter for customers who spent >= 100 in June, then check that they also spent >= 100 in July."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM orders
 order_matters: false
 solution: |
   SELECT o.customer_id, c.name

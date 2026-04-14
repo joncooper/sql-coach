@@ -19,10 +19,6 @@ hints:
   - "Use a LEFT JOIN from users to rides so that users with no rides are still included."
   - "Use COALESCE to convert NULL sums to 0 for users who have no rides."
   - "Remember to GROUP BY user id and name, then order by distance descending and name ascending."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM users
 order_matters: true
 solution: |
   SELECT

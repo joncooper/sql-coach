@@ -19,10 +19,6 @@ hints:
   - "Each date has two rows: one for apples and one for oranges. You need to combine them into a single row per date."
   - "Consider joining the table to itself on sale_date, where one side filters for apples and the other for oranges."
   - "Alternatively, use conditional aggregation: SUM(CASE WHEN fruit = 'apples' THEN sold_num ELSE -sold_num END)."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM sales
 order_matters: true
 solution: |
   SELECT

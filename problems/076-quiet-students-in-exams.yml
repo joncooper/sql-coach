@@ -2,13 +2,13 @@ slug: quiet-students-in-exams
 title: "Find the Quiet Students in All Exams"
 difficulty: hard
 category: window-functions
-tags: [min, max, window-functions, not-in]
+tags: [window-functions, anti-join]
 domain: lc1546
 tables: [student, exam]
 description: |
-  A "quiet" student is one who took at least one exam and never scored the highest or the lowest score in any exam they took.
+  A "quiet" student is one who took **at least one exam** and **never scored either the highest or the lowest** on any exam they took. Find all quiet students.
 
-  Write a query to find all quiet students. Do not include students who never took any exam.
+  Students who never took any exam do not appear in the output. Students who were ever the top scorer or the bottom scorer in any exam (even by a single point, even if they only took one exam) do not appear.
 
   Return the following columns in this exact order:
   - `student_id` - the student's ID
@@ -16,13 +16,9 @@ description: |
 
   Order the results by `student_id` in **ascending** order.
 hints:
-  - "Use window functions MIN() and MAX() partitioned by exam_id to find the lowest and highest scores for each exam."
-  - "Identify students who ever scored the highest or lowest in any exam, then exclude them."
-  - "The quiet students are those who took at least one exam AND are NOT in the set of students who scored the min or max in any exam."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM student
+  - "This is an exclusion problem: find the students who took exams, then subtract the students who were ever the extreme scorer on any exam. Think about how to identify 'the highest score in exam X' and 'the lowest score in exam X' in a way that lets you compare each row to its own exam's extremes."
+  - "You need the per-exam min and max alongside each (student, exam, score) row — not as a GROUP BY result. That shape is the job of aggregate functions used as window functions. Pair them with `PARTITION BY exam_id` so the min/max restart per exam."
+  - "In a CTE, add `MIN(score) OVER (PARTITION BY exam_id)` and `MAX(score) OVER (PARTITION BY exam_id)` to each exam row. Pull out the distinct set of students whose score ever equals their exam's min or max — those are the \"loud\" students. The quiet students are the ones who took an exam but are not loud."
 order_matters: false
 solution: |
   WITH exam_extremes AS (

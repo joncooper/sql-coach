@@ -1,0 +1,37 @@
+slug: location-salary-summary-with-subtotals
+title: "Location Salary Summary with Subtotals"
+difficulty: medium
+category: aggregation
+tags: [aggregation, subtotals, joins]
+domain: hr
+tables: [employees, departments]
+description: |
+  Build a salary summary that shows, **in a single query**, three levels of aggregation:
+
+  1. **Detail rows** — average salary and headcount for each (location, department) pair
+  2. **Location subtotals** — average salary and headcount per location, with `department_name` set to `NULL`
+  3. **Grand total** — overall average salary and total headcount, with both `location` and `department_name` set to `NULL`
+
+  Return the following columns in this exact order:
+  - `location` - the department's location (NULL on the grand total row)
+  - `department_name` - the department name (NULL on location subtotal rows and the grand total)
+  - `avg_salary` - the average salary, rounded to **0 decimal places**
+  - `employee_count` - the number of employees
+
+  Order by `location` ascending with `NULLS LAST`, then `department_name` ascending with `NULLS LAST`, so each location's detail rows come first, its subtotal row follows, and the grand total lands at the bottom.
+hints:
+  - "A naive solve is three separate GROUP BY queries stitched together with UNION ALL. That works, but Postgres has a cleaner way to ask for nested aggregation levels in one shot."
+  - "Look up Postgres's grouping extensions inside `GROUP BY`. There's a specific one designed for hierarchical rollups — it takes a list of columns and automatically produces the detail rows, progressively looser subtotals, and a grand total."
+  - "`GROUP BY ROLLUP(d.location, d.name)` is the shape you want. Round with `ROUND(AVG(salary), 0)` and sort with `NULLS LAST` so the subtotal/grand-total rows land in the right places."
+order_matters: true
+solution: |
+  SELECT
+    d.location,
+    d.name AS department_name,
+    ROUND(AVG(e.salary), 0) AS avg_salary,
+    COUNT(*) AS employee_count
+  FROM employees e
+  JOIN departments d ON d.id = e.department_id
+  GROUP BY ROLLUP(d.location, d.name)
+  ORDER BY d.location NULLS LAST, d.name NULLS LAST;
+expected_columns: [location, department_name, avg_salary, employee_count]

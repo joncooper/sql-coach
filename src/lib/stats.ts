@@ -1,12 +1,16 @@
 import type {
   StatsStore,
   ProblemStats,
-  GlobalStats,
   MasteryLevel,
 } from "@/types";
 
 const STATS_KEY = "sql-coach:stats";
 const LEGACY_KEY = "sql-coach:completed";
+
+interface Clock {
+  now?: Date;
+  timeZone?: string;
+}
 
 function emptyProblemStats(): ProblemStats {
   return {
@@ -30,8 +34,39 @@ function emptyStore(): StatsStore {
   };
 }
 
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+function formatDateKey(date: Date, timeZone?: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    throw new Error("Could not format date key");
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function dateKeyToUtcDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function utcDateToKey(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function todayStr(clock?: Clock): string {
+  return formatDateKey(clock?.now ?? new Date(), clock?.timeZone);
 }
 
 // --- Migration ---
@@ -97,19 +132,21 @@ function getOrCreate(store: StatsStore, slug: string): ProblemStats {
 export function recordAttempt(
   slug: string,
   passed: boolean,
-  timeMs?: number
+  timeMs?: number,
+  clock?: Clock
 ): StatsStore {
   const store = loadStats();
   const stats = getOrCreate(store, slug);
-  const now = new Date().toISOString();
-  const today = todayStr();
+  const now = clock?.now ?? new Date();
+  const nowIso = now.toISOString();
+  const today = todayStr(clock);
 
   stats.attempts++;
-  stats.lastAttemptAt = now;
+  stats.lastAttemptAt = nowIso;
 
   if (passed) {
-    if (!stats.solvedAt) stats.solvedAt = now;
-    stats.lastSolvedAt = now;
+    if (!stats.solvedAt) stats.solvedAt = nowIso;
+    stats.lastSolvedAt = nowIso;
 
     // Append to solve history (cap at 10)
     stats.solveHistory.push(today);
@@ -123,13 +160,13 @@ export function recordAttempt(
     }
 
     // Schedule next review
-    stats.nextReviewAt = computeNextReview(stats.solveHistory);
+    stats.nextReviewAt = computeNextReview(stats.solveHistory, clock);
   } else if (stats.solvedAt && stats.nextReviewAt && stats.nextReviewAt <= today) {
     // Failed a review-due problem — reset to short interval
     stats.nextReviewAt = addDays(today, 3);
   }
 
-  recordActivityInStore(store);
+  recordActivityInStore(store, clock);
   saveStats(store);
   return store;
 }
@@ -152,8 +189,8 @@ export function recordSolutionViewed(slug: string): StatsStore {
   return store;
 }
 
-function recordActivityInStore(store: StatsStore): void {
-  const today = todayStr();
+function recordActivityInStore(store: StatsStore, clock?: Clock): void {
+  const today = todayStr(clock);
   const days = store.global.activeDays;
 
   if (days[days.length - 1] !== today) {
@@ -164,7 +201,7 @@ function recordActivityInStore(store: StatsStore): void {
     }
   }
 
-  const streak = computeStreak(store.global.activeDays);
+  const streak = computeStreak(store.global.activeDays, clock);
   if (streak > store.global.longestStreak) {
     store.global.longestStreak = streak;
   }
@@ -172,16 +209,16 @@ function recordActivityInStore(store: StatsStore): void {
 
 // --- Streak ---
 
-export function computeStreak(activeDays: string[]): number {
+export function computeStreak(activeDays: string[], clock?: Clock): number {
   if (activeDays.length === 0) return 0;
 
-  const today = todayStr();
+  const today = todayStr(clock);
   const sorted = [...activeDays].sort();
   const last = sorted[sorted.length - 1];
 
   // If last activity is not today or yesterday, streak is 0
-  const lastDate = new Date(last + "T00:00:00");
-  const todayDate = new Date(today + "T00:00:00");
+  const lastDate = dateKeyToUtcDate(last);
+  const todayDate = dateKeyToUtcDate(today);
   const diffMs = todayDate.getTime() - lastDate.getTime();
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
   if (diffDays > 1) return 0;
@@ -192,8 +229,8 @@ export function computeStreak(activeDays: string[]): number {
 
   let cursor = new Date(lastDate);
   while (true) {
-    cursor.setDate(cursor.getDate() - 1);
-    const key = cursor.toISOString().slice(0, 10);
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+    const key = utcDateToKey(cursor);
     if (daySet.has(key)) {
       streak++;
     } else {
@@ -208,7 +245,8 @@ export function computeStreak(activeDays: string[]): number {
 
 export function computeMasteryLevel(
   stats: ProblemStats | undefined,
-  _difficulty: "easy" | "medium" | "hard"
+  _difficulty: "easy" | "medium" | "hard",
+  clock?: Clock
 ): MasteryLevel {
   if (!stats || stats.attempts === 0) return "unattempted";
   if (!stats.solvedAt) return "attempted";
@@ -216,7 +254,7 @@ export function computeMasteryLevel(
   // Mastered: solved 3+ times on 3+ different days, no solution viewed, recent
   const uniqueDays = new Set(stats.solveHistory);
   const daysSinceLastSolve = stats.lastSolvedAt
-    ? daysBetween(stats.lastSolvedAt.slice(0, 10), todayStr())
+    ? daysBetween(stats.lastSolvedAt.slice(0, 10), todayStr(clock))
     : Infinity;
 
   if (
@@ -237,21 +275,21 @@ export function computeMasteryLevel(
 }
 
 function daysBetween(a: string, b: string): number {
-  const da = new Date(a + "T00:00:00");
-  const db = new Date(b + "T00:00:00");
+  const da = dateKeyToUtcDate(a);
+  const db = dateKeyToUtcDate(b);
   return Math.round(Math.abs(db.getTime() - da.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 // --- Spaced Repetition ---
 
 function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  const d = dateKeyToUtcDate(dateStr);
+  d.setUTCDate(d.getUTCDate() + days);
+  return utcDateToKey(d);
 }
 
-function computeNextReview(solveHistory: string[]): string {
-  const today = todayStr();
+function computeNextReview(solveHistory: string[], clock?: Clock): string {
+  const today = todayStr(clock);
   const BASE_INTERVAL = 5; // days
   const MAX_INTERVAL = 60;
 
@@ -262,9 +300,9 @@ function computeNextReview(solveHistory: string[]): string {
   return addDays(today, Math.round(interval));
 }
 
-export function isReviewDue(stats: ProblemStats): boolean {
+export function isReviewDue(stats: ProblemStats, clock?: Clock): boolean {
   if (!stats.solvedAt || !stats.nextReviewAt) return false;
-  return stats.nextReviewAt <= todayStr();
+  return stats.nextReviewAt <= todayStr(clock);
 }
 
 // --- Query helpers ---

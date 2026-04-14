@@ -19,10 +19,6 @@ hints:
   - "Think about how to check whether a customer has purchased a specific product. You can use conditional aggregation with SUM(CASE ...) or BOOL_OR."
   - "Group orders by customer and use HAVING to filter for customers who bought A and B but not C."
   - "SUM(CASE WHEN product_name = 'A' THEN 1 ELSE 0 END) > 0 checks if a customer bought product A."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM customers
 order_matters: true
 solution: |
   SELECT

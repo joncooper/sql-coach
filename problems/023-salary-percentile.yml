@@ -2,30 +2,22 @@ slug: salary-percentile
 title: "Employee Salary Percentile"
 difficulty: medium
 category: window-functions
-tags: [window-functions, percent-rank, rounding]
+tags: [window-functions, percentiles, rounding]
 domain: hr
 tables: [employees]
 description: |
-  Calculate the salary percentile for each employee using the `PERCENT_RANK()` window function.
-
-  `PERCENT_RANK()` returns a value between 0 and 1, representing where each employee's salary falls relative to all other employees.
+  For every employee, compute their **salary percentile** — a number between 0 and 1 indicating where their salary falls relative to everyone else. The lowest-paid employee should get a percentile close to 0, and the highest-paid should get 1.
 
   Return the following columns in this exact order:
   - `name` - the employee's name
   - `salary` - the employee's salary
-  - `percentile` - the percent rank rounded to **2 decimal places**
+  - `percentile` - the percent rank, rounded to **2 decimal places**
 
   Order the results by `percentile` in **descending** order, then by `name` ascending.
 hints:
-  - "PERCENT_RANK() OVER (ORDER BY salary) ranks from 0 (lowest) to 1 (highest)."
-  - "Use ROUND(..., 2) to round to 2 decimal places."
-  - "Remember to cast appropriately if needed: ROUND(PERCENT_RANK()::numeric, 2)."
-starter_code: |
-  SELECT
-    name,
-    salary,
-    -- calculate percentile
-  FROM employees
+  - "Postgres has several built-in window functions for computing where a row falls within a distribution. They differ slightly in how they handle the endpoints (does the lowest get 0? does the highest get 1?). Pick the one whose semantics match this spec."
+  - "Round the result to 2 decimals with `ROUND`. Postgres `ROUND(double, int)` only works on `numeric`, so you may need a cast."
+  - "`ROUND(PERCENT_RANK() OVER (ORDER BY salary)::numeric, 2)` gives you the 0-to-1 percent rank rounded to two decimals. The lowest salary will be 0, the highest 1."
 order_matters: true
 solution: |
   SELECT

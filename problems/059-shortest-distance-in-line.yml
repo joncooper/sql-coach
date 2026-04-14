@@ -16,10 +16,6 @@ hints:
   - "You need to compare every point with every other point. A self-join or CROSS JOIN can pair up all combinations."
   - "Use ABS(p1.x - p2.x) to calculate the distance between two points."
   - "Make sure to exclude pairs where a point is compared with itself (p1.x != p2.x), then take the MIN."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM point
 order_matters: false
 solution: |
   SELECT MIN(ABS(p1.x - p2.x)) AS shortest

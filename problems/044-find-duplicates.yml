@@ -20,12 +20,6 @@ hints:
   - "JOIN employees with departments to get department names."
   - "GROUP BY department name and salary."
   - "Use HAVING COUNT(*) > 1 to filter for duplicates."
-starter_code: |
-  SELECT
-    -- department_name, salary, employee_count
-  FROM employees e
-  JOIN departments d ON d.id = e.department_id
-  -- complete the query
 order_matters: true
 solution: |
   SELECT

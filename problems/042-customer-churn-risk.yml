@@ -2,35 +2,27 @@ slug: customer-churn-risk
 title: "Customer Churn Risk"
 difficulty: hard
 category: business-analysis
-tags: [subquery, case, date-arithmetic, aggregation]
+tags: [business-analysis, date-arithmetic, aggregation]
 domain: ecommerce
 tables: [customers, orders]
 description: |
-  Identify customers at risk of churning.
+  Identify customers who are **at risk of churning**.
 
-  Define **"at risk"** as customers whose last completed order was more than **90 days** before the most recent order date in the system. Use a subquery to determine the system-wide max order date -- do **not** hardcode a date.
+  A customer is "at risk" if their most recent completed order was more than **90 days** before the most recent order date in the entire system. "Most recent order date in the system" means the latest `order_date` in `orders` regardless of status — don't hardcode a calendar date, **derive it from the data**.
 
-  Include only customers who have placed **at least one completed order** (status = `'completed'`).
+  Include only customers who have placed at least one completed order. Status must be `'completed'`.
 
   Return the following columns in this exact order:
   - `customer_name` - the customer's name
   - `last_order_date` - the date of their most recent completed order
-  - `days_since_last_order` - integer number of days between their last completed order and the system-wide max order date
-  - `risk_status` - `'at risk'` if days_since_last_order > 90, otherwise `'active'`
+  - `days_since_last_order` - integer number of days between their last completed order and the system-wide most-recent order date
+  - `risk_status` - `'at risk'` if `days_since_last_order > 90`, otherwise `'active'`
 
   Order the results by `days_since_last_order` descending.
 hints:
-  - "Use MAX(order_date) in a subquery to get the system-wide latest order date across all statuses."
-  - "Filter orders to status = 'completed' when finding each customer's last order."
-  - "Use a CASE expression to assign 'at risk' vs 'active'."
-  - "Remember: days_since_last_order = (system max date) - (customer's last completed order date)."
-starter_code: |
-  SELECT
-    -- customer_name, last_order_date, days_since_last_order, risk_status
-  FROM customers c
-  JOIN orders o ON o.customer_id = c.id
-  WHERE o.status = 'completed'
-  -- complete the query
+  - "You need two reference points per customer: the customer's own last completed order, and the system-wide most recent order (the \"today\" of the dataset). The first is a per-group aggregate, the second is a global aggregate."
+  - "For the global \"most recent order across all customers\" value, think about how to compute a single value once and reuse it on every row. Hardcoding a date is explicitly disallowed."
+  - "Use `MAX(o.order_date)` grouped by customer for the customer's last order. For the system reference, a scalar subquery `(SELECT MAX(order_date) FROM orders)` works cleanly — it evaluates once and you can subtract from it in multiple places. Wrap the risk logic in a CASE expression."
 order_matters: true
 solution: |
   SELECT

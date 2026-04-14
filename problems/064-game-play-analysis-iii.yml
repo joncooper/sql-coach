@@ -20,10 +20,6 @@ hints:
   - "You need a running total of games_played per player, ordered by date. This is a classic use case for window functions."
   - "SUM() can be used as a window function with PARTITION BY and ORDER BY to compute running totals."
   - "Use SUM(games_played) OVER (PARTITION BY player_id ORDER BY event_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM activity
 order_matters: false
 solution: |
   SELECT

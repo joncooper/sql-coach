@@ -19,10 +19,6 @@ hints:
   - "Join users with transactions on the account column."
   - "Use SUM(amount) to calculate each user's total balance."
   - "Use HAVING to filter for balances greater than 10000."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM transactions
 order_matters: false
 solution: |
   SELECT u.name, SUM(t.amount) AS balance

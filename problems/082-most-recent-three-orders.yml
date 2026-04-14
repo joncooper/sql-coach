@@ -2,11 +2,11 @@ slug: most-recent-three-orders
 title: "The Most Recent Three Orders"
 difficulty: medium
 category: window-functions
-tags: [rank, partition-by, top-n]
+tags: [window-functions, top-per-group]
 domain: lc1671
 tables: [customers, orders]
 description: |
-  Given tables of customers and their orders, find the most recent **three orders** of each customer. If a customer has fewer than three orders, return all of their orders.
+  Given tables of customers and their orders, find the **most recent three orders** per customer. If a customer has fewer than three orders, return all of their orders.
 
   Return the following columns:
   - `customer_name` - the customer's name
@@ -16,13 +16,9 @@ description: |
 
   Order the result by `customer_name` ascending, then by `customer_id` ascending, then by `order_date` descending.
 hints:
-  - "Use a window function like RANK() or ROW_NUMBER() to number each customer's orders by date."
-  - "Partition by customer_id and order by order_date DESC to get the most recent orders first."
-  - "Filter for rows where the rank is <= 3 to keep only the top 3 most recent orders per customer."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM orders
+  - "This is a top-N-per-group problem. For each customer, you want up to N rows, ordered *within the customer* by date descending. A flat query can't do this without either a correlated subquery or a per-row positional helper."
+  - "Per-row window functions that assign a position within a group are the right tool. Paired with `PARTITION BY customer ORDER BY order_date DESC`, you get a sequence number you can filter with `<= 3` in an outer query."
+  - "`RANK() OVER (PARTITION BY c.customer_id ORDER BY o.order_date DESC)` (or `ROW_NUMBER` if you want strict 3, no matter the ties). Filter the outer query to the values you want to keep."
 order_matters: true
 solution: |
   WITH ranked AS (

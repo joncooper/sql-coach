@@ -1,30 +1,33 @@
 import type { MasteryLevel } from "@/types";
 
-const config: Record<MasteryLevel, { label: string; content: string; className: string }> = {
+const config: Record<
+  MasteryLevel,
+  { label: string; content: string; className: string }
+> = {
   unattempted: {
     label: "Not attempted",
-    content: "\u2022",
-    className: "text-zinc-700",
+    content: "\u25CB",
+    className: "text-[color:var(--text-faint)]",
   },
   attempted: {
     label: "Attempted",
-    content: "\u2022",
-    className: "text-orange-400",
+    content: "\u25D4",
+    className: "text-[color:var(--warning)]",
   },
   solved: {
     label: "Solved",
     content: "\u2713",
-    className: "text-emerald-500",
+    className: "text-[color:var(--positive)]",
   },
   practiced: {
     label: "Practiced",
     content: "\u2713\u2713",
-    className: "text-blue-400 tracking-[-0.15em]",
+    className: "text-[color:var(--accent)] tracking-[-0.15em]",
   },
   mastered: {
     label: "Mastered",
     content: "\u2605",
-    className: "text-amber-400",
+    className: "text-[color:var(--accent-strong)]",
   },
 };
 

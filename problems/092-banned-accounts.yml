@@ -22,10 +22,6 @@ hints:
   - "You need to compare pairs of sessions for the same account. Consider a self-join on account_id."
   - "Two sessions overlap when one starts before the other ends. Make sure the IP addresses differ."
   - "Use a condition like l1.ip_address < l2.ip_address to avoid comparing a session with itself and to avoid duplicate pairs."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM log_info
 order_matters: false
 solution: |
   SELECT DISTINCT l1.account_id

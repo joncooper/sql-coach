@@ -17,10 +17,6 @@ hints:
   - "GROUP BY both actor_id and director_id to count cooperations per pair."
   - "Use HAVING with COUNT(*) to filter for pairs with 3 or more cooperations."
   - "No joins are needed — all the data is in one table."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM actor_director
 order_matters: false
 solution: |
   SELECT actor_id, director_id

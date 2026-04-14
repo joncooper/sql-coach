@@ -14,32 +14,60 @@ interface CompareResult {
 
 function normalize(value: unknown): string {
   if (value === null || value === undefined) return "NULL";
-  if (typeof value === "number") {
-    if (Number.isInteger(value)) return String(value);
-    return value.toFixed(4);
-  }
+  if (typeof value === "number") return String(value);
   if (value instanceof Date) return value.toISOString();
-  return String(value).trim();
+  return String(value);
 }
 
 function rowKey(row: unknown[]): string {
-  return row.map(normalize).join("|||");
+  return JSON.stringify(row.map(normalize));
 }
 
 function generateCoaching(diff: RowDiff[], orderMatters: boolean): string {
-  const missing = diff.filter((d) => d.type === "missing").length;
-  const extra = diff.filter((d) => d.type === "extra").length;
+  const missingRows = diff.filter((d) => d.type === "missing").map((d) => d.row);
+  const extraRows = diff.filter((d) => d.type === "extra").map((d) => d.row);
+  const missing = missingRows.length;
+  const extra = extraRows.length;
 
-  if (orderMatters && missing > 0 && extra > 0 && missing === extra) {
+  // "Wrong order" only if the missing and extra rows are the *same*
+  // multiset of rows — i.e. the right answers are all present, just in
+  // the wrong positions. Equal counts alone are not enough: three rows
+  // with wrong bonus values will show as 3 missing + 3 extra but
+  // aren't a reorder bug.
+  if (orderMatters && missing > 0 && extra > 0 && sameMultiset(missingRows, extraRows)) {
     return "The right rows are present but in the wrong order. Check your ORDER BY clause.";
   }
+
+  // Same row count, different content → the values in one or more
+  // columns are wrong. This is the common shape for "forgot a CASE",
+  // "wrong aggregation", "wrong calculation" bugs.
+  if (missing > 0 && extra > 0 && missing === extra) {
+    return `Row count matches, but ${missing} row${missing > 1 ? "s have" : " has"} different values than expected. Check your column expressions, CASE statements, calculations, or aggregations.`;
+  }
+
   if (missing > 0 && extra === 0) {
     return `Your query is missing ${missing} expected row${missing > 1 ? "s" : ""}. Your WHERE clause or JOIN might be too restrictive.`;
   }
   if (extra > 0 && missing === 0) {
     return `Your query returns ${extra} extra row${extra > 1 ? "s" : ""}. Tighten your WHERE clause or add DISTINCT.`;
   }
-  return "Some expected rows are missing and some unexpected rows appear. Double-check your JOIN conditions and WHERE filters.";
+  return `${missing} expected row${missing > 1 ? "s are" : " is"} missing and ${extra} unexpected row${extra > 1 ? "s" : ""} appeared. Check your JOIN conditions, WHERE filters, and the values in your SELECT clause.`;
+}
+
+function sameMultiset(a: unknown[][], b: unknown[][]): boolean {
+  if (a.length !== b.length) return false;
+  const counts = new Map<string, number>();
+  for (const row of a) {
+    const key = rowKey(row);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  for (const row of b) {
+    const key = rowKey(row);
+    const current = counts.get(key) ?? 0;
+    if (current === 0) return false;
+    counts.set(key, current - 1);
+  }
+  return true;
 }
 
 export function compareResults(

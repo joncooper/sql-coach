@@ -20,10 +20,6 @@ hints:
   - "First count how many times each customer ordered each product using GROUP BY."
   - "Then find the maximum order count per customer."
   - "Join or filter to keep only the products matching each customer's maximum count."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM orders
 order_matters: false
 solution: |
   WITH product_counts AS (

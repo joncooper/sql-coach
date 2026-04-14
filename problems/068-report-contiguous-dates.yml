@@ -25,10 +25,6 @@ hints:
   - "This is a gaps-and-islands problem. You need to identify contiguous runs of the same status (failed or succeeded)."
   - "UNION ALL the two tables with a status label, then use ROW_NUMBER() to detect breaks in continuity. The key insight: for consecutive dates, (date - ROW_NUMBER()) produces the same value."
   - "Subtract a ROW_NUMBER() (partitioned by status, ordered by date) from the date itself. Consecutive same-status dates will share the same difference, forming a group you can aggregate with MIN/MAX."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM failed
 order_matters: true
 solution: |
   WITH all_dates AS (

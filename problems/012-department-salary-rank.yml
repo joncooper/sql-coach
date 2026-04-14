@@ -2,29 +2,25 @@ slug: department-salary-rank
 title: "Salary Rank Within Department"
 difficulty: medium
 category: window-functions
-tags: [dense-rank, window-function, partition-by]
+tags: [window-functions, ranking, partitioning]
 domain: hr
 tables: [employees, departments]
 description: |
-  Rank employees within each department by their salary using the `DENSE_RANK()` window function. Employees with the same salary should receive the same rank, and the next rank should not skip numbers.
+  For every employee, compute their salary rank **within their own department**. Employees with the same salary should receive the same rank, and the rank sequence should not have gaps — so if two employees tie for rank 1, the next distinct salary is rank 2, not rank 3.
+
+  Rank 1 is the **highest** salary in the department.
 
   Return the following columns:
   - `department_name` - the name of the department
   - `employee_name` - the employee's name
   - `salary` - the employee's salary
-  - `salary_rank` - the dense rank of the employee's salary within their department (highest salary = rank 1)
+  - `salary_rank` - the employee's salary rank within their department
 
   Order the results by `department_name` ascending, then by `salary_rank` ascending.
 hints:
-  - "DENSE_RANK() OVER (PARTITION BY ... ORDER BY ...) ranks rows within each partition."
-  - "Use PARTITION BY department to rank within each department separately."
-  - "ORDER BY salary DESC inside the window to give rank 1 to the highest salary."
-starter_code: |
-  SELECT
-    -- your query here
-    DENSE_RANK() OVER (...) AS salary_rank
-  FROM employees e
-  JOIN departments d ON e.department_id = d.id
+  - "You want a per-row rank that restarts inside each group. Think about the class of Postgres features that compute per-row values over a sliding set of rows — there are several that produce ranks, and they differ in how they handle ties."
+  - "Postgres has three ranking functions that differ in tie-breaking. One skips numbers after ties, one doesn't, and one assigns strictly sequential numbers. The problem's requirement (\"should not skip numbers\") tells you which one to pick."
+  - "`DENSE_RANK() OVER (PARTITION BY department ORDER BY salary DESC)` does what you want. The PARTITION BY restarts the count per department, ORDER BY DESC puts the highest salary at rank 1, and DENSE_RANK handles ties without gaps."
 order_matters: true
 solution: |
   SELECT

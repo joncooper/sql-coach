@@ -2,13 +2,13 @@ slug: customers-with-expensive-orders
 title: "Customers With Expensive Orders"
 difficulty: medium
 category: subqueries
-tags: [exists, correlated-subquery, filtering]
+tags: [subquery, filtering]
 domain: ecommerce
 tables: [customers, orders]
 description: |
   Find customers who have placed **at least one** order with a `total_amount` greater than $1,000.
 
-  Use the `EXISTS` operator with a correlated subquery.
+  Each customer should appear at most once in the result, even if they have multiple expensive orders.
 
   Return the following columns:
   - `name` - the customer's name
@@ -16,17 +16,9 @@ description: |
 
   Order the results by `name` in **ascending** order.
 hints:
-  - "EXISTS returns true if the subquery returns at least one row."
-  - "In the subquery, correlate it by matching orders.customer_id = customers.id."
-  - "Add the total_amount > 1000 condition inside the subquery's WHERE clause."
-starter_code: |
-  SELECT
-    c.name,
-    c.email
-  FROM customers c
-  WHERE EXISTS (
-    -- your subquery here
-  )
+  - "Several approaches work here. You could JOIN `customers` to `orders` and deduplicate. Or you could filter `customers` based on whether an expensive order exists. Or use `customer_id IN (...)`. They all produce the same result; think about which is clearest for \"does a matching row exist\"."
+  - "The cleanest expression of \"does at least one matching row exist\" is a dedicated SQL construct designed for that question. It evaluates a subquery and returns true/false based on whether it found anything, without actually pulling the matching rows into the result."
+  - "`WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id AND o.total_amount > 1000)` is the canonical form. It avoids the duplication problem of a JOIN and is often the most efficient choice when you only care \"is there at least one.\""
 order_matters: true
 solution: |
   SELECT

@@ -159,8 +159,6 @@ hints:
   - "Think about ranking rows inside each department."
   - "ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...)"
   - "Filter where the rank equals 1."
-starter_code: |
-  SELECT ...
 order_matters: false
 solution: |
   SELECT department_id, name, salary

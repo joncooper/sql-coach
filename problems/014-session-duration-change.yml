@@ -2,35 +2,25 @@ slug: session-duration-change
 title: "Session Duration Change"
 difficulty: hard
 category: window-functions
-tags: [lag, window-function, extract, epoch, date-math]
+tags: [window-functions, timestamps, per-row-comparison]
 domain: analytics
 tables: [users, sessions]
 description: |
-  For each user, calculate the duration of each session in minutes and the change in duration from their previous session.
+  For each user session, report the session's **duration in whole minutes** and the **change in duration from that user's previous session**.
 
-  Use `EXTRACT(EPOCH FROM ...)` to convert timestamp differences to seconds, then divide by 60 and cast to integer for minutes.
-
-  Use the `LAG()` window function to find each user's previous session duration.
+  A user's first session should have a NULL change (there's nothing to compare against). All other sessions should show `current_duration - previous_duration` in minutes.
 
   Return the following columns:
   - `username` - the user's username
   - `started_at` - when the session started
-  - `duration_minutes` - the session duration in whole minutes (as an integer)
-  - `prev_duration_change` - the difference between the current session's duration and the previous session's duration in minutes (current minus previous). This should be NULL for a user's first session.
+  - `duration_minutes` - the session duration in whole minutes (integer)
+  - `prev_duration_change` - the current session's duration minus the previous session's duration, in minutes; `NULL` for the user's first session
 
   Order the results by `username` ascending, then `started_at` ascending.
 hints:
-  - "Calculate minutes: EXTRACT(EPOCH FROM (ended_at - started_at)) / 60 gives fractional minutes. Cast to INTEGER."
-  - "LAG(value) OVER (PARTITION BY user_id ORDER BY started_at) gets the previous session's value for the same user."
-  - "Compute the change as current duration minus the LAG of duration."
-starter_code: |
-  SELECT
-    u.username,
-    s.started_at,
-    -- duration calculation here AS duration_minutes,
-    -- change calculation here AS prev_duration_change
-  FROM sessions s
-  JOIN users u ON s.user_id = u.id
+  - "Two subproblems: (1) turn a timestamp range into whole minutes, (2) for each row, reach back to the *same user's* previous session. Both have clean Postgres idioms."
+  - "For duration: `ended_at - started_at` gives an interval; you need a way to pull the number of seconds out of it so you can divide by 60. For the per-user lookback: a family of Postgres functions lets you peek at the row before the current one within a group."
+  - "`EXTRACT(EPOCH FROM (ended_at - started_at)) / 60` gives fractional minutes (cast to INT). For the lookback, `LAG(expr) OVER (PARTITION BY user_id ORDER BY started_at)` returns the previous row's value per user, or NULL on the first row."
 order_matters: true
 solution: |
   SELECT

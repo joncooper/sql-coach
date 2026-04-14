@@ -2,28 +2,24 @@ slug: highest-grade-for-each-student
 title: "Highest Grade For Each Student"
 difficulty: medium
 category: window-functions
-tags: [rank, partition-by, ordering]
+tags: [window-functions, top-per-group]
 domain: lc1214
 tables: [enrollments]
 description: |
   You are given an **Enrollments** table containing student course enrollments with their grades.
 
-  Write a query to find the **highest grade** with its corresponding course for each student. In case of a tie (multiple courses with the same highest grade), return the course with the **smallest course_id**.
+  For each student, find the **highest grade** they achieved and the course they earned it in. In case of a tie (multiple courses at the same highest grade), return the one with the **smallest `course_id`**.
 
   Return the following columns in this exact order:
   - `student_id` - the student identifier
-  - `course_id` - the course with the highest grade (smallest course_id to break ties)
+  - `course_id` - the course with the highest grade (smallest `course_id` wins ties)
   - `grade` - the highest grade achieved
 
   Order the results by `student_id` in **ascending** order.
 hints:
-  - "You need the row with the highest grade per student, breaking ties by smallest course_id. A window function with multi-column ordering can handle this."
-  - "RANK() OVER (PARTITION BY student_id ORDER BY grade DESC, course_id ASC) ranks each enrollment within a student, preferring higher grades and lower course IDs."
-  - "Filter for rank = 1 in the outer query, then order by student_id."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM enrollments
+  - "\"Top-1 per group with a deterministic tiebreaker\" is a classic top-per-group shape. The trick is to get the tiebreaker into your ordering, so that every group has exactly one winner."
+  - "Per-row window functions can take a multi-column `ORDER BY` inside their `OVER` clause — that's where you encode the tiebreaker. Order by `grade DESC` first (primary), then by `course_id ASC` (tiebreaker), so the single row at position 1 per student is unambiguously the winner."
+  - "`RANK() OVER (PARTITION BY student_id ORDER BY grade DESC, course_id ASC)` then filter to rank = 1. `ROW_NUMBER` works here too because the combined ordering has no ties; `RANK` is a safer default."
 order_matters: true
 solution: |
   SELECT student_id, course_id, grade

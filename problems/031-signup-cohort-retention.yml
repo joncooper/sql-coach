@@ -25,22 +25,6 @@ hints:
   - "Join cohort customers to completed orders, and compute the month offset using EXTRACT(YEAR FROM age(...)) * 12 + EXTRACT(MONTH FROM age(...)) or a date subtraction approach."
   - "Use COUNT(DISTINCT customer_id) to get retained_customers per cohort per month offset."
   - "Calculate cohort_size separately and join it in, then divide to get retention_rate."
-starter_code: |
-  -- Cohort retention analysis
-  WITH cohorts AS (
-    SELECT
-      id AS customer_id,
-      DATE_TRUNC('month', signup_date)::date AS signup_cohort
-    FROM customers
-  )
-  SELECT
-    signup_cohort,
-    months_since_signup,
-    retained_customers,
-    cohort_size,
-    -- calculate retention_rate
-  FROM ...
-  ORDER BY signup_cohort, months_since_signup
 order_matters: true
 solution: |
   WITH cohorts AS (

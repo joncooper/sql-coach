@@ -21,10 +21,6 @@ hints:
   - "You need to include all persons even if they don't have an address. Which type of JOIN preserves all rows from one table?"
   - "A LEFT JOIN keeps all rows from the left table and fills in NULLs where there is no match on the right."
   - "Join the two tables on person_id and select the required columns."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM person
 order_matters: false
 solution: |
   SELECT

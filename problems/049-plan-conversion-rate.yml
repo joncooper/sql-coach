@@ -22,16 +22,6 @@ hints:
   - "Use COUNT(DISTINCT ...) to count unique users who visited /pricing."
   - "Filter for url = '/pricing' in the JOIN condition (not WHERE) so you don't lose users who never visited."
   - "Divide users_who_visited_pricing by total_users, cast to numeric, multiply by 100, and round."
-starter_code: |
-  SELECT
-    u.plan,
-    -- total_users
-    -- users_who_visited_pricing
-    -- conversion_rate
-  FROM users u
-  -- join sessions and page_views
-  GROUP BY u.plan
-  ORDER BY conversion_rate DESC;
 order_matters: true
 solution: |
   SELECT

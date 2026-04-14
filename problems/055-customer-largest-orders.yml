@@ -18,10 +18,6 @@ hints:
   - "Use GROUP BY customer_number to count orders per customer."
   - "Use COUNT(*) to count the number of orders for each customer."
   - "Order by the count in descending order and use LIMIT 1 to get the top customer."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM orders
 order_matters: false
 solution: |
   SELECT customer_number

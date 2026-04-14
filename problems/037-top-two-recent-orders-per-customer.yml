@@ -1,0 +1,39 @@
+slug: top-two-recent-orders-per-customer
+title: "Top Two Recent Orders per Customer"
+difficulty: hard
+category: advanced-joins
+tags: [advanced-joins, top-n-per-group]
+domain: ecommerce
+tables: [customers, orders]
+description: |
+  For each customer, return their **2 most recent completed orders**. This is the classic **top-N-per-group** shape: you need up to N rows per group, ordered within the group by a ranking column, with the group's identifier in every output row.
+
+  Only include orders with status `'completed'`. Customers with no completed orders should not appear in the results.
+
+  Return the following columns in this exact order:
+  - `customer_name` - the customer's name
+  - `order_date` - the order date
+  - `total_amount` - the order total
+
+  Order the results by `customer_name` ascending, then `order_date` descending. Customers with only one completed order should still appear (just with one row).
+hints:
+  - "There are several ways to solve top-N-per-group in Postgres. The window-function approach is the most common starting point — rank or row-number each customer's orders by date descending, then filter to the top 2."
+  - "If you'd rather avoid a window function, there's a FROM-clause feature that lets a subquery reference columns from an earlier table in the same FROM. That lets you write the 'give me the top 2 orders for THIS customer' subquery literally, once per customer."
+  - "Either `ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC)` filtered to `<= 2`, or `FROM customers c, LATERAL (SELECT ... FROM orders WHERE customer_id = c.id ORDER BY order_date DESC LIMIT 2)`. Both produce the same result; LATERAL is often faster when there's a good index."
+order_matters: true
+solution: |
+  SELECT
+    c.name AS customer_name,
+    recent.order_date,
+    recent.total_amount
+  FROM customers c,
+  LATERAL (
+    SELECT o.order_date, o.total_amount
+    FROM orders o
+    WHERE o.customer_id = c.id
+      AND o.status = 'completed'
+    ORDER BY o.order_date DESC
+    LIMIT 2
+  ) AS recent
+  ORDER BY customer_name ASC, order_date DESC;
+expected_columns: [customer_name, order_date, total_amount]

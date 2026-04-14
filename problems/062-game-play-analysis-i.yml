@@ -19,10 +19,6 @@ hints:
   - "You need the earliest date per player. Think about aggregate functions or window functions that can find the minimum value."
   - "MIN(event_date) grouped by player_id gives the first login date directly."
   - "Alternatively, you can use RANK() or ROW_NUMBER() partitioned by player_id, ordered by event_date, and pick the first row."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM activity
 order_matters: false
 solution: |
   SELECT

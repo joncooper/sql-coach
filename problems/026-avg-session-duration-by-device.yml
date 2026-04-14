@@ -19,12 +19,6 @@ hints:
   - "Use EXTRACT(EPOCH FROM (ended_at - started_at)) to get the duration in seconds."
   - "Divide by 60 to convert seconds to minutes."
   - "Use ROUND(AVG(...), 1) to round the average to 1 decimal place."
-starter_code: |
-  SELECT
-    device,
-    -- calculate average duration in minutes
-  FROM sessions
-  GROUP BY device
 order_matters: true
 solution: |
   SELECT

@@ -2,37 +2,27 @@ slug: conditional-multi-metric
 title: "Monthly Order Dashboard"
 difficulty: medium
 category: conditional-logic
-tags: [case, aggregation, date-trunc, conditional-aggregation]
+tags: [conditional-logic, aggregation, date-grouping]
 domain: ecommerce
 tables: [orders]
 description: |
-  Build a **monthly dashboard** summarizing order activity. For each month, calculate multiple metrics using `CASE` expressions inside aggregate functions.
+  Build a **monthly dashboard** row per calendar month, summarizing order activity. Each row should report several metrics at once — both counts and money amounts — some filtered to a specific status.
+
+  Group by the first day of each month (i.e., a month is identified by its first calendar day).
 
   Return the following columns in this exact order:
-  - `month` - the month as a DATE (use `DATE_TRUNC('month', order_date)`)
-  - `total_orders` - count of all orders in that month
-  - `completed_orders` - count of orders with status = `'completed'`
-  - `cancelled_orders` - count of orders with status = `'cancelled'`
-  - `total_revenue` - sum of `total_amount` for completed orders only
-  - `avg_order_value` - average `total_amount` for completed orders only, rounded to **2 decimal places**
+  - `month` - the month as a DATE (the first day of the month)
+  - `total_orders` - count of all orders in that month, regardless of status
+  - `completed_orders` - count of orders with `status = 'completed'`
+  - `cancelled_orders` - count of orders with `status = 'cancelled'`
+  - `total_revenue` - sum of `total_amount` for **completed orders only**
+  - `avg_order_value` - average `total_amount` for **completed orders only**, rounded to **2 decimal places**
 
   Order the results by `month` ascending.
 hints:
-  - "Use DATE_TRUNC('month', order_date) to group by month."
-  - "Use COUNT(*) for total_orders, then SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) for completed_orders."
-  - "For total_revenue, use SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END)."
-  - "For avg_order_value, use AVG with a CASE that returns total_amount for completed orders and NULL otherwise -- AVG ignores NULLs."
-starter_code: |
-  SELECT
-    DATE_TRUNC('month', order_date) AS month,
-    -- total_orders
-    -- completed_orders
-    -- cancelled_orders
-    -- total_revenue
-    -- avg_order_value
-  FROM orders
-  GROUP BY month
-  ORDER BY month;
+  - "You need all these metrics in a single row per month — so a single `GROUP BY month` with many expressions in the SELECT. The trick is that some metrics (total count, total revenue) are over *all* orders in the month, and some (completed-only count, avg of completed) only want certain rows. You can't just filter the whole query."
+  - "The idiom for \"sum/count only rows matching a condition\" inside a grouped query is a conditional expression *inside* the aggregate: the inner expression returns a value when the condition is met and 0 (or NULL) otherwise, and the outer aggregate sums or averages across the group. For the average, note that `AVG` ignores NULLs — so returning NULL for non-matching rows gives you \"average over matching rows\" for free."
+  - "`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)` for the conditional count, `SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END)` for conditional revenue, and `AVG(CASE WHEN status = 'completed' THEN total_amount END)` (no ELSE) for the conditional average. Group by `DATE_TRUNC('month', order_date)`."
 order_matters: true
 solution: |
   SELECT

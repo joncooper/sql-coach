@@ -2,11 +2,11 @@ slug: most-recent-product-orders
 title: "The Most Recent Orders for Each Product"
 difficulty: medium
 category: window-functions
-tags: [rank, partition-by, joins]
+tags: [window-functions, top-per-group]
 domain: lc1688
 tables: [customers, orders, products]
 description: |
-  Given tables of customers, orders, and products, find the most recent order(s) for each product. If a product has multiple orders on its most recent date, return all of them. Products that have never been ordered should not appear in the result.
+  Given tables of customers, orders, and products, find the **most recent order(s) for each product**. If a product has multiple orders on its most recent date, return all of them. Products that have never been ordered should not appear in the result.
 
   Return the following columns:
   - `product_name` - the name of the product
@@ -16,13 +16,9 @@ description: |
 
   Order the result by `product_name` ascending, then by `product_id` ascending, then by `order_id` ascending.
 hints:
-  - "Use RANK() to find the most recent order date for each product."
-  - "Partition by product_id and order by order_date DESC so rank 1 represents the most recent date."
-  - "Filter where rank = 1. Multiple orders on the same most recent date will all have rank 1."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM orders
+  - "\"Most recent per group\" with tied dates preserved is the top-per-group shape with a tie-tolerant ordering. Think about which per-row positional function assigns the *same* position number to rows with identical sort keys."
+  - "Partition by `product_id` and order by `order_date` descending. You want rank 1 to mean \"the most recent date, all rows that share it\"."
+  - "`RANK() OVER (PARTITION BY product_id ORDER BY order_date DESC)`, filter to `= 1` in the outer query. Products with no orders are excluded by the join (INNER-style semantics via LEFT JOIN filtered on rank)."
 order_matters: true
 solution: |
   WITH ranked AS (

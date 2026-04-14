@@ -19,11 +19,6 @@ hints:
   - "Use AND to combine multiple conditions in your WHERE clause."
   - "Filter by status = 'completed' and use date comparisons for the date range."
   - "Remember Q3 runs from '2023-07-01' to '2023-09-30' inclusive."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM orders
-  WHERE ...
 order_matters: true
 solution: |
   SELECT

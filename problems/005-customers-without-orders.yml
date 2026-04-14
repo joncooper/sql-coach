@@ -2,11 +2,11 @@ slug: customers-without-orders
 title: "Customers Without Orders"
 difficulty: medium
 category: joins
-tags: [left-join, null-check, anti-join]
+tags: [joins, absence]
 domain: ecommerce
 tables: [customers, orders]
 description: |
-  Find customers who have **never** placed an order. These are customers that exist in the customers table but have no matching rows in the orders table.
+  Find customers who have **never** placed an order. These are customers that exist in the `customers` table but have no matching rows in the `orders` table.
 
   Return the following columns:
   - `name` - the customer's name
@@ -14,14 +14,9 @@ description: |
 
   Order the results by `name` ascending.
 hints:
-  - "Use a LEFT JOIN from customers to orders. Rows with no matching order will have NULL values for the orders columns."
-  - "After the LEFT JOIN, use WHERE to filter for rows where the order id IS NULL."
-  - "An alternative approach uses NOT EXISTS with a correlated subquery."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM customers c
-  LEFT JOIN ...
+  - "\"Absent from another table\" is a common SQL shape with at least three idiomatic answers: an outer join that keeps unmatched rows, a subquery check for non-existence, or a set-difference. Pick the one you find clearest."
+  - "For the join-based approach: think about how to include every customer (even those with no order) in the result, then filter the resulting rows down to just the ones where the order side came back empty."
+  - "`LEFT JOIN orders ON customer_id = c.id WHERE o.id IS NULL` is the canonical left-join-and-filter form. Equivalent alternatives: `WHERE NOT EXISTS (SELECT 1 FROM orders WHERE customer_id = c.id)`, or `customers.id NOT IN (SELECT customer_id FROM orders WHERE customer_id IS NOT NULL)`."
 order_matters: true
 solution: |
   SELECT

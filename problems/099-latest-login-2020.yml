@@ -19,10 +19,6 @@ hints:
   - "Filter rows to only include logins from the year 2020 before aggregating."
   - "Use EXTRACT(YEAR FROM time_stamp) = 2020 to filter for the correct year."
   - "Use MAX(time_stamp) grouped by user_id to find the latest login per user."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM logins
 order_matters: false
 solution: |
   SELECT

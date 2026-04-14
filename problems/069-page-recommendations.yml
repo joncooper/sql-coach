@@ -18,10 +18,6 @@ hints:
   - "First find all friends of user 1. Remember that friendships are bidirectional -- user 1 could appear in either the user1_id or user2_id column."
   - "Join the friend list with the Likes table to find all pages liked by user 1's friends."
   - "Use NOT IN or NOT EXISTS to exclude pages that user 1 already likes, and DISTINCT to remove duplicates."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM friendship
 order_matters: false
 solution: |
   WITH friends AS (

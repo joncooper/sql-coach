@@ -2,30 +2,22 @@ slug: consecutive-order-days
 title: "Customers with Consecutive Order Days"
 difficulty: hard
 category: window-functions
-tags: [window-functions, lag, date-arithmetic, distinct]
+tags: [window-functions, date-arithmetic, distinct]
 domain: ecommerce
 tables: [customers, orders]
 description: |
-  Find customers who have placed orders on **consecutive days** (i.e., the difference between two order dates is exactly 1 day) or on the **same day** (difference of 0 days).
+  Find customers who have placed **two orders within one day of each other** — meaning either on the same day, or on consecutive calendar days (difference of 0 or 1 between the two order dates).
 
-  Use the `LAG()` window function to compare each order's date with the customer's previous order date.
+  A customer should appear in the output if *any* pair of their orders satisfies this condition.
 
   Return the following columns:
   - `customer_name` - the customer's name (distinct values only)
 
   Order the results by `customer_name` ascending.
 hints:
-  - "Use LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) to get the previous order date."
-  - "Calculate the difference: order_date - previous_order_date."
-  - "Filter where the difference is 0 or 1 day."
-  - "Use DISTINCT to avoid duplicates."
-starter_code: |
-  -- Find customers who placed orders on consecutive or same days
-  SELECT DISTINCT
-    customer_name
-  FROM (
-    -- your subquery here
-  ) consecutive
+  - "You need to compare each order against the *previous* order from the same customer. Think about how to line up each row with its predecessor in a group without writing a self-join."
+  - "Postgres has a family of functions that peek at the row before or after the current one within a group. Pair one of them with `PARTITION BY customer ORDER BY order_date`."
+  - "`LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date)` gives you the customer's previous order date for each row. Subtract, filter to `<= 1`, and wrap in SELECT DISTINCT to dedupe customer names."
 order_matters: true
 solution: |
   SELECT DISTINCT

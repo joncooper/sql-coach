@@ -1,14 +1,12 @@
 slug: order-status-pivot
-title: "Order Status Pivot by Customer"
+title: "Order Status Breakdown per Customer"
 difficulty: medium
 category: conditional-logic
-tags: [case, aggregation, pivot, conditional]
+tags: [conditional-logic, aggregation, pivot]
 domain: ecommerce
 tables: [customers, orders]
 description: |
-  Create a pivot table showing the count of each order status per customer.
-
-  Use `CASE` expressions inside `SUM()` or `COUNT()` to pivot the order statuses into separate columns.
+  For each customer, report **how many orders they have in each status** — as separate columns, not separate rows. The output should be one row per customer with four count columns, one per status.
 
   Return the following columns in this exact order:
   - `customer_name` - the customer's name
@@ -17,18 +15,11 @@ description: |
   - `cancelled_count` - number of cancelled orders
   - `refunded_count` - number of refunded orders
 
-  Order the results by `completed_count` in **descending** order, then by `customer_name` ascending.
+  Every customer who has at least one order should appear. Order the results by `completed_count` in **descending** order, then by `customer_name` ascending.
 hints:
-  - "Use SUM(CASE WHEN o.status = 'completed' THEN 1 ELSE 0 END) to count a specific status."
-  - "JOIN customers to orders and GROUP BY customer name."
-  - "Make sure to include all four statuses: completed, pending, cancelled, refunded."
-starter_code: |
-  SELECT
-    c.name AS customer_name,
-    -- pivot order statuses into columns
-  FROM customers c
-  JOIN orders o ON o.customer_id = c.id
-  GROUP BY c.name
+  - "A plain `GROUP BY customer, status` gives you one row per (customer, status) pair — not what you want. You need to pivot: one row per customer, with each status as a different column."
+  - "Postgres doesn't have a PIVOT keyword. The standard idiom for \"count rows matching condition X\" inside an aggregate is a conditional expression *inside* the aggregate function: the aggregate sees 1 when the row matches and 0 (or NULL) otherwise. That way each output column is a different conditional aggregation."
+  - "`SUM(CASE WHEN o.status = 'completed' THEN 1 ELSE 0 END) AS completed_count`, repeated for each status. Group by customer and you're done."
 order_matters: true
 solution: |
   SELECT

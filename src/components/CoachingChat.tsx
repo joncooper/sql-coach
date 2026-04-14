@@ -22,9 +22,9 @@ interface CoachingChatProps {
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1 px-3 py-2">
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:0ms]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:150ms]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-500 [animation-delay:300ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] [animation-delay:0ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[color:var(--text-muted)] [animation-delay:300ms]" />
     </div>
   );
 }
@@ -109,35 +109,22 @@ export default function CoachingChat({
     [problemContext]
   );
 
-  // Auto-send first coaching request when opened
+  // Auto-send a fresh hint every time the coach is opened. Each open
+  // is a new "I want a tip right now" signal, so the conversation
+  // resets and a new initial request fires with the current editor
+  // contents and whatever error context exists.
   useEffect(() => {
     if (isOpen && !initializedRef.current) {
       initializedRef.current = true;
+      setMessages([]);
       sendCoachingRequest([]);
     }
-  }, [isOpen, sendCoachingRequest]);
-
-  // Detect re-submission (student SQL changed)
-  useEffect(() => {
-    if (
-      initializedRef.current &&
-      problemContext.studentSql !== prevSqlRef.current &&
-      problemContext.studentSql.trim()
-    ) {
+    if (!isOpen) {
+      // Reset so the next open starts fresh.
+      initializedRef.current = false;
       prevSqlRef.current = problemContext.studentSql;
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "user",
-          content: "(Re-submitted with updated SQL)",
-        },
-      ]);
-      sendCoachingRequest([
-        ...messages,
-        { role: "user", content: "(Re-submitted with updated SQL)" },
-      ]);
     }
-  }, [problemContext.studentSql]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, sendCoachingRequest, problemContext.studentSql]);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -165,15 +152,13 @@ export default function CoachingChat({
   if (!isOpen) return null;
 
   return (
-    <div className="flex max-h-64 flex-col">
+    <div className="flex max-h-72 flex-col border-t border-[color:var(--border)] bg-[color:var(--surface)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-1.5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          AI Coach
-        </span>
+      <div className="flex items-center justify-between border-b border-[color:var(--border-subtle)] px-4 py-2.5">
+        <span className="eyebrow">AI Coach</span>
         <button
           onClick={onToggle}
-          className="text-xs text-zinc-600 hover:text-zinc-400"
+          className="btn-ghost text-[color:var(--text-muted)]"
         >
           Close
         </button>
@@ -182,7 +167,7 @@ export default function CoachingChat({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 space-y-2 overflow-y-auto px-4 py-2"
+        className="flex-1 space-y-2 overflow-y-auto px-4 py-3"
         style={{ scrollbarWidth: "thin" }}
       >
         {messages.map((msg, i) => (
@@ -190,8 +175,8 @@ export default function CoachingChat({
             key={i}
             className={
               msg.role === "user"
-                ? "ml-8 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-zinc-300"
-                : "mr-8 text-sm leading-relaxed text-zinc-300"
+                ? "ml-8 rounded-lg border border-[color:var(--border)] bg-[color:var(--accent-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--text)]"
+                : "mr-8 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--panel-muted)] px-4 py-3 text-sm leading-6 text-[color:var(--text-soft)]"
             }
           >
             {msg.content}
@@ -201,9 +186,9 @@ export default function CoachingChat({
         {/* Streaming content or typing indicator */}
         {isStreaming &&
           (streamedContent ? (
-            <div className="mr-8 text-sm leading-relaxed text-zinc-300">
+            <div className="mr-8 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--panel-muted)] px-4 py-3 text-sm leading-6 text-[color:var(--text-soft)]">
               {streamedContent}
-              <span className="ml-0.5 inline-block animate-pulse text-blue-400">
+              <span className="ml-0.5 inline-block animate-pulse text-[color:var(--accent)]">
                 |
               </span>
             </div>
@@ -213,7 +198,7 @@ export default function CoachingChat({
       </div>
 
       {/* Input */}
-      <div className="flex items-center gap-2 border-t border-zinc-800 px-4 py-2">
+      <div className="flex items-center gap-2 border-t border-[color:var(--border-subtle)] px-4 py-3">
         <input
           type="text"
           value={input}
@@ -221,12 +206,12 @@ export default function CoachingChat({
           onKeyDown={handleKeyDown}
           placeholder="Ask a follow-up..."
           disabled={isStreaming}
-          className="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-blue-500 focus:outline-none disabled:opacity-50"
+          className="flex-1 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)] placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--accent)] focus:outline-none disabled:opacity-50"
         />
         <button
           onClick={handleSend}
           disabled={isStreaming || !input.trim()}
-          className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+          className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
           Send
         </button>

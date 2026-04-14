@@ -1,14 +1,14 @@
 slug: project-employees-iii
-title: "Project Employees III"
+title: "Most Experienced Employee per Project"
 difficulty: medium
 category: window-functions
-tags: [rank, partition-by, joins]
+tags: [window-functions, joins]
 domain: lc1163
 tables: [project, employee]
 description: |
   You are given two tables: a **Project** table that maps employees to projects, and an **Employee** table with each employee's name and years of experience.
 
-  Write a query to report the **most experienced** employees in each project. If there is a tie (multiple employees share the maximum experience years for a project), report all of them.
+  For each project, report the **most experienced** employee(s). If multiple employees are tied for the maximum `experience_years` on a project, **report all of them** — not an arbitrary one.
 
   Return the following columns in this exact order:
   - `project_id` - the project identifier
@@ -16,13 +16,9 @@ description: |
 
   Return the result in **any order**.
 hints:
-  - "You need to find the employee(s) with the highest experience_years within each project. Consider using a window function that handles ties."
-  - "RANK() assigns the same rank to tied values, unlike ROW_NUMBER() which breaks ties arbitrarily."
-  - "Use RANK() OVER (PARTITION BY project_id ORDER BY experience_years DESC) and filter for rank = 1."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM project
+  - "This is a \"top-per-group\" problem, but with a twist: ties must be preserved (you can't just pick one winner per project). That rules out some otherwise-fine approaches."
+  - "Think about the family of per-row window functions that assign ordinal positions within a group. There are three of them, and they differ in how they treat ties: one gives distinct sequential numbers even to ties, one gives the same number to ties but skips the next, and one is like the second but doesn't skip. For \"include all tied winners\", the first option fails — either of the tie-handling ones works."
+  - "`RANK() OVER (PARTITION BY project_id ORDER BY experience_years DESC)`, filter `WHERE rnk = 1` in the outer query. `DENSE_RANK` would also work here — the behavior differs only after rank 1."
 order_matters: false
 solution: |
   WITH ranked AS (

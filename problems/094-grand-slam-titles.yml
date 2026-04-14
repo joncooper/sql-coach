@@ -2,16 +2,16 @@ slug: grand-slam-titles
 title: "Grand Slam Titles"
 difficulty: medium
 category: pivoting
-tags: [union-all, unpivot, aggregation]
+tags: [pivoting, aggregation, joins]
 domain: lc1932
 tables: [players, championships]
 description: |
   You are given two tables:
 
   - **Players**: contains `player_id` and `player_name` for each tennis player.
-  - **Championships**: each row represents a year and records the `player_id` of the winner of each of four grand slam tournaments: `wimbledon`, `fr_open`, `us_open`, and `au_open`.
+  - **Championships**: each row represents a year. For that year it records the `player_id` of the winner of each of four grand slam tournaments in four **separate columns**: `wimbledon`, `fr_open`, `us_open`, and `au_open`.
 
-  Write a query to report the **number of grand slam tournaments won** by each player. Do not include players who did not win any tournament.
+  Report the **number of grand slam tournaments won** by each player. Do not include players who never won anything.
 
   Return the following columns in this exact order:
   - `player_id` - the player identifier
@@ -20,13 +20,9 @@ description: |
 
   Return the result in **any order**.
 hints:
-  - "The championships data is stored in a wide format with one column per tournament. You need to unpivot it into rows."
-  - "Use UNION ALL to select each tournament column separately, creating one row per tournament win."
-  - "After unpivoting, JOIN with the Players table and COUNT the wins per player."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM championships
+  - "The data is in a **wide** shape — one row per year, four tournament-winner columns — but you want to count wins **per player**. That means you need to reshape: get from four columns into a single \"player won a tournament\" stream, then count per player."
+  - "This is the inverse of a pivot: you're unpivoting a wide row into several narrow rows. Plain SQL doesn't have an UNPIVOT keyword, so think about how to stack multiple `SELECT`s of the same shape into one result set."
+  - "Four `SELECT tournament_col AS player_id FROM championships` queries stitched together with `UNION ALL` in a CTE, then JOIN to `players` and `COUNT(*) GROUP BY player`. (Postgres also has `unnest(array[...])` as a one-liner alternative once you're comfortable with arrays.)"
 order_matters: false
 solution: |
   WITH all_wins AS (

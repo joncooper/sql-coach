@@ -21,16 +21,6 @@ hints:
   - "Use a LEFT JOIN from employees to employees (aliased as m) on e.manager_id = m.id to get the manager."
   - "Use COALESCE(m.name, 'No Manager') to handle NULLs."
   - "Join to departments for the department name."
-starter_code: |
-  SELECT
-    e.name,
-    -- handle NULL manager
-    d.name AS department_name,
-    e.salary
-  FROM employees e
-  JOIN departments d ON d.id = e.department_id
-  -- add manager join
-  ORDER BY department_name, salary DESC
 order_matters: true
 solution: |
   SELECT

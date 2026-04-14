@@ -20,12 +20,6 @@ hints:
   - "Use GROUP BY on the department name after joining the two tables."
   - "Use COUNT(*) for the employee count, and ROUND(AVG(salary), 2) for the rounded average."
   - "MIN() and MAX() give you the lowest and highest values in each group."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees e
-  JOIN departments d ON e.department_id = d.id
-  GROUP BY ...
 order_matters: true
 solution: |
   SELECT

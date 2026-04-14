@@ -1,11 +1,12 @@
 {
-  "name": "temp-next",
+  "name": "sql-coach",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "bun test"
   },
   "dependencies": {
     "@codemirror/lang-sql": "^6.10.0",

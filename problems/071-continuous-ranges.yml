@@ -19,10 +19,6 @@ hints:
   - "This is a classic gaps-and-islands problem. Consider what happens when you subtract a row number from each log_id."
   - "If log_id values are consecutive, the difference (log_id - row_number) will be constant for the entire group."
   - "Use ROW_NUMBER() to assign sequential numbers, compute the difference as a grouping key, then find MIN and MAX within each group."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM logs
 order_matters: true
 solution: |
   WITH numbered AS (

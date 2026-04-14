@@ -20,10 +20,6 @@ hints:
   - "Use UNION ALL to combine caller and callee sides of each call so every person's participation is counted."
   - "Extract the country code from phone numbers using LEFT(phone_number, 3), then join with the country table."
   - "Calculate the average duration per country and compare it to the global average using a subquery or HAVING clause."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM country
 order_matters: false
 solution: |
   WITH all_calls AS (

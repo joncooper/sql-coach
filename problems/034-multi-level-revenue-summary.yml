@@ -1,0 +1,46 @@
+slug: multi-level-revenue-summary
+title: "Multi-Level Revenue Summary"
+difficulty: hard
+category: aggregation
+tags: [aggregation, joins, subtotals]
+domain: ecommerce
+tables: [categories, products, order_items, orders]
+description: |
+  Produce a revenue summary at **three levels of granularity in a single query**:
+
+  1. **Per-product detail** — revenue for each (category, product) pair
+  2. **Category subtotals** — revenue rolled up by category
+  3. **Grand total** — overall revenue across everything
+
+  The result should be one table containing all three levels stacked together, distinguished by which of `category_name` and `product_name` are NULL.
+
+  Only include revenue from **completed** orders. Revenue is calculated as `SUM(oi.quantity * oi.unit_price)`.
+
+  Return the following columns in this exact order:
+  - `category_name` - the category name (NULL on the grand total row)
+  - `product_name` - the product name (NULL on category subtotal rows and the grand total)
+  - `total_revenue` - the total revenue for that grouping level
+
+  Order the results by `category_name` ascending with **NULLS LAST**, then `product_name` ascending with **NULLS LAST**, so the grand total lands at the bottom and each category's subtotal follows its product rows.
+hints:
+  - "Think about what would happen if you ran three separate GROUP BY queries (one per level) and UNION'd them — you'd get the right rows but it'd be clumsy. Postgres has a single-query way to ask for multiple grouping levels at once."
+  - "Look up Postgres's multi-level grouping extensions. There's a family of them that let you enumerate the grouping combinations you want inside one GROUP BY."
+  - "`GROUP BY GROUPING SETS ((cat.name, p.name), (cat.name), ())` produces all three levels. The empty `()` is the grand total."
+order_matters: true
+solution: |
+  SELECT
+    cat.name AS category_name,
+    p.name AS product_name,
+    SUM(oi.quantity * oi.unit_price) AS total_revenue
+  FROM order_items oi
+  JOIN orders o ON o.id = oi.order_id
+  JOIN products p ON p.id = oi.product_id
+  JOIN categories cat ON cat.id = p.category_id
+  WHERE o.status = 'completed'
+  GROUP BY GROUPING SETS (
+    (cat.name, p.name),
+    (cat.name),
+    ()
+  )
+  ORDER BY category_name NULLS LAST, product_name NULLS LAST;
+expected_columns: [category_name, product_name, total_revenue]

@@ -24,25 +24,69 @@ export function ProblemDescriptionText({
   return (
     <div className="space-y-3">
       {reviewDue && (
-        <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-300">
+        <div className="flex items-center gap-2 rounded-lg border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm text-[color:var(--warning)]">
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full bg-[color:var(--review-due)]"
+            aria-hidden
+          />
           Due for review — solve again to strengthen mastery
         </div>
       )}
-      <div className="prose prose-invert prose-sm max-w-none prose-p:text-zinc-300 prose-code:rounded prose-code:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-blue-400 prose-code:before:content-none prose-code:after:content-none prose-strong:text-zinc-200">
-        <Markdown remarkPlugins={[remarkGfm]}>{description}</Markdown>
+      <div className="space-y-4">
+        <Markdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            p: ({ children }) => (
+              <p className="text-[15px] leading-7 text-[color:var(--text-soft)]">
+                {children}
+              </p>
+            ),
+            ul: ({ children }) => (
+              <ul className="list-disc space-y-2 pl-5 text-[15px] leading-7 text-[color:var(--text-soft)]">
+                {children}
+              </ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="list-decimal space-y-2 pl-5 text-[15px] leading-7 text-[color:var(--text-soft)]">
+                {children}
+              </ol>
+            ),
+            li: ({ children }) => <li>{children}</li>,
+            strong: ({ children }) => (
+              <strong className="font-semibold text-[color:var(--text)]">
+                {children}
+              </strong>
+            ),
+            code: ({ children, className }) =>
+              className ? (
+                <code className={className}>{children}</code>
+              ) : (
+                <code className="rounded bg-[color:var(--accent-soft)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[13px] text-[color:var(--accent-strong)]">
+                  {children}
+                </code>
+              ),
+            pre: ({ children }) => (
+              <pre className="overflow-x-auto rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-4 font-[family-name:var(--font-mono)] text-sm text-[color:var(--text)]">
+                {children}
+              </pre>
+            ),
+          }}
+        >
+          {description}
+        </Markdown>
       </div>
     </div>
   );
 }
 
 export default function ProblemDescription({
-  description,
+  description: _description,
   hints,
   onHintReveal,
   solution,
   canShowSolution,
   onShowSolution,
-  reviewDue,
+  reviewDue: _reviewDue,
 }: ProblemDescriptionProps) {
   const [revealedHints, setRevealedHints] = useState(0);
 
@@ -52,52 +96,60 @@ export default function ProblemDescription({
     onHintReveal?.(next);
   };
 
+  const allRevealed = revealedHints === hints.length;
+
   return (
     <div className="space-y-4">
       {hints.length > 0 && (
-        <div className="border-t border-zinc-800 pt-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Hints
-          </h3>
-          <div className="mt-2 space-y-2">
-            {hints.map((hint, i) => (
-              <div key={i}>
-                {i < revealedHints ? (
-                  <div className="rounded bg-zinc-800/50 px-3 py-2 text-sm text-zinc-400">
-                    {hint}
-                  </div>
-                ) : i === revealedHints ? (
-                  <button
-                    onClick={revealHint}
-                    className="rounded bg-zinc-800/30 px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-400"
-                  >
-                    Show hint {i + 1}
-                  </button>
-                ) : null}
-              </div>
-            ))}
+        <div>
+          <div className="flex items-center justify-between">
+            <div className="eyebrow">
+              Hints{" "}
+              <span className="num ml-1 text-[color:var(--text-faint)]">
+                {revealedHints}/{hints.length}
+              </span>
+            </div>
+            {!allRevealed && (
+              <button
+                onClick={revealHint}
+                className="btn-ghost text-[color:var(--accent)]"
+              >
+                Show next hint
+              </button>
+            )}
           </div>
+          {revealedHints > 0 && (
+            <ol className="mt-2 space-y-2">
+              {hints.slice(0, revealedHints).map((hint, i) => (
+                <li
+                  key={i}
+                  className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--panel-muted)] px-3 py-2 text-sm leading-6 text-[color:var(--text-soft)]"
+                >
+                  <span className="num mr-2 text-[color:var(--text-faint)]">
+                    {i + 1}.
+                  </span>
+                  {hint}
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       )}
 
-      {/* Show Solution */}
       {canShowSolution && !solution && (
-        <div className="border-t border-zinc-800 pt-3">
-          <button
-            onClick={onShowSolution}
-            className="rounded bg-zinc-800/30 px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-400"
-          >
-            Show solution
-          </button>
-        </div>
+        <button
+          onClick={onShowSolution}
+          className="btn-ghost text-[color:var(--danger)]"
+          title="Revealing the solution permanently blocks Mastered status for this problem"
+        >
+          Show solution
+        </button>
       )}
 
       {solution && (
-        <details open className="border-t border-zinc-800 pt-3">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-zinc-400">
-            Solution
-          </summary>
-          <pre className="mt-2 overflow-x-auto rounded bg-zinc-900 p-3 text-sm text-zinc-300">
+        <details open>
+          <summary className="eyebrow cursor-pointer">Solution</summary>
+          <pre className="mt-2 overflow-x-auto rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-4 font-[family-name:var(--font-mono)] text-sm text-[color:var(--text)]">
             <code>{solution}</code>
           </pre>
         </details>

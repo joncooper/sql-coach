@@ -2,26 +2,22 @@ slug: consecutive-available-seats
 title: "Consecutive Available Seats"
 difficulty: easy
 category: window-functions
-tags: [lag, lead, consecutive]
+tags: [window-functions, consecutive]
 domain: lc603
 tables: [cinema]
 description: |
-  Find all seats in the cinema that are part of a group of two or more consecutive free seats.
+  Find all cinema seats that are part of a run of **two or more consecutive free seats**.
 
-  A seat is considered "consecutive" with another if their seat IDs differ by exactly 1 and both are free.
+  Two seats are "consecutive" if their `seat_id` values differ by exactly 1 and both are free. A seat qualifies for the output if at least one of its immediate neighbors (either side) is also free.
 
   Return the following column:
   - `seat_id` - the ID of each seat that is part of a consecutive free group
 
   Order the results by `seat_id` in **ascending** order.
 hints:
-  - "Use LAG() and LEAD() window functions to look at the previous and next seat's availability."
-  - "First filter to only free seats, then check if a free seat has an adjacent free seat (previous or next seat_id differs by 1)."
-  - "A seat belongs to a consecutive group if it has a free neighbor on either side."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM cinema
+  - "For each free seat, you need to check whether the free-seat immediately before it (one lower `seat_id`) or immediately after it (one higher) exists. Think about how to look at a neighboring row from within a single query."
+  - "Postgres window functions can peek at the previous and next row within an ordered set. Paired with `ORDER BY seat_id`, one of them gives you the prior row's seat_id, another gives you the next row's — compare those to the current seat."
+  - "Filter `cinema` to `free = true`, then use `LAG(seat_id) OVER (ORDER BY seat_id)` and `LEAD(seat_id) OVER (ORDER BY seat_id)`. Keep rows where the previous free seat is 1 lower OR the next free seat is 1 higher."
 order_matters: true
 solution: |
   SELECT seat_id

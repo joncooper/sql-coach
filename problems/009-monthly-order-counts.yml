@@ -2,30 +2,23 @@ slug: monthly-order-counts
 title: "Monthly Order Counts"
 difficulty: medium
 category: aggregation
-tags: [date-trunc, group-by, having, count]
+tags: [aggregation, date-grouping, having]
 domain: ecommerce
 tables: [orders]
 description: |
-  Count the number of orders placed each month using PostgreSQL's `DATE_TRUNC` function.
-
-  Return the following columns:
-  - `month` - the first day of each month (produced by `DATE_TRUNC('month', order_date)`)
-  - `order_count` - the number of orders in that month
+  Count the number of orders placed **each month**. A month is identified by its first calendar day.
 
   Only include months that have **3 or more** orders.
 
+  Return the following columns:
+  - `month` - the first day of each month (a DATE)
+  - `order_count` - the number of orders in that month
+
   Order the results by `month` in **ascending** order.
 hints:
-  - "DATE_TRUNC('month', order_date) truncates a date to the first day of its month."
-  - "Group by the truncated date to aggregate orders by month."
-  - "Use HAVING COUNT(*) >= 3 to filter out months with fewer than 3 orders."
-starter_code: |
-  SELECT
-    DATE_TRUNC('month', order_date) AS month,
-    -- your query here
-  FROM orders
-  GROUP BY ...
-  HAVING ...
+  - "You need to group rows that fall in the same month, then count them. The challenge: two orders on `2024-01-03` and `2024-01-27` should end up in the same group. Think about how to collapse a specific date down to the month it belongs to."
+  - "Postgres has a dedicated function for truncating a timestamp/date to the start of a broader unit (month, week, quarter, etc). Look up \"date truncation\" in the Postgres docs. Once you have a per-row month value, you can GROUP BY it."
+  - "`DATE_TRUNC('month', order_date)` gives the first day of the month for each row. GROUP BY that expression, COUNT(*) inside the SELECT, and filter the group with `HAVING COUNT(*) >= 3`."
 order_matters: true
 solution: |
   SELECT

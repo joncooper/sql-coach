@@ -19,10 +19,6 @@ hints:
   - "You need to find students whose department_id does not match any id in the departments table."
   - "A LEFT JOIN from students to departments will produce NULL values for departments that don't exist."
   - "Filter for rows where the department's id IS NULL after the LEFT JOIN to find students in invalid departments."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM students
 order_matters: false
 solution: |
   SELECT

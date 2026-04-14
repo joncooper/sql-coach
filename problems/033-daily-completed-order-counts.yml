@@ -1,0 +1,39 @@
+slug: daily-completed-order-counts
+title: "Daily Completed Order Counts"
+difficulty: hard
+category: date-functions
+tags: [date-functions, left-join, coalesce]
+domain: ecommerce
+tables: [orders]
+description: |
+  Produce a daily **completed order count** report for the full year of 2023.
+
+  Your result must have **one row for every date** from January 1, 2023 through December 31, 2023 — including days where no orders were completed. For those days, the count should be `0`, not missing and not NULL.
+
+  Return the following columns in this exact order:
+  - `report_date` - the date (DATE)
+  - `order_count` - the number of completed orders on that date (0 if none)
+
+  Order the results by `report_date` ascending.
+
+  Only orders with status `'completed'` should count.
+hints:
+  - "The orders table alone only has rows for days when something actually happened. You need a reference set of all 365 dates in 2023 to join against, or your result will be missing the quiet days."
+  - "Think about how to produce rows that don't exist in any table. Postgres has a standard library function for this — if you don't know it off the top of your head, the Postgres docs for row-generating / set-returning functions are the right place to look."
+  - "`generate_series` with a DATE start, DATE end, and `'1 day'::interval` gives you the spine. LEFT JOIN the filtered orders onto it and wrap the COUNT in COALESCE to get 0 for the empty days."
+order_matters: true
+solution: |
+  SELECT
+    d.report_date::date AS report_date,
+    COALESCE(COUNT(o.id), 0) AS order_count
+  FROM generate_series(
+    '2023-01-01'::date,
+    '2023-12-31'::date,
+    '1 day'::interval
+  ) AS d(report_date)
+  LEFT JOIN orders o
+    ON o.order_date = d.report_date::date
+    AND o.status = 'completed'
+  GROUP BY d.report_date
+  ORDER BY d.report_date;
+expected_columns: [report_date, order_count]

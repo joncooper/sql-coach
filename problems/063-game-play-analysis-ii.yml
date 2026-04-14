@@ -19,10 +19,6 @@ hints:
   - "You need the device_id from each player's earliest login. Unlike just finding the date, you also need to retrieve the device column from that specific row."
   - "ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY event_date) assigns 1 to the first login row for each player."
   - "Wrap in a subquery or CTE and filter where the row number equals 1."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM activity
 order_matters: false
 solution: |
   WITH ranked AS (

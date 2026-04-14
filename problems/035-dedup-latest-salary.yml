@@ -2,11 +2,11 @@ slug: dedup-latest-salary
 title: "Deduplicate to Latest Salary"
 difficulty: medium
 category: data-quality
-tags: [row-number, deduplication, window-functions, joins]
+tags: [deduplication, window-functions, joins]
 domain: hr
 tables: [employees, salaries]
 description: |
-  Some employees have multiple salary records in the `salaries` table. Using `ROW_NUMBER()`, find the **latest** (most recent `effective_date`) salary record for each employee.
+  The `salaries` table has **multiple rows per employee** tracking salary history. For each employee, return only their **most recent** salary record (the one with the latest `effective_date`).
 
   Return the following columns in this exact order:
   - `name` - the employee's name
@@ -15,26 +15,9 @@ description: |
 
   Order the results by `amount` descending.
 hints:
-  - "Use ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY effective_date DESC) to rank salary records per employee."
-  - "Wrap in a CTE or subquery and filter where row_number = 1."
-  - "Join to employees to get the employee name."
-starter_code: |
-  WITH latest AS (
-    SELECT
-      employee_id,
-      effective_date,
-      amount,
-      ROW_NUMBER() OVER (
-        -- partition and order here
-      ) AS rn
-    FROM salaries
-  )
-  SELECT
-    -- your query here
-  FROM latest
-  JOIN employees e ON e.id = latest.employee_id
-  WHERE rn = 1
-  ORDER BY amount DESC
+  - "The classic 'one row per group' problem. You need to rank each employee's salary rows by `effective_date DESC`, then keep only the top-1 per employee and throw the rest away."
+  - "There are two Postgres-native ways to do this: the window-function way (assign a per-group sequence number, filter to `= 1` in an outer query) and the `DISTINCT ON` shortcut. Either works. For a top-N generalization, the window-function approach scales to N>1."
+  - "`ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY effective_date DESC)` in a CTE, filter to `rn = 1` in the outer query, then JOIN to `employees` for the name."
 order_matters: true
 solution: |
   WITH latest AS (

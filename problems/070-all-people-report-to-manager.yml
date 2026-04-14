@@ -22,10 +22,6 @@ hints:
   - "An employee reports to the head if following their manager chain leads to employee 1 within 3 hops."
   - "Use self-joins: join Employees to itself to walk up the manager chain. Three LEFT JOINs can reach up to 3 levels of management."
   - "Join e1.manager_id = e2.employee_id, then e2.manager_id = e3.employee_id. If e3.manager_id = 1, the original employee reports to the head."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees
 order_matters: false
 solution: |
   SELECT e1.employee_id

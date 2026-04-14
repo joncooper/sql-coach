@@ -158,15 +158,12 @@ export async function validateAndCreate(raw: {
       `GRANT SELECT ON ALL TABLES IN SCHEMA ${genSchema} TO coach_readonly`
     );
 
-    // Sanitize starter_code — LLMs often put partial solutions in it.
-    let starterCode = raw.problem.starter_code ?? "";
-    // Strip any schema prefixes the LLM added
-    starterCode = rewriteSchema(starterCode, raw.schema_name + ".", "");
-    const starterHasRealSQL =
-      starterCode.replace(/--.*$/gm, "").replace(/\s+/g, " ").trim().length > 30;
-    if (starterHasRealSQL) {
-      starterCode = `-- Write your query here\nSELECT\n  \nFROM ${tables[0]}`;
-    }
+    // Drop any starter_code the LLM produced — the editor always
+    // starts blank and starter_code is no longer part of the data
+    // model. See src/types/index.ts.
+    const { starter_code: _discardedStarter, ...problemWithoutStarter } =
+      raw.problem as Problem & { starter_code?: string };
+    void _discardedStarter;
 
     const gp: GeneratedProblem = {
       schema_name: raw.schema_name,
@@ -174,8 +171,7 @@ export async function validateAndCreate(raw: {
       ddl: raw.ddl,
       seed_data: raw.seed_data,
       problem: {
-        ...raw.problem,
-        starter_code: starterCode,
+        ...problemWithoutStarter,
         solution,
         tables,
         domain: genSchema,

@@ -2,31 +2,22 @@ slug: department-budget-share
 title: "Department Budget Share"
 difficulty: medium
 category: aggregation
-tags: [aggregation, subquery, percentage, rounding]
+tags: [aggregation, percentage, rounding]
 domain: hr
 tables: [departments, employees]
 description: |
-  Calculate each department's share of the total company salary budget as a percentage.
+  Calculate each department's share of the **total company salary budget** as a percentage.
 
   Return the following columns in this exact order:
   - `department_name` - the department name
   - `total_salary` - the sum of all salaries in the department
-  - `budget_percentage` - the department's share of total salary budget, rounded to **1 decimal place**
+  - `budget_percentage` - the department's share of the total salary budget, rounded to **1 decimal place**
 
   Order the results by `budget_percentage` in **descending** order.
 hints:
-  - "Use SUM(salary) grouped by department to get each department's total."
-  - "Use a subquery or window function to get the overall total: SUM(salary) OVER () or (SELECT SUM(salary) FROM employees)."
-  - "Calculate percentage as: department_total * 100.0 / overall_total."
-  - "Use ROUND(..., 1) for 1 decimal place."
-starter_code: |
-  SELECT
-    d.name AS department_name,
-    -- total salary per department
-    -- budget percentage
-  FROM departments d
-  JOIN employees e ON e.department_id = d.id
-  GROUP BY d.name
+  - "Each row of your result is a department, but the *denominator* of the percentage is the grand total across every department. So you need a way to have \"per-department total\" and \"company-wide total\" both accessible in the same query."
+  - "Two clean ways: (a) compute the grand total once in a scalar subquery and reference it in the outer SELECT, or (b) use a window function that sums across all rows without partitioning."
+  - "`SUM(e.salary) * 100.0 / (SELECT SUM(salary) FROM employees)` wrapped in `ROUND(..., 1)`, grouped by department. Multiply by `100.0` (not `100`) so integer division doesn't truncate."
 order_matters: true
 solution: |
   SELECT

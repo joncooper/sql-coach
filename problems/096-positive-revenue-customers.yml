@@ -18,10 +18,6 @@ hints:
   - "You need two conditions: filter for the year 2021 AND revenue greater than zero."
   - "A simple WHERE clause with both conditions is all you need."
   - "Remember that revenue can be negative or zero -- only include strictly positive values."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM customers
 order_matters: false
 solution: |
   SELECT customer_id

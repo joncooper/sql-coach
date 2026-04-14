@@ -2,16 +2,16 @@ slug: subtasks-not-executed
 title: "Find the Subtasks That Did Not Execute"
 difficulty: hard
 category: joins
-tags: [generate-series, cross-join, anti-join]
+tags: [anti-join, cross-join]
 domain: lc1914
 tables: [tasks, executed]
 description: |
   You are given two tables:
 
-  - **Tasks**: each row has a `task_id` and a `subtasks_count` indicating how many subtasks it has (labeled 1 through `subtasks_count`). The subtasks_count is between 2 and 20.
-  - **Executed**: each row records that `subtask_id` of a given `task_id` was executed successfully.
+  - **Tasks**: each row has a `task_id` and a `subtasks_count` indicating how many subtasks it has (labeled 1 through `subtasks_count`). The `subtasks_count` is between 2 and 20.
+  - **Executed**: each row records that a given `subtask_id` was executed successfully for a given `task_id`.
 
-  Write a query to find all subtasks that were **not executed** for each task.
+  Find every `(task_id, subtask_id)` pair that **should exist** (because the task has that many subtasks) but is **missing from `executed`**.
 
   Return the following columns in this exact order:
   - `task_id` - the task identifier
@@ -19,13 +19,9 @@ description: |
 
   Return the result in **any order**.
 hints:
-  - "You need to generate all possible (task_id, subtask_id) combinations first, then find which ones are missing from the Executed table."
-  - "PostgreSQL's generate_series(1, N) function can produce a sequence of numbers from 1 to N -- cross join this with each task."
-  - "Use a LEFT JOIN with the Executed table and filter for NULL matches to find subtasks that were never executed."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM tasks
+  - "The `executed` table only has rows for subtasks that ran. But the *expected* set of (task, subtask) pairs isn't in any table — it only exists implicitly, as \"subtasks 1 through N for each task.\" You have to materialize that expected set first, then subtract what actually ran."
+  - "To materialize the expected set, you need a way to produce rows `1..N` for each task. Think about which Postgres feature can turn a number `N` into a series of rows; it's part of the standard library, and the Postgres docs for set-returning functions are the right place to look."
+  - "`CROSS JOIN LATERAL generate_series(1, t.subtasks_count) AS s(subtask_id)` produces every expected pair. LEFT JOIN `executed` onto that and filter for NULL matches to get the missing ones."
 order_matters: false
 solution: |
   SELECT

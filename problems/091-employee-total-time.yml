@@ -20,10 +20,6 @@ hints:
   - "Each row represents one entry/exit event. An employee may have multiple events per day."
   - "Use GROUP BY on both the date and employee to aggregate per-employee per-day totals."
   - "SUM(out_time - in_time) gives the total minutes for each group."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees
 order_matters: false
 solution: |
   SELECT

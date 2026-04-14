@@ -2,17 +2,13 @@ slug: seven-day-rolling-avg
 title: "7-Day Rolling Average Revenue"
 difficulty: hard
 category: window-functions
-tags: [window-functions, rolling-average, aggregation, date-functions]
+tags: [window-functions, rolling-average, aggregation]
 domain: ecommerce
 tables: [orders]
 description: |
-  Calculate a **7-day rolling average** of daily completed order revenue.
+  Report a **7-day rolling average** of daily completed-order revenue. For each day that has at least one completed order, return both the day's own revenue and the rolling average of the current day plus the previous 6 days.
 
-  First, compute the total revenue (sum of `total_amount`) for each day that has at least one **completed** order. Then, apply a window function to compute the rolling 7-day average over those days.
-
-  Use the window frame `ROWS BETWEEN 6 PRECEDING AND CURRENT ROW` to include the current day plus the 6 preceding rows.
-
-  Only include days that have at least one completed order (no need to fill in missing days).
+  Only include days that have at least one completed order — you do not need to backfill zero-revenue days. On the earliest days, where there aren't 6 prior days of data yet, the rolling average should be over however many days are available (no special casing required).
 
   Return the following columns in this exact order:
   - `order_date` - the date (DATE)
@@ -21,25 +17,9 @@ description: |
 
   Order the results by `order_date` ascending.
 hints:
-  - "Start with a CTE that groups completed orders by order_date to get daily_revenue."
-  - "Use AVG(daily_revenue) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) for the rolling average."
-  - "ROUND(..., 2) to get 2 decimal places."
-  - "The first few rows will have fewer than 7 days of data — that's expected."
-starter_code: |
-  WITH daily_rev AS (
-    SELECT
-      order_date,
-      SUM(total_amount) AS daily_revenue
-    FROM orders
-    WHERE status = 'completed'
-    GROUP BY order_date
-  )
-  SELECT
-    order_date,
-    daily_revenue,
-    -- calculate rolling 7-day average
-  FROM daily_rev
-  ORDER BY order_date
+  - "Two steps: first, collapse orders to one row per day with the day's total revenue (a plain GROUP BY). Then, for each of those day-rows, compute an average across a moving window of recent days."
+  - "Postgres window functions accept more than just `OVER (PARTITION BY ... ORDER BY ...)` — there's a clause that lets you specify *which rows* go into the window for each row. Look up the window `ROWS BETWEEN ...` frame clause."
+  - "Stage daily revenue in a CTE, then apply `AVG(daily_revenue) OVER (ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)`. Round to 2 decimals via `::numeric` cast."
 order_matters: true
 solution: |
   WITH daily_rev AS (

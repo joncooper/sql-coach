@@ -20,11 +20,6 @@ hints:
   - "You need to find the maximum salary per department, then find all employees matching that maximum."
   - "Consider using RANK() with PARTITION BY department to rank employees by salary within each department."
   - "Join the employee table with the department table to get department names, then filter for rank = 1."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employee e
-  JOIN department d ON d.id = e.department_id
 order_matters: false
 solution: |
   WITH ranked AS (

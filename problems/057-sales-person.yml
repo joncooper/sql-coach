@@ -16,10 +16,6 @@ hints:
   - "First, find which salespersons have orders with the company 'RED' by joining the orders and company tables."
   - "Use NOT IN or NOT EXISTS to exclude those salespersons from the full salesperson list."
   - "Think about it as: all salespersons EXCEPT those who sold to 'RED'."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM sales_person
 order_matters: false
 solution: |
   SELECT name

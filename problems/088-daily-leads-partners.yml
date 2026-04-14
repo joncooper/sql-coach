@@ -19,10 +19,6 @@ hints:
   - "Use COUNT(DISTINCT column) to count unique values."
   - "Group by both date_id and make_name to get counts per day per make."
   - "You can compute both COUNT(DISTINCT lead_id) and COUNT(DISTINCT partner_id) in a single query."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM daily_sales
 order_matters: false
 solution: |
   SELECT

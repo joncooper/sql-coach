@@ -2,45 +2,25 @@ slug: revenue-pareto
 title: "Revenue Pareto Analysis"
 difficulty: hard
 category: business-analysis
-tags: [window-functions, cumulative-sum, business-analysis]
+tags: [business-analysis, cumulative, ranking]
 domain: ecommerce
 tables: [customers, orders]
 description: |
-  Perform a **Pareto analysis** on customer revenue. Calculate each customer's cumulative share of total completed-order revenue.
+  Perform a **Pareto analysis** on customer revenue: for each customer, show both the revenue they contributed and the **cumulative share of total revenue** captured by all customers ranked at or above them.
 
-  Only include orders with status = `'completed'`.
-
-  Use `SUM() OVER (ORDER BY ...)` for the running cumulative calculation.
+  Only include orders with status = `'completed'`. Rank customers from highest revenue to lowest. The cumulative percentage at the top customer should be roughly equal to that customer's share of the total; at the last customer it should be 100.0%.
 
   Return the following columns in this exact order:
   - `customer_name` - the customer's name
-  - `customer_revenue` - total completed-order revenue for this customer
-  - `cumulative_revenue` - running cumulative revenue, ordered from highest to lowest customer_revenue
-  - `cumulative_pct` - cumulative revenue as a percentage of total revenue, rounded to **1 decimal place**
+  - `customer_revenue` - that customer's total completed-order revenue
+  - `cumulative_revenue` - the running total of revenue when customers are ordered from highest to lowest
+  - `cumulative_pct` - cumulative revenue as a percentage of overall total, rounded to **1 decimal place**
 
   Order the results by `customer_revenue` descending.
 hints:
-  - "First aggregate each customer's total revenue from completed orders."
-  - "Use SUM(customer_revenue) OVER (ORDER BY customer_revenue DESC) for the cumulative sum."
-  - "Divide cumulative_revenue by the overall total (use SUM() OVER () with no partition) and multiply by 100."
-  - "Use ROUND(..., 1) for 1 decimal place."
-starter_code: |
-  -- Pareto analysis of customer revenue
-  WITH customer_rev AS (
-    SELECT
-      -- aggregate customer revenue from completed orders
-    FROM customers c
-    JOIN orders o ON o.customer_id = c.id
-    WHERE o.status = 'completed'
-    GROUP BY c.id, c.name
-  )
-  SELECT
-    customer_name,
-    customer_revenue,
-    cumulative_revenue,
-    cumulative_pct
-  FROM ...
-  ORDER BY customer_revenue DESC;
+  - "Two computations you'll need in the same query: (1) each customer's own revenue, (2) a running sum of that revenue ordered from biggest to smallest. Think about how to produce a running sum without collapsing rows — it's not a plain GROUP BY."
+  - "Postgres lets aggregate functions run as per-row \"window\" calculations with an `OVER` clause. If you give that clause an `ORDER BY`, the aggregate accumulates as it walks through the rows in that order — exactly what a running total is. If you give it no `ORDER BY` and no `PARTITION BY`, it becomes a grand total on every row."
+  - "Stage per-customer revenue in a CTE, then in the outer SELECT use `SUM(customer_revenue) OVER (ORDER BY customer_revenue DESC)` for the running total and `SUM(customer_revenue) OVER ()` for the grand total. Divide and round."
 order_matters: true
 solution: |
   WITH customer_rev AS (

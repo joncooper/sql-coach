@@ -19,14 +19,6 @@ hints:
   - "Use STRING_AGG(e.name, ', ' ORDER BY e.name) to create a sorted comma-separated list."
   - "Join departments to employees on department_id."
   - "GROUP BY department name."
-starter_code: |
-  SELECT
-    d.name AS department_name,
-    -- create comma-separated list
-  FROM departments d
-  JOIN employees e ON e.department_id = d.id
-  GROUP BY d.name
-  ORDER BY department_name
 order_matters: true
 solution: |
   SELECT

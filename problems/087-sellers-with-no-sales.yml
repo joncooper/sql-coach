@@ -16,10 +16,6 @@ hints:
   - "Use a LEFT JOIN from sellers to orders to find sellers with or without sales."
   - "Use extract(year FROM sale_date) to check the year of each sale."
   - "Sellers with no 2020 sales will have no matching 2020 orders -- look for NULL or zero counts."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM seller
 order_matters: true
 solution: |
   SELECT s.seller_name

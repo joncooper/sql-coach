@@ -23,10 +23,6 @@ hints:
   - "A Root node has p_id IS NULL."
   - "An Inner node has a parent AND appears as a p_id for at least one other node."
   - "Use a CASE expression. To check if a node has children, see if its id appears in the p_id column using a subquery or self-join."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM tree
 order_matters: true
 solution: |
   SELECT

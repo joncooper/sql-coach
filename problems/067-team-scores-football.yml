@@ -2,18 +2,18 @@ slug: team-scores-football
 title: "Team Scores in Football Tournament"
 difficulty: medium
 category: conditional-logic
-tags: [case, union-all, aggregation]
+tags: [conditional-logic, aggregation]
 domain: lc1339
 tables: [teams, matches]
 description: |
-  You are given two tables: a **Teams** table listing football teams, and a **Matches** table recording finished matches with goals scored by each side.
+  You are given two tables: a **Teams** table listing football teams, and a **Matches** table recording finished matches with goals scored by each side (`host_goals`, `guest_goals`).
 
   Points are awarded as follows:
-  - **3 points** for a win (scored more goals than the opponent)
-  - **1 point** for a draw (same number of goals as the opponent)
-  - **0 points** for a loss (scored fewer goals than the opponent)
+  - **3 points** for a win (more goals than the opponent)
+  - **1 point** for a draw (same number of goals)
+  - **0 points** for a loss (fewer goals)
 
-  Write a query to compute the total points for each team across all matches.
+  Compute the **total points** for each team across all matches.
 
   Return the following columns in this exact order:
   - `team_id` - the team identifier
@@ -22,15 +22,11 @@ description: |
 
   Order the results by `num_points` in **descending** order. In case of a tie, order by `team_id` in **ascending** order.
 
-  **Note:** Teams that did not play any matches should appear with 0 points.
+  **Note:** Teams that did not play any matches should still appear in the result with `num_points = 0`.
 hints:
-  - "Each match produces points for both the host and guest team. Consider computing each team's points from their perspective."
-  - "Use CASE expressions to assign 3, 1, or 0 points for each team in each match. Then use UNION ALL to combine host and guest results into a single list of (team, points) rows."
-  - "LEFT JOIN the teams table to the aggregated points to ensure teams with no matches still appear with 0 points. Use COALESCE for NULLs."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM teams
+  - "Each match shows up once in the `matches` table but affects *two* teams — the host and the guest. From each team's perspective, the scoring formula depends on whether their goals were higher, equal, or lower than the opponent's. Think about how to produce a list of (team, points_from_this_match) rows that covers both sides of every match."
+  - "You'll probably want two views of the matches: one from the host's perspective and one from the guest's, then combine them into a single stream of per-team-per-match points. Postgres has a straightforward way to stack two result sets with identical column shapes. After you have per-match points, aggregate by team and handle the \"no matches played\" case by joining back to the Teams table."
+  - "Stack a host-side `SELECT host_team AS team_id, CASE WHEN host_goals > guest_goals THEN 3 WHEN host_goals = guest_goals THEN 1 ELSE 0 END` with a guest-side version using `UNION ALL`, then `SUM` per `team_id`. Finally `LEFT JOIN teams` and `COALESCE(num_points, 0)` so teams with no matches show zero."
 order_matters: true
 solution: |
   WITH match_points AS (

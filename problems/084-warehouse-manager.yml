@@ -19,10 +19,6 @@ hints:
   - "Join the warehouse table with the products table to get the dimensions for each product."
   - "Calculate volume as units * width * length * height for each row."
   - "Use SUM and GROUP BY warehouse name to get the total volume per warehouse."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM warehouse
 order_matters: false
 solution: |
   SELECT

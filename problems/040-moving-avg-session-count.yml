@@ -2,15 +2,15 @@ slug: moving-avg-session-count
 title: "3-Day Moving Average of Session Counts"
 difficulty: medium
 category: window-functions
-tags: [window-functions, moving-average, date-functions, aggregation]
+tags: [window-functions, aggregation]
 domain: analytics
 tables: [sessions]
 description: |
-  Calculate a **3-day moving average** of daily session counts from the analytics schema.
+  Calculate a **3-day moving average** of daily session counts.
 
-  First, count the number of sessions per day (using the date portion of `started_at`). Then, compute a 3-day moving average using a window function.
+  First, count the sessions per day (using the date portion of `started_at`). Then, for each day, report a moving average that covers the current day and the **two preceding days** (i.e., a trailing 3-day window).
 
-  Use the window frame `ROWS BETWEEN 2 PRECEDING AND CURRENT ROW` to include the current day and the 2 preceding rows.
+  On the earliest days — where there aren't 2 prior days of data yet — the moving average should be computed over however many days are actually available. No special casing required.
 
   Return the following columns in this exact order:
   - `session_date` - the date (DATE, derived from `started_at`)
@@ -19,24 +19,9 @@ description: |
 
   Order the results by `session_date` ascending.
 hints:
-  - "Use started_at::date or DATE_TRUNC('day', started_at)::date to extract the date from started_at."
-  - "Group by session_date to count daily sessions."
-  - "Apply AVG(daily_sessions) OVER (ORDER BY session_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) for the moving average."
-  - "ROUND(..., 1) for 1 decimal place."
-starter_code: |
-  WITH daily_counts AS (
-    SELECT
-      started_at::date AS session_date,
-      COUNT(*) AS daily_sessions
-    FROM sessions
-    GROUP BY started_at::date
-  )
-  SELECT
-    session_date,
-    daily_sessions,
-    -- calculate 3-day moving average
-  FROM daily_counts
-  ORDER BY session_date
+  - "Two steps: (1) collapse sessions into one row per day with that day's count, (2) for each day-row, compute an average across a sliding 3-row window that includes the current row and the previous two."
+  - "Postgres window functions can take a frame specification — a clause that tells the window which rows to include on each evaluation, relative to the current row. Look up the `ROWS BETWEEN ... PRECEDING AND CURRENT ROW` frame syntax."
+  - "Stage daily counts in a CTE, then `AVG(daily_sessions) OVER (ORDER BY session_date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)` and round to 1 decimal."
 order_matters: true
 solution: |
   WITH daily_counts AS (

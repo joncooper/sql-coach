@@ -21,10 +21,6 @@ hints:
   - "Use a CASE expression to apply the bonus logic conditionally."
   - "Check for odd IDs with the modulo operator: employee_id % 2 = 1."
   - "Use LEFT(name, 1) or name LIKE 'M%' to check if the name starts with 'M'."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees
 order_matters: true
 solution: |
   SELECT

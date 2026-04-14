@@ -2,13 +2,13 @@ slug: biggest-window-between-visits
 title: "Biggest Window Between Visits"
 difficulty: medium
 category: window-functions
-tags: [lag, date-arithmetic, window-functions]
+tags: [window-functions, date-arithmetic]
 domain: lc1852
 tables: [user_visits]
 description: |
-  Given a table of user visits with `user_id` and `visit_date`, find the largest gap (in days) between consecutive visits for each user.
+  Given a table of user visits with `user_id` and `visit_date`, find the **largest gap** (in days) between consecutive visits for each user.
 
-  Assume today's date is `'2021-01-01'`. The gap from the user's last visit to this date should also be considered.
+  Assume today's date is `'2021-01-01'`. Treat the gap from each user's last visit to that reference date as one of the candidate gaps — so a user who visited once and then went quiet has a gap from that visit to 2021-01-01.
 
   Return the following columns:
   - `user_id` - the user's ID
@@ -16,13 +16,9 @@ description: |
 
   Order the result by `user_id` ascending.
 hints:
-  - "Use the LEAD() window function to find the next visit date for each user, ordered by visit_date."
-  - "For the last visit, use COALESCE to substitute '2021-01-01' as the next date."
-  - "In PostgreSQL, subtracting two dates gives the number of days as an integer. Find the MAX gap per user."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM user_visits
+  - "For each visit row, you need the *next* visit for the same user (or the reference date '2021-01-01' for each user's last visit). Think about how to reach *forward* one row in a group without a self-join."
+  - "Per-row window functions that peek at the next row within a group are what you want. The function you need is the symmetric counterpart of the one that peeks backward. For the last row per user, the \"next\" lookup returns NULL — use `COALESCE` to substitute the reference date."
+  - "`LEAD(visit_date) OVER (PARTITION BY user_id ORDER BY visit_date)` gives the next visit. Wrap it in `COALESCE(..., DATE '2021-01-01')`, subtract from the current `visit_date`, then `MAX(gap)` per user."
 order_matters: true
 solution: |
   WITH visit_gaps AS (

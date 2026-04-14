@@ -1,0 +1,29 @@
+slug: visited-both-pages-same-session
+title: "Users Who Visited Both Dashboard and Reports in One Session"
+difficulty: medium
+category: set-operations
+tags: [set-operations, joins, distinct]
+domain: analytics
+tables: [users, sessions, page_views]
+description: |
+  Find users who visited **both** `/dashboard` and `/reports` within the **same session** — not just both pages ever, but both pages in at least one shared session.
+
+  Each qualifying user should appear exactly once, regardless of how many sessions match.
+
+  Return the following columns:
+  - `username` - the user's username
+
+  Return **distinct** usernames, ordered **alphabetically**.
+hints:
+  - "There are several valid ways to express \"both of these were true for at least one shared session.\" Think about: (a) joining `page_views` to itself on `session_id` with different URL filters, or (b) computing two separate sets of qualifying sessions and finding the overlap between them, or (c) using `GROUP BY session_id HAVING` with conditional counts."
+  - "Approach (a) is the most direct if you're comfortable with self-joins: pv1 filtered to `/dashboard` and pv2 filtered to `/reports`, both matching on `session_id`. Approach (b) hints at the category name — set operations — and is cleanest if you're thinking \"intersection of two sets.\""
+  - "Self-join: `JOIN page_views pv1 ON ... AND pv1.url = '/dashboard' JOIN page_views pv2 ON ... AND pv2.url = '/reports'`, then SELECT DISTINCT. Or: `(SELECT session_id FROM page_views WHERE url = '/dashboard') INTERSECT (SELECT session_id FROM page_views WHERE url = '/reports')`, then join back to get the usernames."
+order_matters: true
+solution: |
+  SELECT DISTINCT u.username
+  FROM users u
+  JOIN sessions s ON s.user_id = u.id
+  JOIN page_views pv1 ON pv1.session_id = s.id AND pv1.url = '/dashboard'
+  JOIN page_views pv2 ON pv2.session_id = s.id AND pv2.url = '/reports'
+  ORDER BY u.username;
+expected_columns: [username]

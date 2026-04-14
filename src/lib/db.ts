@@ -1,9 +1,5 @@
-import { Pool, types } from "pg";
+import { Pool } from "pg";
 import type { QueryResult } from "@/types";
-
-// Parse numeric/int types as JS numbers instead of strings
-types.setTypeParser(20, parseFloat); // int8
-types.setTypeParser(1700, parseFloat); // numeric
 
 export const adminPool = new Pool({
   connectionString: process.env.DATABASE_URL,

@@ -1,6 +1,7 @@
 node_modules/
 .next/
 .env.local
+tsconfig.tsbuildinfo
 dbt/.venv/
 dbt/target/
 dbt/logs/

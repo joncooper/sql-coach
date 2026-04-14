@@ -16,10 +16,6 @@ hints:
   - "Think about which customers exist in the customers table but have no matching rows in the orders table."
   - "A LEFT JOIN combined with a NULL check on the joined table's key column is one approach (an anti-join pattern)."
   - "Alternatively, you can use a subquery with NOT IN to find customer IDs that don't appear in the orders table."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM customers
 order_matters: false
 solution: |
   SELECT c.name AS customers

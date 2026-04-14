@@ -24,20 +24,6 @@ hints:
   - "For step 2, find users who viewed '/pricing' AFTER '/' in the same session (compare viewed_at timestamps)."
   - "For step 3, extend the pattern: '/signup' AFTER '/pricing' in the same session."
   - "Use UNION ALL to combine the three steps into a single result set."
-starter_code: |
-  WITH step1 AS (
-    -- Users who visited /
-  ),
-  step2 AS (
-    -- Users who visited /pricing after /
-  ),
-  step3 AS (
-    -- Users who visited /signup after /pricing
-  )
-  SELECT step, unique_users
-  FROM (
-    -- combine funnel steps
-  ) funnel
 order_matters: true
 solution: |
   WITH step1 AS (

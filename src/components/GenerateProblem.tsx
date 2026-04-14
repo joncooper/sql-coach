@@ -113,25 +113,27 @@ export default function GenerateProblem({
 
   return (
     <div>
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-        Generate Problem
-      </h2>
+      <div className="eyebrow">Generate problem</div>
+      <p className="mt-2 mb-4 text-sm leading-6 text-[color:var(--text-muted)]">
+        Spin up a fresh prompt when you want a new angle without leaving the
+        workspace.
+      </p>
 
       {/* Difficulty selector */}
-      <div className="mb-2 flex gap-1">
+      <div className="mb-3 flex gap-1.5">
         {(["easy", "medium", "hard"] as const).map((d) => (
           <button
             key={d}
             onClick={() => setDifficulty(d)}
             disabled={isGenerating}
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
               difficulty === d
                 ? d === "easy"
-                  ? "bg-emerald-500/20 text-emerald-400"
+                  ? "bg-[color:var(--positive-soft)] text-[color:var(--positive)]"
                   : d === "medium"
-                    ? "bg-amber-400/20 text-amber-400"
-                    : "bg-red-400/20 text-red-400"
-                : "text-zinc-500 hover:text-zinc-300"
+                    ? "bg-[color:var(--warning-soft)] text-[color:var(--warning)]"
+                    : "bg-[color:var(--danger-soft)] text-[color:var(--danger)]"
+                : "bg-[color:var(--panel-muted)] text-[color:var(--text-muted)] hover:text-[color:var(--text)]"
             } disabled:opacity-50`}
           >
             {d}
@@ -146,14 +148,14 @@ export default function GenerateProblem({
         onChange={(e) => setTopic(e.target.value)}
         placeholder="Topic (optional)"
         disabled={isGenerating}
-        className="mb-2 w-full rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-blue-500 focus:outline-none disabled:opacity-50"
+        className="mb-3 w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)] placeholder:text-[color:var(--text-muted)] focus:border-[color:var(--accent)] focus:outline-none disabled:opacity-50"
       />
 
       {/* Generate button */}
       {stage === "idle" && (
         <button
           onClick={handleGenerate}
-          className="w-full rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500"
+          className="btn-primary w-full"
         >
           Generate
         </button>
@@ -165,21 +167,21 @@ export default function GenerateProblem({
           {/* Stage label */}
           <div className="flex items-center gap-2">
             {isGenerating && (
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-blue-400" />
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[color:var(--accent)]" />
             )}
             {stage === "done" && (
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="inline-block h-2 w-2 rounded-full bg-[color:var(--positive)]" />
             )}
             {stage === "error" && (
-              <span className="inline-block h-2 w-2 rounded-full bg-red-400" />
+              <span className="inline-block h-2 w-2 rounded-full bg-[color:var(--danger)]" />
             )}
             <span
               className={`text-xs font-medium ${
                 stage === "done"
-                  ? "text-emerald-400"
+                  ? "text-[color:var(--positive)]"
                   : stage === "error"
-                    ? "text-red-400"
-                    : "text-zinc-400"
+                    ? "text-[color:var(--danger)]"
+                    : "text-[color:var(--text-soft)]"
               }`}
             >
               {stageLabel[stage]}
@@ -190,7 +192,7 @@ export default function GenerateProblem({
           {thinking && (
             <div
               ref={thinkingRef}
-              className="max-h-32 overflow-y-auto rounded border border-zinc-800 bg-zinc-900/50 p-2 font-mono text-[10px] leading-relaxed text-zinc-600"
+              className="max-h-32 overflow-y-auto rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] p-3 font-[family-name:var(--font-mono)] text-[10px] leading-relaxed text-[color:var(--text-muted)]"
               style={{ scrollbarWidth: "thin" }}
             >
               {thinking}
@@ -199,24 +201,22 @@ export default function GenerateProblem({
 
           {/* Skeleton preview */}
           {preview && (
-            <div className="relative rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
+            <div className="relative rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] p-4">
               {stage === "validating" && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-md bg-zinc-950/60">
-                  <span className="text-xs font-medium text-zinc-400 animate-pulse">
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-[color:var(--surface)]/80">
+                  <span className="animate-pulse text-xs font-medium text-[color:var(--text-soft)]">
                     Validating...
                   </span>
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-zinc-200">
+                <span className="text-base font-semibold text-[color:var(--text)]">
                   {preview.title}
                 </span>
                 <DifficultyBadge difficulty={preview.difficulty} />
               </div>
-              <div className="mt-1 text-xs text-zinc-500">
-                {preview.category}
-              </div>
-              <div className="mt-1.5 line-clamp-2 text-xs text-zinc-400">
+              <div className="eyebrow mt-2">{preview.category}</div>
+              <div className="mt-2 line-clamp-2 text-sm leading-6 text-[color:var(--text-soft)]">
                 {preview.description.replace(/\*\*/g, "")}
               </div>
             </div>
@@ -224,7 +224,7 @@ export default function GenerateProblem({
 
           {/* Error */}
           {stage === "error" && error && (
-            <div className="rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
+            <div className="rounded-lg border border-[color:var(--danger-soft)] bg-[color:var(--danger-soft)] px-4 py-3 text-xs text-[color:var(--danger)]">
               {error}
             </div>
           )}
@@ -233,7 +233,11 @@ export default function GenerateProblem({
           {stage === "done" && generatedSlug && (
             <button
               onClick={() => onGenerated(generatedSlug)}
-              className="w-full rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
+              className="btn-primary w-full"
+              style={{
+                background: "var(--positive)",
+                borderColor: "var(--positive)",
+              }}
             >
               Go to problem
             </button>
@@ -248,7 +252,7 @@ export default function GenerateProblem({
                 setError(null);
                 setGeneratedSlug(null);
               }}
-              className="w-full rounded-md bg-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-700"
+              className="btn-secondary w-full"
             >
               {stage === "error" ? "Try again" : "Generate another"}
             </button>

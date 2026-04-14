@@ -19,11 +19,6 @@ hints:
   - "A self-join means joining a table to itself. Use different aliases for each copy."
   - "Join employees (as the employee) to employees (as the manager) where the employee's manager_id equals the manager's id."
   - "Using an INNER JOIN automatically excludes employees with no manager since NULL manager_id won't match any id."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees e
-  JOIN employees m ON ...
 order_matters: true
 solution: |
   SELECT

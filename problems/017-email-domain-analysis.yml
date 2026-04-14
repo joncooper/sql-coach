@@ -18,11 +18,6 @@ description: |
 hints:
   - "Use SPLIT_PART(email, '@', 2) to extract the domain portion of an email."
   - "Group by the extracted domain and use COUNT(*) for the count."
-starter_code: |
-  SELECT
-    -- extract domain from email
-    -- count employees per domain
-  FROM employees
 order_matters: true
 solution: |
   SELECT

@@ -2,43 +2,25 @@ slug: category-hierarchy
 title: "Category Hierarchy Path"
 difficulty: hard
 category: ctes
-tags: [recursive-cte, with-recursive, string-concatenation, hierarchy]
+tags: [ctes, hierarchy, string-concatenation]
 domain: ecommerce
 tables: [categories]
 description: |
-  Use a **recursive CTE** to build the full hierarchy path for each product category.
+  The `categories` table is self-referential: each row has a `parent_category_id` that points to its parent row (or `NULL` for top-level categories). Together they form a tree — potentially several levels deep.
 
-  The `categories` table has a `parent_category_id` column that references another category's `id`. Top-level categories have `parent_category_id` set to NULL.
+  For every category in the table, return its name and the **full path from the root** to that category, joined with `" > "`. Top-level categories have a path equal to just their own name.
+
+  Example: a category named `Phones` whose parent is `Electronics` (and `Electronics` is top-level) should have `full_path` = `"Electronics > Phones"`.
 
   Return the following columns:
   - `name` - the category name
-  - `full_path` - the complete hierarchy path using " > " as a separator (e.g., "Electronics > Phones")
-
-  For top-level categories, `full_path` should just be the category name itself (e.g., "Electronics").
+  - `full_path` - the complete hierarchy path using " > " as a separator
 
   Order the results by `full_path` ascending.
 hints:
-  - "Start the recursive CTE with the base case: categories where parent_category_id IS NULL."
-  - "In the recursive step, join categories to the CTE result on parent_category_id = id."
-  - "Build the path by concatenating: parent_path || ' > ' || child_name."
-  - "The final SELECT should come from the CTE, ordered by full_path."
-starter_code: |
-  WITH RECURSIVE category_tree AS (
-    -- base case: top-level categories
-    SELECT ...
-    FROM categories
-    WHERE parent_category_id IS NULL
-
-    UNION ALL
-
-    -- recursive case: child categories
-    SELECT ...
-    FROM categories c
-    JOIN category_tree ct ON ...
-  )
-  SELECT name, full_path
-  FROM category_tree
-  ORDER BY full_path;
+  - "You need to walk the tree from each top-level category down to its descendants, building the path as you go. A single SELECT can't do this — you have to join the categories table to itself an unknown number of times."
+  - "Postgres has a dedicated language feature for exactly this: a query that references its own output. Look up CTEs that reference themselves."
+  - "`WITH RECURSIVE` lets you define an anchor member (the top-level categories, where parent_id IS NULL) and a recursive member (join categories back to the CTE on parent_category_id = ct.id, extending full_path with `' > ' || c.name`). The final SELECT reads from the recursive CTE."
 order_matters: true
 solution: |
   WITH RECURSIVE category_tree AS (

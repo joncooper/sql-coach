@@ -1,0 +1,42 @@
+slug: salary-quartile-bands
+title: "Salary Quartile Bands"
+difficulty: medium
+category: window-functions
+tags: [window-functions, quartiles]
+domain: hr
+tables: [employees]
+description: |
+  Split all employees into **4 salary bands of equal size** — a bottom quartile, a lower-middle, an upper-middle, and a top quartile. Label each band with a human-readable name.
+
+  The bands must have the same number of employees (give or take one, when the total doesn't divide evenly). Band 1 is the **lowest** salaries, band 4 is the **highest**.
+
+  Return the following columns in this exact order:
+  - `name` - the employee's name
+  - `salary` - the employee's salary
+  - `salary_band` - the band number (1 = bottom quartile, 4 = top quartile)
+  - `band_label` - a human-readable label:
+    - 1 = `'Bottom 25%'`
+    - 2 = `'Lower Middle'`
+    - 3 = `'Upper Middle'`
+    - 4 = `'Top 25%'`
+
+  Order the results by `salary_band` ascending, then `salary` descending.
+hints:
+  - "You need to split rows into N buckets of equal size after ordering them by a column. Think about which Postgres window function is designed exactly for this — there's a built-in bucketing function that takes the number of buckets as an argument."
+  - "Once you have the band number (1–4), map it to the text label with a CASE expression."
+  - "`NTILE(4) OVER (ORDER BY salary)` gives you the band number. You can repeat that expression inside `CASE` or wrap the whole query in a CTE so you only compute it once."
+order_matters: true
+solution: |
+  SELECT
+    name,
+    salary,
+    NTILE(4) OVER (ORDER BY salary) AS salary_band,
+    CASE NTILE(4) OVER (ORDER BY salary)
+      WHEN 1 THEN 'Bottom 25%'
+      WHEN 2 THEN 'Lower Middle'
+      WHEN 3 THEN 'Upper Middle'
+      WHEN 4 THEN 'Top 25%'
+    END AS band_label
+  FROM employees
+  ORDER BY salary_band ASC, salary DESC;
+expected_columns: [name, salary, salary_band, band_label]

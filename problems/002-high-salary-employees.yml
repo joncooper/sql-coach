@@ -17,11 +17,6 @@ description: |
 hints:
   - "Use a WHERE clause to filter rows based on salary."
   - "The comparison operator > works with numeric values like 100000."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees
-  WHERE ...
 order_matters: true
 solution: |
   SELECT

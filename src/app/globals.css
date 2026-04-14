@@ -1,23 +1,117 @@
 @import "tailwindcss";
 
-body {
-  background: #09090b;
-  color: #e4e4e7;
+/* ------------------------------------------------------------------
+   SQL Coach — design tokens.
+   Source of truth: /DESIGN.md (Inter + IBM Plex Mono, cool grays,
+   electric indigo accent, progressive disclosure). All existing
+   custom CSS var names (--accent, --highlight, --positive, etc.)
+   are preserved and remapped here so legacy components keep working
+   while the new palette cascades everywhere.
+   ------------------------------------------------------------------ */
+
+:root {
+  /* Surfaces */
+  --bg: #f8fafc;
+  --bg-strong: #f1f5f9;
+  --surface: #ffffff;
+  --panel: #ffffff;
+  --panel-strong: #ffffff;
+  --panel-muted: #f8fafc;
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-subtle: #eef2f7;
+
+  /* Text */
+  --text: #0f172a;
+  --text-soft: #1e293b;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+
+  /* Accent — electric indigo */
+  --accent: #4f46e5;
+  --accent-strong: #4338ca;
+  --accent-soft: #eef2ff;
+  --accent-ring: rgba(79, 70, 229, 0.18);
+
+  /* Semantic */
+  --positive: #059669; /* easy pill / success ticks */
+  --positive-soft: #d1fae5;
+  --warning: #d97706; /* medium pill */
+  --warning-soft: #fef3c7;
+  --highlight: #d97706; /* legacy alias — amber, used for streaks */
+  --highlight-soft: #fef3c7;
+  --danger: #dc2626; /* hard pill / miss marks */
+  --danger-soft: #fee2e2;
+  --review-due: #f59e0b;
+  --review-due-soft: #fef3c7;
+
+  /* Effects */
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-soft: 0 1px 1px rgba(15, 23, 42, 0.03);
+  --shadow-lift: 0 4px 12px rgba(15, 23, 42, 0.06);
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-serif: var(--font-sans);
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular",
+    "Menlo", "Monaco", monospace;
 }
 
-/* Subtle scrollbars — thin, only visible on hover */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01", "ss02";
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="tab"]:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 * {
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-*:hover {
-  scrollbar-color: #3f3f46 transparent;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -25,37 +119,243 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* ------------------------------------------------------------------
+   Shell + card utility classes (preserve legacy names).
+   ------------------------------------------------------------------ */
+
+.app-shell {
+  background: var(--bg);
+}
+
+.app-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.app-panel-strong {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.app-panel-muted {
+  background: var(--panel-muted);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+/* Small-caps section label — "TODAY", "WHY I PICKED THIS", etc. */
+.eyebrow {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.section-title {
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.soft-link {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.soft-link:hover {
+  color: var(--accent-strong);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------
+   Buttons.
+   ------------------------------------------------------------------ */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #ffffff;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: var(--panel-muted);
+  border-color: var(--border-strong);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
   background: transparent;
-  border-radius: 3px;
+  color: var(--text-muted);
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-*:hover::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+.btn-ghost:hover {
+  background: var(--panel-muted);
+  color: var(--text);
 }
 
-*:hover::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+/* ------------------------------------------------------------------
+   Pills + tags.
+   ------------------------------------------------------------------ */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  line-height: 1.4;
 }
+
+.pill-easy {
+  background: var(--positive-soft);
+  color: var(--positive);
+  border: 1px solid color-mix(in srgb, var(--positive) 20%, transparent);
+}
+
+.pill-medium {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
+}
+
+.pill-hard {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: var(--panel-muted);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------
+   Mastery bars (used in the Why-I-picked-this reasoning panel).
+   ------------------------------------------------------------------ */
+
+.mastery-bar {
+  position: relative;
+  height: 6px;
+  width: 100%;
+  background: var(--panel-muted);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mastery-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+/* ------------------------------------------------------------------
+   Animations (preserve legacy keyframes).
+   ------------------------------------------------------------------ */
 
 @keyframes accepted-in {
-  0% { opacity: 0; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.02); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes accepted-out {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-in {
-  animation: accepted-in 0.4s ease-out forwards;
+  animation: accepted-in 0.24s ease-out forwards;
 }
 
 @keyframes streak-pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-streak-pulse {
@@ -63,10 +363,37 @@ body {
 }
 
 @keyframes streak-glow {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.4) drop-shadow(0 0 4px rgba(251, 191, 36, 0.5)); }
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.12) drop-shadow(0 0 5px rgba(217, 119, 6, 0.32));
+  }
 }
 
 .animate-streak-glow {
   animation: streak-glow 2s ease-in-out infinite;
+}
+
+@keyframes reveal-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-reveal {
+  animation: reveal-down 0.2s ease-out forwards;
+}
+
+/* Monospace numerics */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }

@@ -20,10 +20,6 @@ hints:
   - "An order is immediate when order_date equals customer_pref_delivery_date. You need to count these and divide by the total number of orders."
   - "Use a CASE expression inside SUM() to count immediate orders: SUM(CASE WHEN order_date = customer_pref_delivery_date THEN 1 ELSE 0 END)."
   - "Multiply by 100.0 (not 100) to force decimal division, then use ROUND(..., 2) for the final result."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM delivery
 order_matters: false
 solution: |
   SELECT

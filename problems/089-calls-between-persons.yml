@@ -2,13 +2,13 @@ slug: calls-between-persons
 title: "Number of Calls Between Two Persons"
 difficulty: medium
 category: conditional-logic
-tags: [case, group-by, aggregation]
+tags: [aggregation, symmetrization]
 domain: lc1842
 tables: [calls]
 description: |
-  Given a calls table with `from_id`, `to_id`, and `duration` columns, report the number of calls and the total call duration between each pair of distinct persons `(person1, person2)` where `person1 < person2`.
+  Given a `calls` table with `from_id`, `to_id`, and `duration` columns, report the number of calls and the total call duration between **each pair of distinct persons** `(person1, person2)`, where `person1 < person2`.
 
-  A call between persons A and B could appear as either `from_id=A, to_id=B` or `from_id=B, to_id=A`. Both should be counted as the same pair.
+  A call between persons A and B could appear in the table in either direction — as `(from_id=A, to_id=B)` or `(from_id=B, to_id=A)`. Both should be counted toward the same pair, not treated as separate pairs.
 
   Return the following columns:
   - `person1` - the smaller ID in the pair
@@ -18,13 +18,9 @@ description: |
 
   Return the result in **any order**.
 hints:
-  - "Use CASE or LEAST/GREATEST to normalize each row so person1 is always the smaller ID."
-  - "LEAST(from_id, to_id) gives you person1 and GREATEST(from_id, to_id) gives you person2."
-  - "Group by person1 and person2, then count rows and sum duration."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM calls
+  - "The crux: `(A, B)` and `(B, A)` should collapse into the same group. That means you need to transform each row into a canonical form before grouping — same pair of IDs, but always with the smaller one \"first\"."
+  - "Think about how you'd normalize each row so that, regardless of which ID was in `from_id`, you always put the smaller one into `person1` and the larger into `person2`. A CASE expression would do it, but Postgres also has single-expression functions that return the lesser and greater of their arguments."
+  - "`LEAST(from_id, to_id) AS person1, GREATEST(from_id, to_id) AS person2`, then `GROUP BY` those same expressions. Count rows and sum duration."
 order_matters: false
 solution: |
   SELECT

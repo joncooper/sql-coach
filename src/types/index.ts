@@ -8,7 +8,6 @@ export interface Problem {
   tables: string[];
   description: string;
   hints: string[];
-  starter_code?: string;
   order_matters: boolean;
   solution: string;
   expected_columns: string[];

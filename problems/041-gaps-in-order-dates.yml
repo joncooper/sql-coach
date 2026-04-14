@@ -1,14 +1,14 @@
 slug: gaps-in-order-dates
-title: "Gaps in Order Dates"
+title: "Gaps in Order Activity"
 difficulty: hard
 category: gaps-and-islands
-tags: [generate-series, gaps-and-islands, date-arithmetic, cte]
+tags: [gaps-and-islands, date-arithmetic]
 domain: ecommerce
 tables: [orders]
 description: |
-  Find gaps in daily order activity -- date ranges where **no orders were placed**.
+  Find **quiet stretches** in the order activity — contiguous date ranges, between the first order and the last order in the table, where **no orders were placed**.
 
-  Use `generate_series` to create a date spine from the first to the last order date in the `orders` table, then identify contiguous ranges of dates with no orders. This is a classic **gaps-and-islands** problem.
+  For each gap, return its start date, end date, and the number of days it spans (inclusive of both endpoints). A single day with no orders counts as a 1-day gap with `gap_start` = `gap_end`.
 
   Return the following columns in this exact order:
   - `gap_start` - the first date in the gap (DATE)
@@ -17,26 +17,9 @@ description: |
 
   Order the results by `gap_start` ascending.
 hints:
-  - "Use generate_series((SELECT MIN(order_date) FROM orders), (SELECT MAX(order_date) FROM orders), '1 day'::interval) to build a complete date spine."
-  - "LEFT JOIN or use NOT EXISTS to find dates with no orders."
-  - "To group consecutive no-order dates into ranges, subtract a ROW_NUMBER() sequence from each date -- consecutive dates will produce the same value, forming islands."
-  - "GROUP BY the island identifier, then take MIN(date) as gap_start and MAX(date) as gap_end."
-starter_code: |
-  -- Find gaps in daily order activity
-  WITH date_spine AS (
-    SELECT generate_series(
-      -- fill in min and max order dates
-    )::date AS d
-  ),
-  no_order_dates AS (
-    -- find dates with no orders
-  )
-  SELECT
-    gap_start,
-    gap_end,
-    gap_days
-  FROM ...
-  ORDER BY gap_start;
+  - "The `orders` table doesn't contain rows for quiet days — so you can't find the gaps by looking at `orders` alone. You'll need a way to enumerate every date from the first order to the last one, then see which of those dates have no corresponding order row."
+  - "Once you have a list of dates-with-no-orders, you need to collapse *consecutive* dates into single ranges. There's a well-known SQL trick for this: if you subtract a per-row sequence number from each date, consecutive dates collapse onto the same constant, and you can GROUP BY that constant to get the ranges. Look up \"gaps and islands\" in SQL."
+  - "Use `generate_series(MIN(order_date), MAX(order_date), '1 day'::interval)` for the date universe, LEFT JOIN `orders` and keep the NULLs, then assign `ROW_NUMBER() OVER (ORDER BY d)` and subtract it from the date to form island groups. GROUP BY the island and take MIN/MAX for the range bounds."
 order_matters: true
 solution: |
   WITH date_spine AS (

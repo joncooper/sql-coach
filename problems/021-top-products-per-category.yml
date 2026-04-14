@@ -22,17 +22,6 @@ hints:
   - "Use SUM(oi.quantity) grouped by category and product to get total_quantity."
   - "Apply RANK() OVER (PARTITION BY category ORDER BY total_quantity DESC) to rank within each category."
   - "Filter to keep only ranks 1 and 2 using a subquery or CTE."
-starter_code: |
-  -- Find top 2 products by quantity sold in each category
-  SELECT
-    category_name,
-    product_name,
-    total_quantity,
-    category_rank
-  FROM (
-    -- your subquery here
-  ) ranked
-  WHERE category_rank <= 2
 order_matters: true
 solution: |
   SELECT

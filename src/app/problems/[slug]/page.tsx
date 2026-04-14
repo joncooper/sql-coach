@@ -1,22 +1,77 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, use } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
-import ProblemDescription from "@/components/ProblemDescription";
-import { ProblemDescriptionText } from "@/components/ProblemDescription";
+import {
+  Panel,
+  Group as PanelGroup,
+  Separator as PanelResizeHandle,
+} from "react-resizable-panels";
+import ProblemDescription, {
+  ProblemDescriptionText,
+} from "@/components/ProblemDescription";
 import DifficultyBadge from "@/components/DifficultyBadge";
 import SchemaExplorer from "@/components/SchemaExplorer";
 import SampleData from "@/components/SampleData";
 import ResultsTable from "@/components/ResultsTable";
 import CoachingChat from "@/components/CoachingChat";
 import { useLlmStatus } from "@/hooks/useLlmStatus";
-import { loadStats, recordAttempt, recordHintReveal, recordSolutionViewed, isReviewDue, computeMasteryLevel, getSolvedCount } from "@/lib/stats";
+import {
+  loadStats,
+  recordAttempt,
+  recordHintReveal,
+  recordSolutionViewed,
+  isReviewDue,
+  computeMasteryLevel,
+  getSolvedCount,
+} from "@/lib/stats";
 import { enqueuePendingAnalysis } from "@/hooks/usePendingAnalyses";
-import type { QueryResult, RowDiff, MasteryLevel } from "@/types";
+import type { MasteryLevel, QueryResult, RowDiff } from "@/types";
 
-function formatCategory(s: string) {
-  return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+function formatCategory(value: string) {
+  return value.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/**
+ * A localStorage entry is residual starter code if it contains no
+ * real SQL — just comments, whitespace, schema-qualified references
+ * from the old data model, or the skeleton `SELECT FROM` shapes that
+ * the legacy `starter_code` field used to ship. We drop those on
+ * load so the editor starts blank.
+ */
+function isResidualStarterCode(source: string): boolean {
+  // Strip all SQL comments (line + block) and whitespace.
+  const stripped = source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/--.*$/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Empty after stripping comments → template scaffold.
+  if (stripped.length === 0) return true;
+
+  // Legacy schema-qualified references are always stale.
+  if (/\b(hr|ecommerce|analytics|leetcode)\.\w/.test(source)) return true;
+
+  // Skeleton starter shapes like "SELECT FROM tablename" or
+  // "SELECT FROM tablename ORDER BY col" — short, no column list,
+  // no WHERE/GROUP/HAVING.
+  const upper = stripped.toUpperCase();
+  if (
+    stripped.length < 80 &&
+    /^SELECT\s+FROM\b/.test(upper) &&
+    !/WHERE|GROUP\s+BY|HAVING|JOIN|UNION|CASE/.test(upper)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function formatElapsed(ms: number) {
+  return `${String(Math.floor(ms / 60000)).padStart(2, "0")}:${String(
+    Math.floor((ms % 60000) / 1000)
+  ).padStart(2, "0")}`;
 }
 
 const masteryLabels: Record<MasteryLevel, string> = {
@@ -24,7 +79,7 @@ const masteryLabels: Record<MasteryLevel, string> = {
   attempted: "Attempted",
   solved: "Solved",
   practiced: "Practiced",
-  mastered: "Mastered \u2605",
+  mastered: "Mastered ★",
 };
 
 function formatMastery(level: MasteryLevel): string {
@@ -34,7 +89,7 @@ function formatMastery(level: MasteryLevel): string {
 const SqlEditor = dynamic(() => import("@/components/SqlEditor"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full items-center justify-center text-zinc-600">
+    <div className="flex h-full items-center justify-center text-[color:var(--text-muted)]">
       Loading editor...
     </div>
   ),
@@ -50,7 +105,6 @@ interface ProblemDetail {
   tables: string[];
   description: string;
   hints: string[];
-  starter_code?: string;
   order_matters: boolean;
   expected_columns: string[];
   schema: Record<
@@ -81,6 +135,7 @@ export default function ProblemPage({
 }) {
   const { slug } = use(params);
   const [problem, setProblem] = useState<ProblemDetail | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [code, setCode] = useState("");
   const [result, setResult] = useState<QueryResult | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitResponse | null>(null);
@@ -92,10 +147,12 @@ export default function ProblemPage({
   const [reviewDue, setReviewDue] = useState(false);
   const [coachOpen, setCoachOpen] = useState(false);
   const { available: llmAvailable } = useLlmStatus();
-  const [masteryTransition, setMasteryTransition] = useState<{ from: MasteryLevel; to: MasteryLevel } | null>(null);
+  const [masteryTransition, setMasteryTransition] = useState<{
+    from: MasteryLevel;
+    to: MasteryLevel;
+  } | null>(null);
   const [totalSolved, setTotalSolved] = useState(0);
 
-  // Timer state
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerStarted, setTimerStarted] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -103,27 +160,42 @@ export default function ProblemPage({
   const timerPausedRef = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
     fetch(`/api/problems/${slug}`)
-      .then((r) => r.json())
-      .then((data: ProblemDetail) => {
-        setProblem(data);
-        const saved = localStorage.getItem(`sql-coach:code:${slug}`);
-        // Invalidate cached code that uses old schema-qualified names
-        const isStale = saved && /\b(hr|ecommerce|analytics|leetcode)\.\w/.test(saved);
-        if (saved && !isStale) {
-          setCode(saved);
-        } else if (data.starter_code) {
-          if (isStale) localStorage.removeItem(`sql-coach:code:${slug}`);
-          setCode(data.starter_code);
+      .then(async (response) => {
+        if (cancelled) return;
+        if (!response.ok) {
+          setNotFound(true);
+          return;
         }
+        const data: ProblemDetail = await response.json();
+        setProblem(data);
+        // Restore in-progress code from localStorage. The editor
+        // always starts blank for a new problem; there is no
+        // `starter_code` in the data model. Stale entries from
+        // earlier versions (which seeded the editor with starter
+        // templates or schema-qualified SQL) are dropped.
+        const storageKey = `sql-coach:code:${slug}`;
+        const saved = localStorage.getItem(storageKey);
+        if (!saved) return;
+        if (isResidualStarterCode(saved)) {
+          localStorage.removeItem(storageKey);
+          return;
+        }
+        setCode(saved);
+      })
+      .catch(() => {
+        if (!cancelled) setNotFound(true);
       });
+    return () => {
+      cancelled = true;
+    };
 
-    // Load attempt count and review status from stats
     const stats = loadStats();
-    const ps = stats.problems[slug];
-    if (ps) {
-      setAttemptCount(ps.attempts);
-      setReviewDue(isReviewDue(ps));
+    const problemStats = stats.problems[slug];
+    if (problemStats) {
+      setAttemptCount(problemStats.attempts);
+      setReviewDue(isReviewDue(problemStats));
     }
   }, [slug]);
 
@@ -135,7 +207,6 @@ export default function ProblemPage({
     return () => clearTimeout(timer);
   }, [code, slug]);
 
-  // Start timer on first code change when enabled
   const handleCodeChange = useCallback(
     (newCode: string) => {
       setCode(newCode);
@@ -146,27 +217,28 @@ export default function ProblemPage({
     [timerEnabled, timerStarted]
   );
 
-  // Timer interval
   useEffect(() => {
     if (timerStarted && timerEnabled) {
       timerRef.current = setInterval(() => {
         if (!timerPausedRef.current) {
-          setElapsedMs((prev) => prev + 1000);
+          setElapsedMs((previous) => previous + 1000);
         }
       }, 1000);
     }
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [timerStarted, timerEnabled]);
 
-  // Pause on visibility change
   useEffect(() => {
-    const handler = () => {
+    const handleVisibilityChange = () => {
       timerPausedRef.current = document.hidden;
     };
-    document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   const handleRun = useCallback(async () => {
@@ -175,14 +247,15 @@ export default function ProblemPage({
     setError(null);
     setSubmitResult(null);
     setShowAccepted(false);
+    setCoachOpen(false);
 
     try {
-      const res = await fetch("/api/query", {
+      const response = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sql: code, domain: problem?.domain, slug }),
       });
-      const data = await res.json();
+      const data = await response.json();
       if (data.error) {
         setError(data.error);
         setResult(null);
@@ -194,7 +267,7 @@ export default function ProblemPage({
     } finally {
       setIsRunning(false);
     }
-  }, [code, isRunning]);
+  }, [code, isRunning, problem?.domain, slug]);
 
   const handleSubmit = useCallback(async () => {
     if (!code.trim() || isRunning) return;
@@ -204,12 +277,13 @@ export default function ProblemPage({
     setShowAccepted(false);
 
     try {
-      const res = await fetch("/api/submit", {
+      const response = await fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sql: code, slug }),
       });
-      const data: SubmitResponse = await res.json();
+      const data: SubmitResponse = await response.json();
+
       if (data.error) {
         setError(data.error);
         setSubmitResult(null);
@@ -229,28 +303,30 @@ export default function ProblemPage({
             startedAt: Date.now(),
           });
         }
-        const difficulty = problem?.difficulty ?? "easy";
 
-        // Compute mastery before recording
-        const prevStats = loadStats();
-        const prevLevel = computeMasteryLevel(prevStats.problems[slug], difficulty);
+        const difficulty = problem?.difficulty ?? "easy";
+        const previousStats = loadStats();
+        const previousLevel = computeMasteryLevel(
+          previousStats.problems[slug],
+          difficulty
+        );
 
         const timeArg = timerEnabled && timerStarted ? elapsedMs : undefined;
         const store = recordAttempt(slug, data.pass, timeArg);
         const newCount = store.problems[slug]?.attempts ?? 0;
         setAttemptCount(newCount);
+        setReviewDue(isReviewDue(store.problems[slug]));
 
         if (data.pass) {
-          // Compute mastery after recording
           const newLevel = computeMasteryLevel(store.problems[slug], difficulty);
-          if (newLevel !== prevLevel) {
-            setMasteryTransition({ from: prevLevel, to: newLevel });
-          } else {
-            setMasteryTransition(null);
-          }
+          setMasteryTransition(
+            newLevel !== previousLevel
+              ? { from: previousLevel, to: newLevel }
+              : null
+          );
           setTotalSolved(getSolvedCount(store));
           setShowAccepted(true);
-          // Stop the timer on acceptance
+          setCoachOpen(false);
           if (timerRef.current) clearInterval(timerRef.current);
         }
       }
@@ -259,16 +335,28 @@ export default function ProblemPage({
     } finally {
       setIsRunning(false);
     }
-  }, [code, slug, isRunning]);
+  }, [
+    code,
+    elapsedMs,
+    isRunning,
+    problem?.difficulty,
+    slug,
+    timerEnabled,
+    timerStarted,
+  ]);
 
   const handleResetCode = useCallback(() => {
     if (!problem) return;
-    setCode(problem.starter_code ?? "");
+    setCode("");
     localStorage.removeItem(`sql-coach:code:${slug}`);
     setResult(null);
     setSubmitResult(null);
     setError(null);
     setShowAccepted(false);
+    setCoachOpen(false);
+    setElapsedMs(0);
+    setTimerStarted(false);
+    if (timerRef.current) clearInterval(timerRef.current);
   }, [problem, slug]);
 
   const handleHintReveal = useCallback(
@@ -283,233 +371,220 @@ export default function ProblemPage({
       "Viewing the solution means this problem can never reach Mastered status. Continue?"
     );
     if (!ok) return;
+
     try {
-      const res = await fetch(`/api/problems/${slug}/solution`, {
+      const response = await fetch(`/api/problems/${slug}/solution`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: true }),
       });
-      const data = await res.json();
+      const data = await response.json();
       if (data.solution) {
         setSolution(data.solution);
         recordSolutionViewed(slug);
       }
     } catch {
-      // silently fail
+      // silent
     }
   }, [slug]);
 
+  if (notFound) {
+    return (
+      <div className="mx-auto flex h-full max-w-[640px] flex-col items-center justify-center px-6 text-center">
+        <div className="eyebrow">404</div>
+        <h1 className="mt-3 text-2xl font-semibold text-[color:var(--text)]">
+          Problem not found
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-[color:var(--text-muted)]">
+          No problem with the slug{" "}
+          <code className="rounded bg-[color:var(--panel-muted)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-xs">
+            {slug}
+          </code>{" "}
+          exists. It may have been renamed or removed.
+        </p>
+        <a href="/?mode=catalog" className="btn-primary mt-6">
+          Browse all problems
+        </a>
+      </div>
+    );
+  }
+
   if (!problem) {
     return (
-      <div className="flex h-full items-center justify-center text-zinc-500">
+      <div className="flex h-full items-center justify-center text-[color:var(--text-muted)]">
         Loading...
       </div>
     );
   }
 
   const editorSchema: Record<string, string[]> = {};
-  if (problem.schema) {
-    for (const [table, cols] of Object.entries(problem.schema)) {
-      editorSchema[table] = cols.map((c) => c.column_name);
-    }
+  for (const [table, columns] of Object.entries(problem.schema ?? {})) {
+    editorSchema[table] = columns.map((column) => column.column_name);
   }
 
   const hasSubmit = submitResult !== null;
   const isWrong = hasSubmit && !submitResult.pass;
   const isAccepted = hasSubmit && submitResult.pass;
-
-  // Show solution button after 3 failed attempts (and no solution already shown)
   const failedAttempts = attemptCount - (isAccepted ? 1 : 0);
   const canShowSolution = !solution && failedAttempts >= 3;
-
+  const missingCount =
+    submitResult?.diff.filter((entry) => entry.type === "missing").length ?? 0;
+  const extraCount =
+    submitResult?.diff.filter((entry) => entry.type === "extra").length ?? 0;
   return (
     <PanelGroup orientation="horizontal" className="h-full overflow-hidden">
-      {/* Left: Problem description + schema */}
-      <Panel defaultSize={35} minSize={20}>
-        <div className="flex h-full flex-col">
-          {/* Pinned header: title + description */}
-          <div className="max-h-[60%] shrink-0 overflow-y-auto border-b border-zinc-800" style={{ scrollbarWidth: "thin" }}>
-            <div className="px-4 pt-4 pb-3">
-              <div className="mb-2 flex items-center justify-between">
-                <a
-                  href="/"
-                  className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300"
-                >
-                  &larr; Problems
-                </a>
-                <div className="flex items-center gap-2">
-                  {problem.adjacent.prev && (
-                    <a
-                      href={`/problems/${problem.adjacent.prev}`}
-                      className="text-xs text-zinc-500 hover:text-zinc-300"
-                      title="Previous problem"
-                    >
-                      &larr; Prev
-                    </a>
-                  )}
-                  {problem.adjacent.next && (
-                    <a
-                      href={`/problems/${problem.adjacent.next}`}
-                      className="text-xs text-zinc-500 hover:text-zinc-300"
-                      title="Next problem"
-                    >
-                      Next &rarr;
-                    </a>
-                  )}
-                </div>
+      <Panel defaultSize={34} minSize={24}>
+        <div className="flex h-full flex-col bg-[color:var(--bg)]">
+          <div className="border-b border-[color:var(--border)] px-5 py-5">
+            <div className="flex items-center justify-between gap-3">
+              <a
+                href="/"
+                className="soft-link text-xs font-semibold uppercase tracking-[0.16em]"
+              >
+                ← Problems
+              </a>
+              <div className="flex items-center gap-2">
+                {problem.adjacent.prev && (
+                  <a
+                    href={`/problems/${problem.adjacent.prev}`}
+                    className="border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
+                  >
+                    Prev
+                  </a>
+                )}
+                {problem.adjacent.next && (
+                  <a
+                    href={`/problems/${problem.adjacent.next}`}
+                    className="border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-1.5 text-xs font-medium text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
+                  >
+                    Next
+                  </a>
+                )}
               </div>
-              <h1 className="text-lg font-bold text-zinc-100">{problem.title}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
+            </div>
+
+            <div className="mt-5">
+              <p className="eyebrow">{formatCategory(problem.category)}</p>
+              <h1 className="mt-2 text-2xl font-semibold leading-tight text-[color:var(--text)]">
+                {problem.title}
+              </h1>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <DifficultyBadge difficulty={problem.difficulty} />
-                <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
-                  {formatCategory(problem.category)}
-                </span>
-              </div>
-              <div className="mt-3">
-                <ProblemDescriptionText
-                  description={problem.description}
-                  reviewDue={reviewDue}
-                />
+                {reviewDue && <InfoPill label="Review due" tone="warning" />}
               </div>
             </div>
           </div>
-          {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto border-t border-zinc-800 px-4 py-4">
-            <ProblemDescription
-              description={problem.description}
-              hints={problem.hints}
-              onHintReveal={handleHintReveal}
-              solution={solution}
-              canShowSolution={canShowSolution}
-              onShowSolution={handleShowSolution}
-            />
-            <div className="mt-4 border-t border-zinc-800 pt-4">
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            <div className="space-y-6 pb-6">
+              <ProblemDescriptionText
+                description={problem.description}
+                reviewDue={reviewDue}
+              />
+
               <SchemaExplorer schema={problem.schema} />
+
+              {problem.samples &&
+                Object.keys(problem.samples).length > 0 && (
+                  <SampleData samples={problem.samples} />
+                )}
+
+              {problem.expectedOutput &&
+                problem.expectedOutput.rows.length > 0 && (
+                  <div>
+                    <div className="eyebrow mb-2">Expected output</div>
+                    <div className="app-panel overflow-hidden">
+                      <div className="max-h-64 overflow-auto">
+                        <ResultsTable
+                          columns={problem.expectedOutput.columns}
+                          rows={problem.expectedOutput.rows}
+                          rowCount={problem.expectedOutput.rows.length}
+                          mode="expected"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              <ProblemDescription
+                description={problem.description}
+                hints={problem.hints}
+                onHintReveal={handleHintReveal}
+                solution={solution}
+                canShowSolution={canShowSolution}
+                onShowSolution={handleShowSolution}
+              />
             </div>
-            {problem.samples && (
-              <div className="mt-4 border-t border-zinc-800 pt-4">
-                <SampleData samples={problem.samples} />
-              </div>
-            )}
-            {problem.expectedOutput && problem.expectedOutput.rows.length > 0 && (
-              <div className="mt-4 border-t border-zinc-800 pt-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Expected Output
-                </h3>
-                <div className="mt-2 overflow-x-auto rounded border border-zinc-800">
-                  <table className="w-full border-collapse font-mono text-[11px]">
-                    <thead>
-                      <tr className="bg-zinc-900">
-                        {problem.expectedOutput.columns.map((col) => (
-                          <th
-                            key={col}
-                            className="border-b border-zinc-800 px-2 py-1 text-left font-semibold text-zinc-500"
-                          >
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {problem.expectedOutput.rows.map((row, i) => (
-                        <tr
-                          key={i}
-                          className="border-b border-zinc-800/50 last:border-0"
-                        >
-                          {row.map((cell, j) => (
-                            <td
-                              key={j}
-                              className={`whitespace-nowrap px-2 py-0.5 ${
-                                cell === null
-                                  ? "italic text-zinc-600"
-                                  : "text-zinc-400"
-                              }`}
-                            >
-                              {cell === null || cell === undefined
-                                ? "NULL"
-                                : String(cell).length > 30
-                                  ? String(cell).slice(0, 27) + "..."
-                                  : String(cell)}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </Panel>
 
-      <PanelResizeHandle className="w-1.5 bg-zinc-800 transition-colors hover:bg-blue-500" />
+      <PanelResizeHandle className="w-2 bg-[color:var(--border)] transition-colors hover:bg-[color:var(--accent-soft)]" />
 
-      {/* Right: Editor + Results */}
-      <Panel defaultSize={65} minSize={30}>
+      <Panel defaultSize={66} minSize={34}>
         <PanelGroup orientation="vertical" className="h-full">
-          {/* Editor */}
-          <Panel defaultSize={50} minSize={20}>
-            <div className="relative flex h-full flex-col">
-              {/* Accepted celebration overlay — persistent until dismissed */}
-              {showAccepted && (
+          <Panel defaultSize={56} minSize={24}>
+            <div className="relative flex h-full flex-col bg-[color:var(--bg)]">
+              {showAccepted && submitResult && (
                 <div
-                  className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center bg-emerald-950/80 backdrop-blur-sm"
+                  className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center bg-black/10"
                   onClick={() => setShowAccepted(false)}
                 >
-                  <div className="text-center">
-                    <div className="text-6xl font-black tracking-tight text-emerald-400">
-                      Accepted
+                  <div
+                    className="app-panel-strong animate-in max-w-lg border border-[color:var(--border-strong)] px-8 py-7 text-center"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <p className="eyebrow">Accepted</p>
+                    <div className="mt-3 text-2xl font-semibold leading-none text-[color:var(--positive)]">
+                      Clean pass.
                     </div>
-                    <div className="mt-2 text-lg text-emerald-500/80">
-                      Runtime: {submitResult?.executionTimeMs}ms
+                    <div className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                      Runtime {submitResult.executionTimeMs}ms
                       {timerEnabled && timerStarted && (
                         <span className="ml-3">
-                          Time: {String(Math.floor(elapsedMs / 60000)).padStart(2, "0")}:
-                          {String(Math.floor((elapsedMs % 60000) / 1000)).padStart(2, "0")}
+                          Time {formatElapsed(elapsedMs)}
                         </span>
                       )}
                     </div>
                     {attemptCount > 1 && (
-                      <div className="mt-1 text-sm text-emerald-600">
-                        Solved in {attemptCount} attempt{attemptCount !== 1 ? "s" : ""}
+                      <div className="mt-2 text-sm text-[color:var(--text-muted)]">
+                        Solved in {attemptCount} attempts
                       </div>
                     )}
                     {masteryTransition && (
-                      <div className="mt-1 text-sm text-emerald-500">
-                        {masteryTransition.from === "unattempted" || masteryTransition.from === "attempted"
+                      <div className="mt-2 text-sm text-[color:var(--accent-strong)]">
+                        {masteryTransition.from === "unattempted" ||
+                        masteryTransition.from === "attempted"
                           ? null
-                          : <>{formatMastery(masteryTransition.from)} &rarr; </>}
+                          : `${formatMastery(masteryTransition.from)} → `}
                         {formatMastery(masteryTransition.to)}
                       </div>
                     )}
                     {totalSolved > 0 && (
-                      <div className="mt-1 text-xs text-emerald-700">
-                        {totalSolved}/100 problems solved
+                      <div className="mt-2 text-xs uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
+                        {totalSolved} total solved
                       </div>
                     )}
-                    <div className="mt-4 flex items-center justify-center gap-3">
+                    <div className="mt-6 flex items-center justify-center gap-3">
                       {problem.adjacent.next && (
                         <a
                           href={`/problems/${problem.adjacent.next}`}
-                          className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500"
+                          className="border border-[color:var(--positive)] bg-[color:var(--positive)] px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
                         >
-                          Next Problem &rarr;
+                          Next problem
                         </a>
                       )}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowAccepted(false);
-                        }}
-                        className="rounded-md bg-zinc-700 px-4 py-1.5 text-sm font-medium text-zinc-300 hover:bg-zinc-600"
+                        onClick={() => setShowAccepted(false)}
+                        className="border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
                       >
-                        Dismiss
+                        Keep editing
                       </button>
                     </div>
                   </div>
                 </div>
               )}
+
               <div className="flex-1 overflow-hidden">
                 <SqlEditor
                   value={code}
@@ -519,157 +594,181 @@ export default function ProblemPage({
                   schema={editorSchema}
                 />
               </div>
-              {/* Button bar */}
-              <div className="flex items-center gap-2 border-t border-zinc-800 px-3 py-2">
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-[color:var(--border)] bg-[color:var(--panel-muted)] px-4 py-3">
                 <button
                   onClick={handleRun}
                   disabled={isRunning}
-                  className="rounded-md bg-zinc-800 px-4 py-1.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-50"
+                  className="border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] hover:border-[color:var(--border-strong)] hover:bg-[color:var(--panel-muted)] disabled:opacity-50"
                 >
-                  {isRunning ? "Running..." : "Run"}
-                  <span className="ml-2 text-xs text-zinc-500">{"\u2318\u23CE"}</span>
+                  {isRunning ? "Running..." : "Run query"}
+                  <span className="ml-2 text-xs text-[color:var(--text-muted)]">
+                    ⌘↵
+                  </span>
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={isRunning}
-                  className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+                  className="border border-[color:var(--accent)] bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[color:var(--accent-strong)] disabled:opacity-50"
                 >
-                  Submit
-                  <span className="ml-2 text-xs text-emerald-300">{"\u2318\u21E7\u23CE"}</span>
+                  Check answer
+                  <span className="ml-2 text-xs text-white/70">
+                    ⌘⇧↵
+                  </span>
                 </button>
                 <button
                   onClick={() => {
-                    setTimerEnabled((v) => !v);
-                    if (!timerEnabled) {
-                      setElapsedMs(0);
-                      setTimerStarted(false);
-                    }
+                    setTimerEnabled((current) => {
+                      const next = !current;
+                      if (next) {
+                        setElapsedMs(0);
+                        setTimerStarted(false);
+                      }
+                      return next;
+                    });
                   }}
-                  className={`rounded-md px-2 py-1.5 text-xs transition-colors ${
+                  className={`border px-3 py-2 text-sm font-medium ${
                     timerEnabled
-                      ? "bg-zinc-700 text-zinc-200"
-                      : "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-400"
+                      ? "border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] text-[color:var(--highlight)]"
+                      : "border-[color:var(--border)] text-[color:var(--text-muted)] hover:bg-[color:var(--panel-muted)] hover:text-[color:var(--text)]"
                   }`}
                   title={timerEnabled ? "Disable timer" : "Enable timer"}
                 >
-                  &#9201;
+                  Timer
                   {timerEnabled && (
-                    <span className="ml-1 font-mono">
-                      {String(Math.floor(elapsedMs / 60000)).padStart(2, "0")}:
-                      {String(Math.floor((elapsedMs % 60000) / 1000)).padStart(2, "0")}
+                    <span className="ml-2 font-[family-name:var(--font-mono)]">
+                      {formatElapsed(elapsedMs)}
                     </span>
                   )}
                 </button>
+                {llmAvailable && (
+                  <button
+                    onClick={() => setCoachOpen((open) => !open)}
+                    className={`ml-auto border px-4 py-2 text-sm font-medium ${
+                      coachOpen
+                        ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
+                        : "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
+                    }`}
+                    title="Ask the AI coach for a hint based on what you've written. Never gives the full answer."
+                  >
+                    <span className="mr-1">✱</span>
+                    Ask AI
+                  </button>
+                )}
                 <button
                   onClick={handleResetCode}
-                  className="ml-auto rounded-md px-3 py-1.5 text-xs text-zinc-600 transition-colors hover:bg-zinc-800 hover:text-zinc-400"
-                  title="Reset to starter code"
+                  className={`${llmAvailable ? "" : "ml-auto "}border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]`}
+                  title="Clear the editor"
                 >
                   Reset
                 </button>
-                {attemptCount > 0 && (
-                  <span className="text-xs text-zinc-600">
-                    Attempt {attemptCount}
-                  </span>
-                )}
               </div>
             </div>
           </Panel>
 
-          <PanelResizeHandle className="h-1.5 bg-zinc-800 transition-colors hover:bg-blue-500" />
+          <PanelResizeHandle className="h-2 bg-[color:var(--border)] transition-colors hover:bg-[color:var(--accent-soft)]" />
 
-          {/* Results */}
-          <Panel defaultSize={50} minSize={15}>
-            <div className="flex h-full flex-col">
-              {/* Verdict header — shown after submit */}
-              {hasSubmit && (
-                <div className="shrink-0 border-b border-zinc-800 px-4 py-2.5">
-                  <div className="flex items-center gap-3">
-                    {isAccepted ? (
-                      <span className="text-lg font-bold text-emerald-500">Accepted</span>
-                    ) : (
-                      <span className="text-lg font-bold text-red-500">Wrong Answer</span>
+          <Panel defaultSize={44} minSize={18}>
+            <div className="flex h-full flex-col bg-[color:var(--bg)]">
+              <div className="shrink-0 border-b border-[color:var(--border)] px-5 py-4">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <p className="eyebrow">Results</p>
+                    <h2 className="mt-1 text-lg font-semibold text-[color:var(--text)]">
+                      {isAccepted
+                        ? "Accepted output"
+                        : isWrong
+                          ? "Compare the diff"
+                          : "Run output"}
+                    </h2>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {hasSubmit && (
+                      <InfoPill
+                        label={isAccepted ? "Accepted" : "Wrong answer"}
+                        tone={isAccepted ? "success" : "danger"}
+                      />
                     )}
-                    <span className="text-sm text-zinc-500">
-                      Runtime: {submitResult.executionTimeMs}ms
-                    </span>
-                    {isWrong && (
-                      <span className="text-sm text-zinc-600">
-                        &middot; {submitResult.diff.length} row difference{submitResult.diff.length !== 1 ? "s" : ""}
-                      </span>
+                    {((submitResult && submitResult.executionTimeMs) ||
+                      result?.executionTimeMs) != null && (
+                      <InfoPill
+                        label={`${submitResult?.executionTimeMs ?? result?.executionTimeMs}ms`}
+                      />
                     )}
                   </div>
-                  {/* Coaching message */}
-                  {isWrong && submitResult.coaching && (
-                    <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-300">
-                      {submitResult.coaching}
-                    </div>
-                  )}
                 </div>
-              )}
 
-              {/* AI Coaching Chat */}
-              {isWrong && llmAvailable && (
-                <div className="shrink-0 border-b border-zinc-800">
-                  {!coachOpen ? (
-                    <button
-                      onClick={() => setCoachOpen(true)}
-                      className="w-full px-4 py-2 text-left text-sm text-blue-400 hover:bg-zinc-900/50"
-                    >
-                      Ask AI Coach for help&hellip;
-                    </button>
-                  ) : (
-                    <CoachingChat
-                      problemContext={{
-                        description: problem.description,
-                        tables: problem.tables,
-                        studentSql: code,
-                        errorContext: submitResult.coaching,
-                        attemptNumber: attemptCount,
-                      }}
-                      isOpen={coachOpen}
-                      onToggle={() => setCoachOpen(false)}
-                    />
-                  )}
-                </div>
-              )}
-
-              {/* Result content */}
-              <div className="flex-1 overflow-hidden">
                 {isWrong ? (
-                  // Side-by-side: Expected | Your Output
-                  <div className="flex h-full">
-                    <div className="flex flex-1 flex-col border-r border-zinc-800">
-                      <div className="shrink-0 bg-zinc-900/50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                        Expected Output
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <ResultsTable
-                          columns={submitResult.expected.columns}
-                          rows={submitResult.expected.rows}
-                          rowCount={submitResult.expected.rows.length}
-                          diff={submitResult.diff}
-                          mode="expected"
-                        />
-                      </div>
+                  <div className="mt-4 space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <DiffStat
+                        label="Missing rows"
+                        value={missingCount}
+                        tone="success"
+                      />
+                      <DiffStat
+                        label="Extra rows"
+                        value={extraCount}
+                        tone="danger"
+                      />
+                      <DiffStat
+                        label="Returned rows"
+                        value={submitResult.actual.rows.length}
+                      />
                     </div>
-                    <div className="flex flex-1 flex-col">
-                      <div className="shrink-0 bg-zinc-900/50 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                        Your Output
+                    {submitResult.coaching && (
+                      <div className="border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--warning)]">
+                        {submitResult.coaching}
                       </div>
-                      <div className="flex-1 overflow-hidden">
-                        <ResultsTable
-                          columns={submitResult.actual.columns}
-                          rows={submitResult.actual.rows}
-                          rowCount={submitResult.actual.rows.length}
-                          diff={submitResult.diff}
-                          mode="submit"
-                        />
-                      </div>
-                    </div>
+                    )}
+                  </div>
+                ) : !result && !hasSubmit ? (
+                  <p className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
+                    Use Run query for quick inspection or Check answer when you
+                    want to validate against the reference solution.
+                  </p>
+                ) : null}
+              </div>
+
+              {coachOpen && llmAvailable && (
+                <div className="shrink-0 border-b border-[color:var(--border)]">
+                  <CoachingChat
+                    problemContext={{
+                      description: problem.description,
+                      tables: problem.tables,
+                      studentSql: code,
+                      errorContext: submitResult?.coaching ?? "",
+                      attemptNumber: Math.max(1, attemptCount),
+                    }}
+                    isOpen={coachOpen}
+                    onToggle={() => setCoachOpen(false)}
+                  />
+                </div>
+              )}
+
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {isWrong ? (
+                  <div className="grid h-full grid-cols-2">
+                    <ResultPanel label="Expected output">
+                      <ResultsTable
+                        columns={submitResult.expected.columns}
+                        rows={submitResult.expected.rows}
+                        rowCount={submitResult.expected.rows.length}
+                        diff={submitResult.diff}
+                        mode="expected"
+                      />
+                    </ResultPanel>
+                    <ResultPanel label="Your output" borderLeft>
+                      <ResultsTable
+                        columns={submitResult.actual.columns}
+                        rows={submitResult.actual.rows}
+                        rowCount={submitResult.actual.rows.length}
+                        diff={submitResult.diff}
+                        mode="submit"
+                      />
+                    </ResultPanel>
                   </div>
                 ) : isAccepted ? (
-                  // Accepted: show the matching output
                   <ResultsTable
                     columns={submitResult.actual.columns}
                     rows={submitResult.actual.rows}
@@ -678,7 +777,6 @@ export default function ProblemPage({
                     mode="run"
                   />
                 ) : (
-                  // Plain run output
                   <ResultsTable
                     columns={result?.columns ?? []}
                     rows={result?.rows ?? []}
@@ -694,5 +792,83 @@ export default function ProblemPage({
         </PanelGroup>
       </Panel>
     </PanelGroup>
+  );
+}
+
+function InfoPill({
+  label,
+  tone = "default",
+}: {
+  label: string;
+  tone?: "default" | "warning" | "danger" | "success";
+}) {
+  const toneClass = {
+    default:
+      "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-soft)]",
+    warning:
+      "border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]",
+    danger:
+      "border-[color:var(--danger-soft)] bg-[color:var(--danger-soft)] text-[color:var(--danger)]",
+    success:
+      "border-[color:var(--positive-soft)] bg-[color:var(--positive-soft)] text-[color:var(--positive)]",
+  } as const;
+
+  return (
+    <span
+      className={`border px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${toneClass[tone]}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function ResultPanel({
+  label,
+  borderLeft = false,
+  children,
+}: {
+  label: string;
+  borderLeft?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`flex min-w-0 flex-col ${
+        borderLeft ? "border-l border-[color:var(--border)]" : ""
+      }`}
+    >
+      <div className="border-b border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
+        {label}
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
+function DiffStat({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "success" | "danger";
+}) {
+  const classes = {
+    default:
+      "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)]",
+    success:
+      "border-[color:var(--positive-soft)] bg-[color:var(--positive-soft)] text-[color:var(--positive)]",
+    danger:
+      "border-[color:var(--danger-soft)] bg-[color:var(--danger-soft)] text-[color:var(--danger)]",
+  } as const;
+
+  return (
+    <div className={`border p-4 ${classes[tone]}`}>
+      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
+        {label}
+      </div>
+      <div className="mt-2 text-xl font-semibold tabular-nums">{value}</div>
+    </div>
   );
 }

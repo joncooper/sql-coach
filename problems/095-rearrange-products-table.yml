@@ -20,10 +20,6 @@ hints:
   - "This is an unpivoting problem -- you need to transform columns into rows."
   - "Use UNION ALL to create separate rows for each store column, filtering out NULLs."
   - "Each SELECT in the UNION should produce the product_id, a literal string for the store name, and the corresponding price column."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM products
 order_matters: false
 solution: |
   SELECT product_id, 'store1' AS store, store1 AS price

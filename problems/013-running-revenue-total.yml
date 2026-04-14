@@ -2,11 +2,11 @@ slug: running-revenue-total
 title: "Running Revenue Total"
 difficulty: medium
 category: window-functions
-tags: [window-function, sum, running-total, order-by]
+tags: [window-functions, cumulative]
 domain: ecommerce
 tables: [orders]
 description: |
-  Calculate a running total of revenue from **completed** orders, ordered by `order_date`.
+  For every **completed** order, report the order and a running total of all completed-order revenue **up to and including that order**, with rows ordered by `order_date`.
 
   Return the following columns:
   - `order_date` - the date of the order
@@ -15,17 +15,9 @@ description: |
 
   Order the results by `order_date` ascending.
 hints:
-  - "Filter for completed orders using WHERE status = 'completed'."
-  - "Use SUM() as a window function: SUM(total_amount) OVER (ORDER BY order_date)."
-  - "The default window frame with ORDER BY is RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW, which gives a running total."
-starter_code: |
-  SELECT
-    order_date,
-    total_amount,
-    -- your window function here
-    AS running_total
-  FROM orders
-  WHERE ...
+  - "A plain `GROUP BY order_date SUM(...)` won't work — that collapses rows and loses individual order amounts. You need a per-row cumulative figure."
+  - "Aggregate functions in Postgres can be used as per-row window calculations with `OVER`. Give the `OVER` clause an `ORDER BY`, and the aggregate walks through the rows in that order, accumulating as it goes. That's exactly a running total."
+  - "`SUM(total_amount) OVER (ORDER BY order_date)` alongside the regular columns. Filter `WHERE status = 'completed'` first."
 order_matters: true
 solution: |
   SELECT

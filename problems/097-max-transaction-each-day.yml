@@ -2,26 +2,22 @@ slug: max-transaction-each-day
 title: "Maximum Transaction Each Day"
 difficulty: medium
 category: window-functions
-tags: [rank, partition-by, date-functions]
+tags: [window-functions, top-per-group]
 domain: lc1981
 tables: [transactions]
 description: |
   You are given a **Transactions** table with columns `transaction_id`, `day` (a timestamp), and `amount`.
 
-  Write a query to find the transactions with the **maximum amount** on each day. If multiple transactions tie for the maximum on the same day, return all of them.
+  Find the **transactions with the maximum amount on each day**. If multiple transactions tie for the maximum on a given day, return all of them.
 
   Return the following column:
   - `transaction_id` - the transaction identifier
 
   Order the result by `transaction_id` in **ascending** order.
 hints:
-  - "You need to group by the date portion of the timestamp. In PostgreSQL, cast a timestamp to date with ::date."
-  - "Use RANK() partitioned by the date to rank transactions by amount within each day."
-  - "Filter for rank = 1 to get the maximum transaction(s) per day, then order by transaction_id."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM transactions
+  - "Two things to figure out: (1) how to group by the *date* portion of a timestamp (not the full timestamp — otherwise transactions a second apart go into different groups), and (2) how to find the max-amount row per date with ties preserved."
+  - "For the timestamp: Postgres lets you cast to `date` with `::date` or use `DATE_TRUNC('day', ...)`. For the top-per-group with ties: per-row positional window functions, partitioned by the per-day key, ordered by amount descending. Pick one that gives the same value to tied rows so you keep all winners."
+  - "`RANK() OVER (PARTITION BY day::date ORDER BY amount DESC)` in a CTE, then filter `WHERE rn = 1` in the outer query."
 order_matters: true
 solution: |
   WITH ranked AS (

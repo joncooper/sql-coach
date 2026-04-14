@@ -2,38 +2,27 @@ slug: percent-of-total-revenue
 title: "Customer Percent of Total Revenue"
 difficulty: medium
 category: aggregation
-tags: [aggregation, window-functions, percentage, joins]
+tags: [aggregation, percentage, joins]
 domain: ecommerce
 tables: [customers, orders]
 description: |
   Calculate each customer's share of total **completed** order revenue.
 
-  Compute each customer's total revenue from completed orders, then compare it to the overall total revenue across all completed orders to get a percentage.
+  Step one: compute each customer's total revenue from completed orders. Step two: compare that to the overall total across *all* completed orders and express it as a percentage.
 
   Only include customers who have at least one completed order.
 
   Return the following columns in this exact order:
   - `customer_name` - the customer's name
   - `customer_revenue` - total revenue from that customer's completed orders
-  - `total_revenue` - the overall total revenue from all completed orders (same value in every row)
+  - `total_revenue` - the overall total revenue from all completed orders (the same value in every row)
   - `revenue_pct` - the customer's share of total revenue, rounded to **1 decimal place**
 
   Order the results by `revenue_pct` descending.
 hints:
-  - "Aggregate completed orders per customer to get customer_revenue."
-  - "Use SUM(customer_revenue) OVER () as a window function to get total_revenue across all rows."
-  - "Divide customer_revenue by total_revenue * 100 and ROUND to 1 decimal."
-starter_code: |
-  SELECT
-    c.name AS customer_name,
-    SUM(o.total_amount) AS customer_revenue,
-    -- calculate total_revenue
-    -- calculate revenue_pct
-  FROM orders o
-  JOIN customers c ON c.id = o.customer_id
-  WHERE o.status = 'completed'
-  GROUP BY c.name
-  ORDER BY revenue_pct DESC
+  - "Every row of your result needs the grand total across *all* the rows — which is a chicken-and-egg problem for a plain GROUP BY. Think about how to compute the total once and carry it alongside every row."
+  - "Two clean idioms: (a) aggregate customer totals in a CTE, then use a scalar subquery `(SELECT SUM(...) FROM ...)` for the grand total; or (b) stage customer totals in a CTE, then use an aggregate as a window function (partition-less) to produce the grand total on every row."
+  - "Stage `customer_rev AS (SELECT customer, SUM(total_amount) AS customer_revenue FROM ... GROUP BY customer)`, then `SELECT customer_revenue, SUM(customer_revenue) OVER () AS total_revenue, ROUND(...)` — the empty `OVER ()` sums across every row of the CTE."
 order_matters: true
 solution: |
   WITH customer_rev AS (

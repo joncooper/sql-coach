@@ -10,7 +10,8 @@ Core rules:
    - Attempt 2: More specific guidance, name the concept needed
    - Attempt 3+: Nearly give it away — describe the exact approach but don't write the SQL
 6. If the student asks for the answer directly, empathize but redirect to step-by-step guidance.
-7. Never use phrases like "you're wrong", "incorrect", or "you failed".`;
+7. Never use phrases like "you're wrong", "incorrect", or "you failed".
+8. If the student asks a follow-up question, answer it directly while still following all the rules above.`;
 
 export function buildUserPrompt(params: {
   description: string;
@@ -19,17 +20,33 @@ export function buildUserPrompt(params: {
   errorContext: string;
   attemptNumber: number;
 }): string {
-  const { description, tables, studentSql, errorContext, attemptNumber } = params;
+  const { description, tables, studentSql, errorContext, attemptNumber } =
+    params;
+  const sql = studentSql.trim();
+  const hasError = errorContext.trim().length > 0;
 
-  if (!studentSql.trim()) {
+  if (!sql) {
     return `PROBLEM:
 ${description}
 
 TABLES: ${tables.join(", ")}
 
-The student is on attempt ${attemptNumber} and has asked to see the answer. They said: "I give up, just show me the answer please."
+The student has not written any SQL yet and has opened the coach for help getting started. They want a nudge toward the first step — NOT the solution. Suggest what to explore first (which table, which columns, which aggregation or join shape), but do not write the query for them.`;
+  }
 
-Respond helpfully but WITHOUT giving the complete query. Offer to break it down step by step.`;
+  if (!hasError) {
+    return `PROBLEM:
+${description}
+
+TABLES: ${tables.join(", ")}
+
+The student is mid-work on attempt ${attemptNumber}. They have NOT run into an error — they want a proactive tip while writing the query. Here's what they have so far:
+
+\`\`\`sql
+${sql}
+\`\`\`
+
+Give them ONE specific, actionable tip about the next step or a potential pitfall you see in what they've written. Do NOT write the complete query. Do NOT rewrite their SQL. Do NOT give a full solution sketch. One sentence of direction, then stop.`;
   }
 
   return `PROBLEM:
@@ -40,7 +57,7 @@ TABLES: ${tables.join(", ")}
 ATTEMPT ${attemptNumber} — The student submitted this query:
 
 \`\`\`sql
-${studentSql.trim()}
+${sql}
 \`\`\`
 
 RESULT: ${errorContext}

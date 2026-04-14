@@ -18,10 +18,6 @@ description: |
 hints:
   - "Use SELECT to specify the exact columns you need."
   - "Use ORDER BY with the DESC keyword to sort in descending order."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees
 order_matters: true
 solution: |
   SELECT

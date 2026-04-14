@@ -17,10 +17,6 @@ hints:
   - "You need to count how many employees share the same team_id."
   - "Consider using a subquery or CTE to first calculate the count per team, then join it back to the employee table."
   - "Alternatively, you can use a window function: COUNT(*) OVER (PARTITION BY team_id)."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employee
 order_matters: false
 solution: |
   WITH team_counts AS (

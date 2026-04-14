@@ -2,47 +2,25 @@ slug: first-order-analysis
 title: "First Order Analysis"
 difficulty: medium
 category: window-functions
-tags: [window-functions, row-number, date-arithmetic, cte]
+tags: [window-functions, date-arithmetic, joins]
 domain: ecommerce
 tables: [customers, orders]
 description: |
-  For each customer, find their **first completed order** using `ROW_NUMBER()`.
+  For each customer who has placed at least one completed order, return their **first completed order** along with how long it took them to get there from signup.
 
-  Only consider orders with status = `'completed'`. Calculate how many days elapsed between the customer's signup and their first completed order.
+  Only consider orders with status = `'completed'`. Customers with no completed orders are not in the output.
 
   Return the following columns in this exact order:
   - `customer_name` - the customer's name
   - `first_order_date` - the date of their first completed order
-  - `first_order_amount` - the total_amount of that first completed order
-  - `days_since_signup` - integer number of days between `first_order_date` and `signup_date`
+  - `first_order_amount` - the `total_amount` of that first completed order
+  - `days_since_signup` - integer number of days between `first_order_date` and the customer's `signup_date`
 
   Order the results by `days_since_signup` descending.
 hints:
-  - "Use ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date) to number each customer's completed orders."
-  - "Filter to row_number = 1 to get the first order."
-  - "Subtract signup_date from first_order_date to get days_since_signup."
-  - "Wrap the ROW_NUMBER query in a CTE or subquery so you can filter on the row number."
-starter_code: |
-  -- Find each customer's first completed order
-  WITH ranked_orders AS (
-    SELECT
-      c.name AS customer_name,
-      c.signup_date,
-      o.order_date,
-      o.total_amount,
-      ROW_NUMBER() OVER (
-        -- partition and order here
-      ) AS rn
-    FROM customers c
-    JOIN orders o ON o.customer_id = c.id
-    WHERE o.status = 'completed'
-  )
-  SELECT
-    customer_name,
-    -- first_order_date, first_order_amount, days_since_signup
-  FROM ranked_orders
-  WHERE rn = 1
-  ORDER BY days_since_signup DESC;
+  - "The classic 'top-1 per group' shape: you have many completed orders per customer, and you want exactly one — the earliest. Think about how to pick one row per group without losing the other columns of that row (you need `total_amount` from the winning row, not just the min date)."
+  - "A simple `MIN(order_date) GROUP BY customer_id` won't work because you also need the `total_amount` from the row with the minimum date. The per-row ranking pattern handles this: rank each customer's orders by date, then keep the top-ranked row per customer in an outer query."
+  - "Stage the data in a CTE that adds `ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY o.order_date)` to each row, filter the outer query to `rn = 1`, and subtract `signup_date` from `order_date` for the day count."
 order_matters: true
 solution: |
   WITH ranked_orders AS (

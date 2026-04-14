@@ -25,10 +25,6 @@ hints:
   - "You need to find employee IDs that exist in one table but not the other."
   - "One approach: UNION the IDs from both tables, then LEFT JOIN each table and check for NULLs."
   - "Another approach: use FULL OUTER JOIN between the two tables and filter where either side is NULL."
-starter_code: |
-  SELECT
-    -- your query here
-  FROM employees
 order_matters: true
 solution: |
   SELECT employee_id
