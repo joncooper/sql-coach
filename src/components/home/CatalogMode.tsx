@@ -153,6 +153,34 @@ export default function CatalogMode({
     });
   }, [problems, categoryFilter, difficultyFilter]);
 
+  // Category counts shown in the skill-tree sidebar. When a
+  // difficulty filter is active, these narrow to only matching
+  // problems so the sidebar reflects the same slice as the table.
+  const categoryCounts = useMemo(() => {
+    const map = new Map<string, { total: number; solved: number }>();
+    for (const p of problems) {
+      if (
+        difficultyFilter.size > 0 &&
+        !difficultyFilter.has(p.difficulty)
+      ) {
+        continue;
+      }
+      const entry = map.get(p.category) ?? { total: 0, solved: 0 };
+      entry.total++;
+      const level = levelByProblem.get(p.slug) ?? "unattempted";
+      if (level === "solved" || level === "practiced" || level === "mastered") {
+        entry.solved++;
+      }
+      map.set(p.category, entry);
+    }
+    return map;
+  }, [problems, difficultyFilter, levelByProblem]);
+
+  const totalCount = useMemo(() => {
+    if (difficultyFilter.size === 0) return problems.length;
+    return problems.filter((p) => difficultyFilter.has(p.difficulty)).length;
+  }, [problems, difficultyFilter]);
+
   const sorted = useMemo(() => {
     const arr = [...filtered];
     const dir = sortDir === "asc" ? 1 : -1;
@@ -201,11 +229,11 @@ export default function CatalogMode({
               active={categoryFilter === null}
               onClick={() => setCategoryFilter(null)}
               label="All problems"
-              count={problems.length}
+              count={totalCount}
             />
             {SKILL_GROUPS.map((group) => {
               const visibleCats = group.categories.filter(
-                (c) => masteryByCategory.get(c)?.total
+                (c) => (categoryCounts.get(c)?.total ?? 0) > 0
               );
               if (visibleCats.length === 0) return null;
               return (
@@ -213,6 +241,7 @@ export default function CatalogMode({
                   <div className="eyebrow text-[10px]">{group.name}</div>
                   {visibleCats.map((c) => {
                     const m = masteryByCategory.get(c)!;
+                    const counts = categoryCounts.get(c)!;
                     return (
                       <CategoryButton
                         key={c}
@@ -221,8 +250,8 @@ export default function CatalogMode({
                           setCategoryFilter(categoryFilter === c ? null : c)
                         }
                         label={m.label}
-                        count={m.total}
-                        solvedCount={m.solved + m.practiced + m.mastered}
+                        count={counts.total}
+                        solvedCount={counts.solved}
                         unlocked={m.unlocked}
                       />
                     );
