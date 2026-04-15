@@ -37,7 +37,12 @@ export async function analyzeSubmission(params: {
         { role: "user", content: userPrompt },
       ],
       format: "json",
-      num_predict: 400,
+      // Gemma burns a large chunk of tokens on internal reasoning before
+      // emitting JSON content. 400 was too tight for problems with long
+      // descriptions — runs hit `done_reason: length` with an empty
+      // content payload. 2048 leaves ample headroom for the model to
+      // think and then actually produce the diagnostic.
+      num_predict: 2048,
     });
 
     const parsed = parseAnalysis(content);
