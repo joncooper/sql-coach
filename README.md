@@ -8,9 +8,9 @@ A local SQL practice environment with an AI coach that runs on your machine.
 
 ## Why this exists
 
-I wanted a way to *actually* get good at SQL — not memorize LeetCode answers, not pipe queries to a cloud service, not stare at a blank `SELECT`. The tools I could find were either toy in-memory engines, cloud-only, or "premium subscription to unlock hints."
+Most ways to practice SQL are some flavor of compromise: toy in-memory engines that don't behave like production, cloud-only platforms that gate hints behind a subscription, or static problem sets with no feedback loop. None of them are good at the actual job — taking someone from "I can write a `SELECT`" to fluent on window functions, recursive CTEs, and the rest of the language.
 
-SQL Coach is what I wanted instead: hand-authored problems, real Postgres, a coach that can read what I wrote and name what I'm missing, and everything running locally.
+SQL Coach is built around the assumption that people learn fastest with hand-authored problems, a real database, and a coach that reads what they wrote and names what's missing — all running locally so it stays free, private, and offline-friendly.
 
 ## The local AI coach
 
