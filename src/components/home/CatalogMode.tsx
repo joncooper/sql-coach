@@ -23,10 +23,29 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { ProblemSummary, StatsStore } from "@/types";
+import type { MasteryLevel, ProblemSummary, StatsStore } from "@/types";
+
+type Difficulty = ProblemSummary["difficulty"];
+const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 import type { CoachPick, CategoryMastery } from "@/lib/coach";
-import { getSolvedCount } from "@/lib/stats";
-import { CategoryTag, DifficultyPill, Eyebrow, MasteryRing } from "./parts";
+import { computeMasteryLevel, getSolvedCount } from "@/lib/stats";
+import { CategoryTag, DifficultyPill, Eyebrow } from "./parts";
+
+const LEVEL_ORDER: Record<MasteryLevel, number> = {
+  unattempted: 0,
+  attempted: 1,
+  solved: 2,
+  practiced: 3,
+  mastered: 4,
+};
+
+const LEVEL_LABELS: Record<MasteryLevel, string> = {
+  unattempted: "—",
+  attempted: "Attempted",
+  solved: "Solved",
+  practiced: "Practiced",
+  mastered: "Mastered",
+};
 
 interface CatalogModeProps {
   problems: ProblemSummary[];
@@ -37,7 +56,7 @@ interface CatalogModeProps {
   starredSet: Set<string>;
 }
 
-type SortKey = "num" | "title" | "difficulty" | "category" | "mastery";
+type SortKey = "num" | "title" | "difficulty" | "category" | "status";
 type SortDir = "asc" | "desc";
 
 const DIFF_ORDER = { easy: 0, medium: 1, hard: 2 } as const;
@@ -93,8 +112,20 @@ export default function CatalogMode({
   starredSet,
 }: CatalogModeProps) {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [difficultyFilter, setDifficultyFilter] = useState<Set<Difficulty>>(
+    () => new Set()
+  );
   const [sortKey, setSortKey] = useState<SortKey>("num");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const toggleDifficulty = (d: Difficulty) => {
+    setDifficultyFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+  };
 
   const masteryByCategory = useMemo(() => {
     const map = new Map<string, CategoryMastery>();
@@ -102,26 +133,25 @@ export default function CatalogMode({
     return map;
   }, [mastery]);
 
-  const masteryByProblem = useMemo(() => {
-    const map = new Map<string, number>();
+  const levelByProblem = useMemo(() => {
+    const map = new Map<string, MasteryLevel>();
     for (const p of problems) {
-      const stats = store.problems[p.slug];
-      let score = 0;
-      if (stats?.solvedAt) {
-        const uniqueDays = new Set(stats.solveHistory).size;
-        score = Math.min(1, uniqueDays / 3);
-      } else if (stats?.attempts) {
-        score = 0.1;
-      }
-      map.set(p.slug, score);
+      map.set(
+        p.slug,
+        computeMasteryLevel(store.problems[p.slug], p.difficulty)
+      );
     }
     return map;
   }, [problems, store]);
 
   const filtered = useMemo(() => {
-    if (!categoryFilter) return problems;
-    return problems.filter((p) => p.category === categoryFilter);
-  }, [problems, categoryFilter]);
+    return problems.filter((p) => {
+      if (categoryFilter && p.category !== categoryFilter) return false;
+      if (difficultyFilter.size > 0 && !difficultyFilter.has(p.difficulty))
+        return false;
+      return true;
+    });
+  }, [problems, categoryFilter, difficultyFilter]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -136,15 +166,15 @@ export default function CatalogMode({
           return (DIFF_ORDER[a.difficulty] - DIFF_ORDER[b.difficulty]) * dir;
         case "category":
           return a.category.localeCompare(b.category) * dir;
-        case "mastery": {
-          const ma = masteryByProblem.get(a.slug) ?? 0;
-          const mb = masteryByProblem.get(b.slug) ?? 0;
-          return (ma - mb) * dir;
+        case "status": {
+          const la = LEVEL_ORDER[levelByProblem.get(a.slug) ?? "unattempted"];
+          const lb = LEVEL_ORDER[levelByProblem.get(b.slug) ?? "unattempted"];
+          return (la - lb) * dir;
         }
       }
     });
     return arr;
-  }, [filtered, sortKey, sortDir, masteryByProblem]);
+  }, [filtered, sortKey, sortDir, levelByProblem]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -192,7 +222,7 @@ export default function CatalogMode({
                         }
                         label={m.label}
                         count={m.total}
-                        mastery={m.score}
+                        solvedCount={m.solved + m.practiced + m.mastered}
                         unlocked={m.unlocked}
                       />
                     );
@@ -206,7 +236,7 @@ export default function CatalogMode({
 
       {/* Problems table */}
       <main className="app-panel min-w-0 flex-1 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-3">
+        <div className="flex items-center justify-between gap-4 border-b border-[color:var(--border)] px-5 py-3">
           <div>
             <div className="text-base font-semibold text-[color:var(--text)]">
               {categoryFilter
@@ -216,6 +246,39 @@ export default function CatalogMode({
             <div className="text-xs text-[color:var(--text-muted)]">
               {sorted.length} problem{sorted.length === 1 ? "" : "s"}
             </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {DIFFICULTIES.map((d) => {
+              const active = difficultyFilter.has(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => toggleDifficulty(d)}
+                  aria-pressed={active}
+                  className={`rounded-md border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors ${
+                    active
+                      ? d === "easy"
+                        ? "border-[color:var(--positive)] bg-[color:var(--positive-soft)] text-[color:var(--positive)]"
+                        : d === "medium"
+                          ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
+                          : "border-[color:var(--review-due)] bg-[color:var(--review-due-soft,var(--panel-muted))] text-[color:var(--review-due)]"
+                      : "border-[color:var(--border)] bg-transparent text-[color:var(--text-muted)] hover:text-[color:var(--text)]"
+                  }`}
+                >
+                  {d}
+                </button>
+              );
+            })}
+            {difficultyFilter.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setDifficultyFilter(new Set())}
+                className="ml-1 text-[10px] uppercase tracking-[0.1em] text-[color:var(--text-muted)] hover:text-[color:var(--text)]"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
         <div className="max-h-[calc(100vh-220px)] overflow-auto">
@@ -250,18 +313,18 @@ export default function CatalogMode({
                   className="w-48"
                 />
                 <HeaderCell
-                  label="Mastery"
-                  active={sortKey === "mastery"}
+                  label="Status"
+                  active={sortKey === "status"}
                   dir={sortDir}
-                  onClick={() => toggleSort("mastery")}
-                  className="w-24 text-center"
+                  onClick={() => toggleSort("status")}
+                  className="w-28 text-center"
                 />
                 <th className="w-10 px-3 py-2.5" aria-label="Star"></th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((p, i) => {
-                const score = masteryByProblem.get(p.slug) ?? 0;
+                const level = levelByProblem.get(p.slug) ?? "unattempted";
                 const isStarred = starredSet.has(p.slug);
                 return (
                   <tr
@@ -288,9 +351,7 @@ export default function CatalogMode({
                       </CategoryTag>
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      <div className="inline-flex items-center justify-center">
-                        <MasteryRing value={score} size={24} stroke={3} />
-                      </div>
+                      <StatusPill level={level} />
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <button
@@ -411,19 +472,45 @@ function HeaderCell({
   );
 }
 
+function StatusPill({ level }: { level: MasteryLevel }) {
+  if (level === "unattempted") {
+    return (
+      <span className="text-xs text-[color:var(--text-muted)]">—</span>
+    );
+  }
+  const toneClass: Record<Exclude<MasteryLevel, "unattempted">, string> = {
+    attempted:
+      "border-[color:var(--border)] bg-[color:var(--panel-muted)] text-[color:var(--text-muted)]",
+    solved:
+      "border-[color:var(--positive-soft)] bg-[color:var(--positive-soft)] text-[color:var(--positive)]",
+    practiced:
+      "border-[color:var(--positive-soft)] bg-[color:var(--positive-soft)] text-[color:var(--positive)]",
+    mastered:
+      "border-[color:var(--accent-soft)] bg-[color:var(--accent-soft)] text-[color:var(--accent)]",
+  };
+  return (
+    <span
+      className={`inline-block border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${toneClass[level]}`}
+    >
+      {LEVEL_LABELS[level]}
+      {level === "mastered" ? " ★" : ""}
+    </span>
+  );
+}
+
 function CategoryButton({
   active,
   onClick,
   label,
   count,
-  mastery,
+  solvedCount,
   unlocked = true,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   count: number;
-  mastery?: number;
+  solvedCount?: number;
   unlocked?: boolean;
 }) {
   return (
@@ -450,8 +537,8 @@ function CategoryButton({
         <span className="truncate">{label}</span>
       </span>
       <span className="num shrink-0 text-xs text-[color:var(--text-muted)]">
-        {mastery !== undefined
-          ? `${Math.round(mastery * count)}/${count}`
+        {solvedCount !== undefined
+          ? `${solvedCount}/${count}`
           : count}
       </span>
     </button>
