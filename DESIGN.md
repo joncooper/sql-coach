@@ -160,7 +160,7 @@ The workspace is a three-panel IDE at 1440×900 target. It shares the top nav wi
   - 28px row height, 1px bottom border per row, **no zebra stripes**
   - IBM Plex Mono for all cells
   - Numeric columns right-aligned, string columns left-aligned
-  - NULLs rendered as italic `null` in `--text-faint`
+  - NULLs rendered as italic `null` in `--text-muted`
 - Empty state: *"Run a query to see results here"* in `--text-muted`, centered
 - Loading state: 3 skeleton rows matching row chrome
 - Error state: monospace error text in `--danger`, `--danger-soft` panel background
@@ -195,4 +195,4 @@ Every workspace surface must handle these states explicitly. No silent blanks.
 - Diff colors: supplement with icon (× for missing, + for extra) so colorblind users have a non-color cue.
 - Activity chart (home): active days must differ from inactive by more than color alone (e.g., 1px top accent on active bars).
 - Animations: wrap in `@media (prefers-reduced-motion: reduce)` — already enforced globally in `globals.css`.
-- `--text-faint` (#94a3b8) fails WCAG AA on white at 2.85:1. Use only for decorative strokes, never for readable text content. Use `--text-muted` (#64748b, 5.74:1) for muted body text.
+- Muted body text uses `--text-muted` (`#64748b`, 5.74:1 on white) and passes WCAG AA. Never introduce a lighter gray for readable content — if you need less contrast, use `--text-muted` with smaller weight instead.
