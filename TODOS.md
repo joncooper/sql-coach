@@ -39,11 +39,15 @@ Format: `- [ ] **Title** — what / why / where (status)`
 - [x] **`formatElapsed` DRY fix** — was duplicated in `page.tsx` and `TimerToolbar.tsx`. Extracted to `src/lib/formatTime.ts` alongside `formatRevealedAt` (also pure). 13 new unit tests: `formatElapsed` zero/pad/rollover/multi-digit/negative/truncate, `formatRevealedAt` just-now/mins/hours/days/future/default-now.
 - [x] **Unused imports cleaned up** — removed `useRef`, `formatMastery`, `masteryLabels` from `page.tsx` after extraction.
 
+### Shipped in the 2026-04-15 cleanup pass
+
+- [x] **Component test infrastructure** — Added `@happy-dom/global-registrator` + `@testing-library/react` + `@testing-library/dom` + `@testing-library/user-event` as dev deps. Happy-dom is registered via `test/setup.ts` preloaded from `bunfig.toml`. Single runner (`bun test`) covers both pure lib tests and DOM tests. `tsconfig.json` excludes `test/` and `**/*.test.{ts,tsx}` so Next.js doesn't type-check `bun:test` imports.
+- [x] **Component test coverage** — Wrote 56 new tests across 8 files: `TimerToolbar` (6), `useProblemTimer` (10), `useFocusTrap` (5), `AcceptedModal` (11), `SolutionConfirmModal` (4), `NarrowViewportNotice` (5), `ResultsTable` (8), `ProblemDescription` (7). Full suite is now **145 tests across 15 files, all green in ~350ms**.
+- [x] **`--text-faint` token deleted** — Had zero code consumers after the content audit. Removed from `globals.css` and `DESIGN.md`. Prevents future authors from reaching for a 2.85:1 contrast regression.
+
 ### Still to do
 
-#### Engineering
-- [ ] **Component test infrastructure** — Add `vitest` + `@testing-library/react` + `jsdom` + `@vitest/ui`. Current `bun test` stays for `src/lib/` pure-function tests; vitest handles `.test.tsx` for components and hooks. **Why:** this review surfaced 23 untested surfaces (11 hook methods + 12 components) across the work shipped this session. All verified manually via `bun run build` + `bun test` (89/89 passing) but behavioral regressions in these surfaces won't be caught by CI until component tests exist. **Pros:** unblocks full coverage per the project preference "well-tested code is non-negotiable." **Cons:** 4 new dev deps, one-time 30-45 min setup, then ~5-10 min per test file. **Context:** see the coverage diagram in the eng review — 13/36 surfaces tested, all in `src/lib/`. **Depends on:** nothing.
-- [ ] **`--text-faint` token cleanup** — Token `#94a3b8` still exists in `globals.css:30` but is only referenced by animations (decorative strokes). Content usages were migrated to `--text-muted` in this session. **Options:** (a) rename to `--decorative-stroke`, (b) delete and inline the hex where used. **Why:** risk of future authors reaching for the name and re-introducing a 2.85:1 contrast regression. 5 min fix.
+_Nothing from this review cycle. Repo is clean._
 
 ## Notes
 
