@@ -303,6 +303,7 @@ function scoreCandidate(
   reviewQueue: ReviewItem[],
   weakestUnlocked: CategoryMastery | null,
   currentInProgress: CategoryMastery | null,
+  firstPassComplete: boolean,
   clock?: Clock
 ): ScoredCandidate {
   const today = todayStr(clock);
@@ -314,8 +315,15 @@ function scoreCandidate(
   let status: CandidateStatus = "chosen"; // placeholder; re-assigned below
   let reason = "";
 
-  // 1. Review-due takes absolute priority.
-  if (reviewItem) {
+  // 1. Review-due takes absolute priority — BUT only after the user has
+  // made at least one pass through every unlocked category. Otherwise
+  // reviews steamroll forward progress when the student is still trying
+  // to broaden their exposure, which was the whole point of this app.
+  // Before first-pass completion, review items fall through to the
+  // normal category-weighted scoring (they'll still get a small bump
+  // via weakestUnlocked if they live in a weak category, but won't
+  // dominate new-territory picks).
+  if (reviewItem && firstPassComplete) {
     score += SCORE.reviewDue + reviewItem.daysOverdue * SCORE.reviewDueAge;
     kind = "review";
     reason = reviewItem.daysOverdue > 0
@@ -423,6 +431,14 @@ export function pickNextProblem(
   inProgressUnlocked.sort((a, b) => a.tier - b.tier);
   const currentInProgress = inProgressUnlocked[0] ?? null;
 
+  // First pass = every unlocked category with problems has been
+  // attempted at least once. Until this holds, spaced-repetition
+  // reviews step aside so the student can finish exploring the
+  // catalog.
+  const firstPassComplete = mastery
+    .filter((m) => m.unlocked && m.total > 0)
+    .every((m) => m.score > 0);
+
   // Score every problem.
   const scored: ScoredCandidate[] = problems.map((p) =>
     scoreCandidate(
@@ -432,6 +448,7 @@ export function pickNextProblem(
       reviewQueue,
       weakestUnlocked,
       currentInProgress,
+      firstPassComplete,
       clock
     )
   );

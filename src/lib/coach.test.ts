@@ -239,9 +239,12 @@ describe("pickNextProblem", () => {
     expect(pick.problem!.category).not.toBe("subqueries");
   });
 
-  it("prioritizes review-due problems over forward progress", () => {
+  it("prioritizes review-due problems over forward progress once first pass is complete", () => {
     const store = emptyStore();
-    // Solve a couple of basic-select problems to unlock joins.
+    // Complete a first pass: at least one attempt in every unlocked
+    // category. Solving basic-select, joins, and aggregation unlocks
+    // subqueries, so we also touch sq-1 to satisfy the first-pass
+    // gate.
     for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) {
       store.problems[slug] = stats({
         attempts: 1,
@@ -252,6 +255,44 @@ describe("pickNextProblem", () => {
         nextReviewAt: "2026-04-20", // not due
       });
     }
+    for (const slug of ["j-1", "j-2", "j-3"]) {
+      store.problems[slug] = stats({
+        attempts: 1,
+        solvedAt: "2026-04-05T00:00:00Z",
+        lastSolvedAt: "2026-04-05T00:00:00Z",
+        lastAttemptAt: "2026-04-05T00:00:00Z",
+        solveHistory: ["2026-04-05"],
+        nextReviewAt: "2026-04-20",
+      });
+    }
+    for (const slug of ["agg-1", "agg-2"]) {
+      store.problems[slug] = stats({
+        attempts: 1,
+        solvedAt: "2026-04-05T00:00:00Z",
+        lastSolvedAt: "2026-04-05T00:00:00Z",
+        lastAttemptAt: "2026-04-05T00:00:00Z",
+        solveHistory: ["2026-04-05"],
+        nextReviewAt: "2026-04-20",
+      });
+    }
+    // Touch subqueries (unlocked after the categories above) so the
+    // first pass is truly complete.
+    store.problems["sq-1"] = stats({
+      attempts: 1,
+      solvedAt: "2026-04-05T00:00:00Z",
+      lastSolvedAt: "2026-04-05T00:00:00Z",
+      lastAttemptAt: "2026-04-05T00:00:00Z",
+      solveHistory: ["2026-04-05"],
+      nextReviewAt: "2026-04-20",
+    });
+    store.problems["sq-2"] = stats({
+      attempts: 1,
+      solvedAt: "2026-04-05T00:00:00Z",
+      lastSolvedAt: "2026-04-05T00:00:00Z",
+      lastAttemptAt: "2026-04-05T00:00:00Z",
+      solveHistory: ["2026-04-05"],
+      nextReviewAt: "2026-04-20",
+    });
     // Make bs-3 overdue.
     store.problems["bs-3"].nextReviewAt = "2026-04-09";
 
@@ -259,6 +300,29 @@ describe("pickNextProblem", () => {
     expect(pick.problem?.slug).toBe("bs-3");
     expect(pick.kind).toBe("review");
     expect(pick.teaser.toLowerCase()).toContain("review");
+  });
+
+  it("defers review-due problems while unlocked categories are still untouched", () => {
+    const store = emptyStore();
+    // Solve basic-select but leave joins and aggregation untouched.
+    // A review on bs-3 comes due — it should NOT win, because we still
+    // have fresh ground to break in joins and aggregation.
+    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) {
+      store.problems[slug] = stats({
+        attempts: 1,
+        solvedAt: "2026-04-05T00:00:00Z",
+        lastSolvedAt: "2026-04-05T00:00:00Z",
+        lastAttemptAt: "2026-04-05T00:00:00Z",
+        solveHistory: ["2026-04-05"],
+        nextReviewAt: "2026-04-20",
+      });
+    }
+    store.problems["bs-3"].nextReviewAt = "2026-04-09"; // overdue
+
+    const pick = pickNextProblem(store, CATALOG, CLOCK);
+    expect(pick.problem).not.toBeNull();
+    expect(pick.kind).not.toBe("review");
+    expect(["joins", "aggregation"]).toContain(pick.problem!.category);
   });
 
   it("reinforces the weakest unlocked category after basic-select is done", () => {
