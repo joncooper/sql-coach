@@ -1,127 +1,94 @@
 # SQL Coach
 
-A LeetCode-style practice environment for SQL — with a real Postgres database, 100+ interview-grade problems, and a local LLM that coaches you toward the answer without ever handing it over.
+A local SQL practice environment with an AI coach that runs on your machine.
 
-![SQL Coach home — Pick a skill](docs/images/home.png)
+100+ interview-style problems, a real PostgreSQL 17 database, and an [Ollama](https://ollama.com)-backed coach that picks the next problem for you, explains why, and hints toward answers without giving them away. Your data and your half-finished queries never leave the laptop.
 
-## What this is
+![SQL Coach home — the Coach engine explaining why it picked this problem](docs/images/home.png)
 
-SQL Coach is a self-hosted, local-first desktop web app for drilling SQL interview problems. You write queries against a live PostgreSQL 17 instance, hit **Run** to see your rows, and hit **Submit** to get checked against a reference solution. If you get stuck, an on-device LLM plays the role of an interviewer who nudges you, names the concept you're missing, and refuses to write the query for you.
+## Why this exists
 
-It's built for the kind of person who wants to actually *get good* at SQL rather than memorize LeetCode answers — and who would rather run everything locally than pipe their half-baked queries to a cloud service.
+I wanted a way to *actually* get good at SQL — not memorize LeetCode answers, not pipe queries to a cloud service, not stare at a blank `SELECT`. The tools I could find were either toy in-memory engines, cloud-only, or "premium subscription to unlock hints."
 
-## What's interesting about it
+SQL Coach is what I wanted instead: hand-authored problems, real Postgres, a coach that can read what I wrote and name what I'm missing, and everything running locally.
 
-A few things set it apart from other SQL practice tools:
+## The local AI coach
 
-- **Real Postgres, not a toy in-memory engine.** Every query runs against `postgres:17-alpine` in Docker. You get real EXPLAIN plans, real error messages, and real behavior for window functions, CTEs, `LATERAL`, `GROUPING SETS`, `generate_series`, and the rest of the modern SQL surface area.
-- **A coach, not a cheater.** Coaching happens through a local [Ollama](https://ollama.com) model. The system prompt is tuned (and eval-harness scored) to *never* emit the full solution — it escalates hints across attempts 1, 2, and 3+, praises what you got right, and gently names the missing concept. No cloud calls, no telemetry, no bill.
-- **Infinite problems via local generation.** Beyond the 100+ hand-authored problems, you can ask the LLM to generate a fresh problem on any topic and difficulty. It creates the description, schema, seed data, solution, and expected output — then drops you straight into the editor.
-- **A real mastery model.** Problems aren't binary solved/unsolved. SQL Coach tracks *attempted → solved → practiced → mastered*, penalizes peeks at the solution, schedules problems for review (spaced repetition), and computes daily streaks.
-- **Skill tree, not a list.** Problems are grouped into learning tracks (Fundamentals → Analytics → Logic & Transformation → Text & Dates → Applied), so you can practice window functions without having to scroll past fifty JOIN problems first.
-- **Two Postgres roles, by design.** Your queries execute as `coach_readonly` with a 5-second statement timeout — so runaway `CROSS JOIN` or infinite recursive CTE can't wedge your machine. Reference solutions and seeding run as `coach_admin`.
-- **Data managed by dbt.** Seeds live in `dbt/seeds/{hr,ecommerce,analytics}/`, loaded via `dbt seed`, with schema routing driven by a `generate_schema_name` macro. Changing or adding a dataset is a YAML edit and a reload, not a migration dance.
+Coaching is the point of the project. It runs entirely through Ollama on your own machine — no API keys, no telemetry, no bill.
 
-### The problem view
+**Pick the next problem.** Open the app and the Coach engine has already chosen one. It looks at what you've solved, what you're weak at, what's in your review queue, and what categories are unlocked in the skill tree, then ranks candidates and explains the pick in plain English: *"Reinforces Basic SELECT, your weakest category. You're at 0% mastery here. Start with an easy problem in this category before pushing harder."* The full scoring pool is visible, so you can see what it considered and rejected.
 
-A LeetCode-style three-pane layout: problem + schema on the left, CodeMirror 6 SQL editor top-right, live results bottom-right. `⌘↵` to run, `⌘⇧↵` to submit.
+**Nudge, don't solve.** Open the chat panel on any problem and ask for help. The system prompt is eval-harness scored to *never* emit the full solution — it escalates hints across attempts 1, 2, 3+, praises what you got right, and names the missing concept. You get the satisfaction of finishing the query yourself.
 
-![Problem page with split-pane editor](docs/images/problem.png)
+**Generate a fresh problem.** Hit `POST /api/llm/generate` with a topic and difficulty and the model produces a new problem end-to-end — description, schema, seed data, reference solution, expected output — validated against the live database before being handed back. When you run out of the 100+ hand-authored problems, you never run out of problems.
 
-### Browse 100+ problems
+The coaching prompts and the problem generator live in `src/lib/prompts/` and are scored by the eval harness in `evals/` so regressions show up before they reach you.
 
-Filter by difficulty and category, see mastery state at a glance, star the ones you want to come back to.
+## The rest of it
 
-![All problems list](docs/images/problems-list.png)
+![Writing a query and checking it against the reference solution](docs/images/problem.png)
+
+A three-pane editor: problem + schema on the left, CodeMirror 6 with Postgres autocomplete in the top right, results or an interactive diff on the bottom right. `⌘↵` runs your query, `⌘⇧↵` submits it for grading.
+
+- **Real Postgres, not a toy.** Every query runs against `postgres:17-alpine` in Docker. Window functions, `LATERAL`, recursive CTEs, `GROUPING SETS`, `generate_series` — all of it works the way it works in production.
+- **Safe by construction.** Your queries execute as a `coach_readonly` role with a 5-second statement timeout. Runaway joins can't wedge anything.
+- **Mastery, not a checkbox.** Problems move through *attempted → solved → practiced → mastered*. Peeking at the solution costs you. Spaced repetition schedules problems for review. Daily streaks track whether you actually showed up.
+- **Skill tree.** Problems are grouped into tracks — Fundamentals, Analytics, Logic & Transformation, Text & Dates, Applied — with prerequisites, so you can drill window functions without wading through fifty JOIN problems first.
+- **dbt for data.** Seeds live in `dbt/seeds/{hr,ecommerce,analytics}/`. Adding a dataset is a YAML edit and a `dbt seed`, not a migration.
+
+![The full catalog of 100+ problems](docs/images/problems-list.png)
 
 ## Getting started
 
-### Prerequisites
-
-- [Docker](https://www.docker.com/) (for Postgres)
-- [Bun](https://bun.sh) (for the Next.js app)
-- [uv](https://docs.astral.sh/uv/) (for dbt)
-- [Ollama](https://ollama.com) — optional, only needed for coaching chat and problem generation
-
-### Install
+You'll need [Docker](https://www.docker.com/), [Bun](https://bun.sh), and [uv](https://docs.astral.sh/uv/). [Ollama](https://ollama.com) is optional but strongly recommended — the coach and problem generator are the best parts.
 
 ```bash
 git clone https://github.com/joncooper/sql-coach.git
 cd sql-coach
 ./scripts/setup.sh
-```
-
-The setup script will:
-
-1. Start Postgres via `docker compose`
-2. Install dbt + dbt-postgres into a local `uv` venv
-3. Run `dbt seed` to load the `hr`, `ecommerce`, and `analytics` datasets
-4. Run `dbt test` to verify data quality
-5. Create the `coach_readonly` role with a 5-second timeout
-6. Apply the coaching telemetry schema
-7. Install JS dependencies with `bun install`
-
-### Run the dev server
-
-```bash
 bun run dev
 ```
 
 Open http://localhost:3000.
 
-### Enable coaching (optional)
+`setup.sh` brings up Postgres, installs dbt, seeds the database, creates the roles, and installs JS dependencies. It's idempotent — re-run it any time something looks off.
 
-Install Ollama and pull a model:
+### Turning on the coach
 
 ```bash
 brew install ollama
 ollama serve &
-ollama pull gemma3:latest  # or any chat model you prefer
+ollama pull gemma3:latest   # or any chat model you like
 ```
 
-By default the app talks to `http://localhost:11434`. Override with environment variables if needed:
+The app talks to `http://localhost:11434` by default. Override with `OLLAMA_URL` and `OLLAMA_MODEL` if you've got a different setup.
 
-```bash
-OLLAMA_URL=http://localhost:11434 OLLAMA_MODEL=gemma3:latest bun run dev
-```
-
-When Ollama is reachable, the coaching chat panel and the "Generate problem" button light up automatically.
-
-## How to use it
-
-1. **Pick a skill** from the home page (or jump into "All problems") and choose something at your level.
-2. **Read the problem, inspect the schema and sample data** in the left pane. Every problem shows you the tables you can query and what the expected output looks like.
-3. **Write your query** in the editor. Autocomplete knows the schema.
-4. `⌘↵` runs the query (read-only, 5s timeout) and shows rows.
-5. `⌘⇧↵` submits — rows are diffed against the reference solution and you get a pass/fail with any mismatched rows highlighted.
-6. **Stuck?** Reveal a hint (there are usually three, from gentle to explicit), or open the coach chat for adaptive, context-aware help.
-7. **Track progress** on the right side: daily streak, last-7-days activity heatmap, total solved, and mastery indicators per problem.
-8. **Starred and review-due problems** show up in the left sidebar so you can come back to them.
+When Ollama is reachable, the **Ask AI** panel on the problem page and the `POST /api/llm/generate` endpoint come alive.
 
 ## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Next.js 16 (App Router) + React 19 + Tailwind 4          │
+│  Next.js 16 (App Router) · React 19 · Tailwind 4          │
 │  CodeMirror 6 · react-resizable-panels · react-markdown   │
 └───────────────┬──────────────────────────────────────────┘
                 │
         ┌───────┴────────┐
-        │  API routes     │
-        │  /api/query     │  run read-only SQL          (coach_readonly)
-        │  /api/submit    │  diff vs. reference solution
-        │  /api/schema    │  list tables/columns
-        │  /api/problems  │  list+load YAML problems
-        │  /api/coaching  │  stream LLM hints
-        │  /api/llm/*     │  generate problems, status
+        │  API routes    │
+        │  /api/query    │  run read-only SQL       (coach_readonly)
+        │  /api/submit   │  diff vs. reference solution
+        │  /api/schema   │  introspect tables / columns
+        │  /api/problems │  list & load YAML problems
+        │  /api/coach    │  Coach engine: pick the next problem
+        │  /api/coaching │  stream hints from Ollama
+        │  /api/llm/*    │  generate problems, health check
         └───────┬────────┘
                 │
      ┌──────────┴──────────┐
-     │                      │
-     ▼                      ▼
+     ▼                     ▼
 ┌─────────────┐   ┌──────────────────────┐
 │ PostgreSQL  │   │ Ollama (local LLM)   │
-│   17-alpine │   │  coaching + gen      │
+│  17-alpine  │   │  coaching + gen      │
 │             │   └──────────────────────┘
 │ schemas:    │
 │  hr         │   ┌──────────────────────┐
@@ -130,20 +97,35 @@ When Ollama is reachable, the coaching chat panel and the "Generate problem" but
 └─────────────┘
 ```
 
-Key directories:
+### The Coach engine
+
+`src/lib/coach.ts` is the ranking logic behind Coach mode. Pure functions over a stats store and the problem list — no I/O, fully unit-tested in `coach.test.ts`.
+
+Ranking priorities, highest first:
+
+1. Review-due items always win.
+2. Weakest unlocked category, for reinforcement.
+3. Current in-progress category, for momentum.
+4. Any unlocked category, for forward progress.
+
+Penalties apply to recently-attempted problems, problems where you've already peeked at the solution, and problems you've already mastered. Score weights live at the top of the file.
+
+Exposed at `POST /api/coach/next` for anything that wants to pick the next problem from outside the app — external agents, scripts, `curl | jq`.
+
+### Directory layout
 
 - `problems/` — YAML problem definitions (100+)
-- `dbt/` — dbt project; seeds in `dbt/seeds/{hr,ecommerce,analytics}/`
+- `dbt/` — dbt project with seeds under `dbt/seeds/{hr,ecommerce,analytics}/`
 - `src/app/` — Next.js pages and API routes
 - `src/components/` — React components (`SqlEditor`, `ResultsTable`, `CoachingChat`, `SchemaExplorer`, …)
-- `src/lib/` — server utilities (`db.ts`, `problems.ts`, `compare.ts`, `ollama.ts`, `stats.ts`, `skill-tree.ts`)
-- `src/lib/prompts/` — coaching and problem-generation prompts (eval-harness scored)
-- `evals/` — prompt eval harness with tasks, judges, and traces
+- `src/lib/` — server utilities (`db.ts`, `problems.ts`, `compare.ts`, `ollama.ts`, `stats.ts`, `coach.ts`, `skill-tree.ts`)
+- `src/lib/prompts/` — coaching and problem-generation prompts
+- `evals/` — prompt eval harness (tasks, judges, traces)
 - `scripts/` — `setup.sh`, `reset-db.sh`, `init-roles.sql`, `init-tracking.sql`
 
-## Adding your own problems
+## Adding problems by hand
 
-Drop a YAML file into `problems/`:
+Drop a YAML file in `problems/`:
 
 ```yaml
 slug: my-new-problem
@@ -170,7 +152,7 @@ solution: |
 expected_columns: [department_id, name, salary]
 ```
 
-Then restart the dev server. If you reference new tables, add seeds under `dbt/seeds/<domain>/` and re-run `cd dbt && .venv/bin/dbt seed`.
+Restart the dev server to pick it up. If the problem references new tables, add seeds under `dbt/seeds/<domain>/` and re-run `cd dbt && .venv/bin/dbt seed`.
 
 ## Commands
 
@@ -179,17 +161,16 @@ Then restart the dev server. If you reference new tables, add seeds under `dbt/s
 | `./scripts/setup.sh` | Full bootstrap (Postgres + dbt + seeds + deps) |
 | `bun run dev` | Dev server at http://localhost:3000 |
 | `bun run build` | Production build |
+| `bun test` | Run the Coach engine test suite |
 | `./scripts/reset-db.sh` | Destroy and rebuild the database |
 | `cd dbt && .venv/bin/dbt seed` | Reload seed data |
 | `cd dbt && .venv/bin/dbt test` | Run data quality tests |
 
-## Tooling conventions
+## Conventions
 
-This project uses **bun** for all JS/TS, **uv** for all Python, and **jq** for all JSON. No `npm`/`yarn`/`pnpm`, no `pip`, no ad-hoc `python -c` / `node -e`.
+**bun** for all JS/TS, **uv** for all Python, **jq** for all JSON. No `npm`/`yarn`/`pnpm`, no `pip`, no ad-hoc `node -e`.
 
-## Viewport
-
-Desktop only. The UI is tuned for a three-pane layout and a real keyboard — mobile and tablet are intentionally unsupported.
+**Desktop only.** The UI is tuned for a three-pane layout and a real keyboard. Mobile and tablet are intentionally unsupported.
 
 ## License
 
