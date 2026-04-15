@@ -62,8 +62,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...comparison,
-      expected: { columns: expectedResult.columns, rows: expectedResult.rows },
-      actual: { columns: userResult.columns, rows: userResult.rows },
+      expected: {
+        columns: expectedResult.columns,
+        columnTypes: expectedResult.columnTypes,
+        rows: expectedResult.rows,
+      },
+      actual: {
+        columns: userResult.columns,
+        columnTypes: userResult.columnTypes,
+        rows: userResult.rows,
+      },
       executionTimeMs: userResult.executionTimeMs,
       submissionId,
     });

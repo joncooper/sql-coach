@@ -75,7 +75,8 @@ ATTEMPT ${attemptNumber} — The student submitted this query:
 ${sql}
 \`\`\`
 
-RESULT: ${errorContext}
+RESULT:
+${errorContext}
 
-Give coaching feedback following the rules. Remember: do NOT reveal the solution.`;
+Use the column types and the row-level diff above to identify the specific mistake. Common bugs to watch for: column TYPE mismatches (date vs timestamptz, int vs numeric), missing casts, off-by-one date ranges, wrong aggregation, missing GROUP BY columns, and WHERE vs JOIN-condition placement. Give coaching feedback following the rules. Remember: do NOT reveal the solution.`;
 }

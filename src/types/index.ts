@@ -24,6 +24,7 @@ export interface ProblemSummary {
 
 export interface QueryResult {
   columns: string[];
+  columnTypes: string[];
   rows: unknown[][];
   rowCount: number;
   executionTimeMs: number;
@@ -39,8 +40,8 @@ export interface SubmitResult {
   pass: boolean;
   message: string;
   coaching: string;
-  expected: { columns: string[]; rows: unknown[][] };
-  actual: { columns: string[]; rows: unknown[][] };
+  expected: { columns: string[]; columnTypes: string[]; rows: unknown[][] };
+  actual: { columns: string[]; columnTypes: string[]; rows: unknown[][] };
   diff: RowDiff[];
   executionTimeMs: number;
 }
