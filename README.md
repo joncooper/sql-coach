@@ -4,7 +4,7 @@ A local SQL practice environment with an AI coach that runs on your machine.
 
 100+ interview-style problems, a real PostgreSQL 17 database, and an [Ollama](https://ollama.com)-backed coach that picks the next problem for you, explains why, and hints toward answers without giving them away. Your data and your half-finished queries never leave the laptop.
 
-![SQL Coach home — the Coach engine explaining why it picked this problem](docs/images/home.png)
+![SQL Coach home — the Coach engine explaining why it picked this problem](docs/images/home-coach.png)
 
 ## Why this exists
 
@@ -26,7 +26,7 @@ The coaching prompts and the problem generator live in `src/lib/prompts/` and ar
 
 ## The rest of it
 
-![Writing a query and checking it against the reference solution](docs/images/problem.png)
+![Writing a query and checking it against the reference solution](docs/images/problem-check.png)
 
 A three-pane editor: problem + schema on the left, CodeMirror 6 with Postgres autocomplete in the top right, results or an interactive diff on the bottom right. `⌘↵` runs your query, `⌘⇧↵` submits it for grading.
 
@@ -36,7 +36,7 @@ A three-pane editor: problem + schema on the left, CodeMirror 6 with Postgres au
 - **Skill tree.** Problems are grouped into tracks — Fundamentals, Analytics, Logic & Transformation, Text & Dates, Applied — with prerequisites, so you can drill window functions without wading through fifty JOIN problems first.
 - **dbt for data.** Seeds live in `dbt/seeds/{hr,ecommerce,analytics}/`. Adding a dataset is a YAML edit and a `dbt seed`, not a migration.
 
-![The full catalog of 100+ problems](docs/images/problems-list.png)
+![The full catalog of 100+ problems](docs/images/catalog.png)
 
 ## Getting started
 
