@@ -4,10 +4,10 @@ import { useRef, useEffect, useCallback } from "react";
 import { EditorView, keymap, placeholder, drawSelection } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
 import { EditorState, Prec } from "@codemirror/state";
-import { sql, PostgreSQL } from "@codemirror/lang-sql";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { basicSetup } from "codemirror";
+import { sqlEditorExtensions } from "@/lib/sqlEditorExtensions";
 
 interface SqlEditorProps {
   value: string;
@@ -57,7 +57,7 @@ export default function SqlEditor({
   const getExtensions = useCallback(() => {
     return [
       basicSetup,
-      sql({ dialect: PostgreSQL, schema: schema }),
+      ...sqlEditorExtensions({ schema }),
       placeholder("Write your SQL query here..."),
       syntaxHighlighting(editorHighlight),
       keymap.of([indentWithTab]),
