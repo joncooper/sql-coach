@@ -1,22 +1,22 @@
 slug: array-agg-tags
 title: "Product Prices by Category"
-difficulty: easy
-category: string-functions
+difficulty: medium
+category: aggregation
 tags: [array-agg, distinct, ordering]
 domain: ecommerce
 tables: [products, categories]
 description: |
-  For each product category, create a **sorted array of distinct product prices** using `ARRAY_AGG(DISTINCT ... ORDER BY ...)`.
+  For each product category, return the full set of **distinct prices** offered in that category, packed into a single row per category. Each row should give you, at a glance, every unique price point that category sells at — from cheapest to most expensive.
 
   Return the following columns in this exact order:
   - `category_name` - the name of the category
-  - `price_list` - an array of distinct prices for products in that category, sorted in ascending order
+  - `price_list` - an ordered collection of the distinct prices for that category, sorted from lowest to highest
 
   Order the results by `category_name` ascending.
 hints:
-  - "Use ARRAY_AGG(DISTINCT p.price ORDER BY p.price) to build a sorted array of unique prices."
-  - "JOIN products with categories to get category names."
-  - "GROUP BY the category name."
+  - "You need one row per category, and each row has to hold MANY prices. Think about what aggregate shape can collapse a set of rows into a single composite value."
+  - "Postgres has an aggregate that builds an array from grouped values, and it supports both DISTINCT and an internal ORDER BY clause. Look up the ARRAY_AGG reference if the exact syntax escapes you."
+  - "`ARRAY_AGG(DISTINCT p.price ORDER BY p.price)` produces the sorted, de-duplicated array. Pair it with a JOIN from products to categories and GROUP BY the category name."
 order_matters: true
 solution: |
   SELECT
