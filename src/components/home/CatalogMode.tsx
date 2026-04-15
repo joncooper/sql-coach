@@ -352,6 +352,26 @@ export default function CatalogMode({
               </tr>
             </thead>
             <tbody>
+              {sorted.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-3 py-10 text-center">
+                    <div className="eyebrow">No problems match those filters</div>
+                    <p className="mx-auto mt-2 max-w-sm text-sm text-[color:var(--text-muted)]">
+                      Loosen the difficulty or category filters to see results.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCategoryFilter(null);
+                        setDifficultyFilter(new Set());
+                      }}
+                      className="btn-ghost mt-3 text-[color:var(--accent)]"
+                    >
+                      Clear filters
+                    </button>
+                  </td>
+                </tr>
+              )}
               {sorted.map((p, i) => {
                 const level = levelByProblem.get(p.slug) ?? "unattempted";
                 const isStarred = starredSet.has(p.slug);
@@ -400,37 +420,11 @@ export default function CatalogMode({
         </div>
       </main>
 
-      {/* Right rail — Today's Focus */}
+      {/* Right rail — At a glance + Coach cross-link.
+          Today's Focus panel removed via /plan-design-review 2026-04-15
+          as duplicative of the Coach mode toggle one click away. */}
       <aside className="w-[280px] shrink-0">
         <div className="app-panel p-5">
-          <Eyebrow>Today's focus</Eyebrow>
-          {pick.problem ? (
-            <>
-              <div className="mt-2 text-xs text-[color:var(--text-muted)]">
-                Your next problem
-              </div>
-              <div className="mt-1 text-base font-semibold leading-tight text-[color:var(--text)]">
-                {pick.problem.title}
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <DifficultyPill difficulty={pick.problem.difficulty} />
-                <CategoryTag>{labelFor(pick.problem.category)}</CategoryTag>
-              </div>
-              <Link
-                href={`/problems/${pick.problem.slug}`}
-                className="btn-primary mt-4 w-full"
-              >
-                Open workspace
-              </Link>
-            </>
-          ) : (
-            <div className="mt-2 text-sm text-[color:var(--text-muted)]">
-              {pick.teaser}
-            </div>
-          )}
-        </div>
-
-        <div className="app-panel mt-3 p-5">
           <Eyebrow>At a glance</Eyebrow>
           <dl className="mt-3 flex flex-col gap-2 text-sm">
             <StatRow label="Solved" value={`${solved} / ${problems.length}`} />

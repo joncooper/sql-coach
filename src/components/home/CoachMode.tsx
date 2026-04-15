@@ -443,6 +443,9 @@ function ThisWeekChart({
                   background: active
                     ? "var(--accent)"
                     : "var(--border)",
+                  // Non-color differentiation for active days (a11y):
+                  // a 2px indigo top border makes the signal survive colorblind modes.
+                  borderTop: active ? "2px solid var(--accent-strong)" : undefined,
                 }}
               />
               <div className="text-[10px] text-[color:var(--text-muted)]">

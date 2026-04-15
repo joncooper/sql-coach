@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   Panel,
@@ -15,7 +15,11 @@ import SchemaExplorer from "@/components/SchemaExplorer";
 import SampleData from "@/components/SampleData";
 import ResultsTable from "@/components/ResultsTable";
 import CoachingChat from "@/components/CoachingChat";
+import AcceptedModal from "@/components/workspace/AcceptedModal";
+import SolutionConfirmModal from "@/components/workspace/SolutionConfirmModal";
+import TimerToolbar from "@/components/workspace/TimerToolbar";
 import { useLlmStatus } from "@/hooks/useLlmStatus";
+import { useProblemTimer } from "@/hooks/useProblemTimer";
 import {
   loadStats,
   recordAttempt,
@@ -33,26 +37,10 @@ import {
 import { enqueuePendingAnalysis } from "@/hooks/usePendingAnalyses";
 import type { MasteryLevel, QueryResult, RowDiff } from "@/types";
 
+import { formatElapsed } from "@/lib/formatTime";
+
 function formatCategory(value: string) {
   return value.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatElapsed(ms: number) {
-  return `${String(Math.floor(ms / 60000)).padStart(2, "0")}:${String(
-    Math.floor((ms % 60000) / 1000)
-  ).padStart(2, "0")}`;
-}
-
-const masteryLabels: Record<MasteryLevel, string> = {
-  unattempted: "Unattempted",
-  attempted: "Attempted",
-  solved: "Solved",
-  practiced: "Practiced",
-  mastered: "Mastered ★",
-};
-
-function formatMastery(level: MasteryLevel): string {
-  return masteryLabels[level];
 }
 
 const SqlEditor = dynamic(() => import("@/components/SqlEditor"), {
@@ -185,11 +173,25 @@ export default function ProblemPage({
   } | null>(null);
   const [totalSolved, setTotalSolved] = useState(0);
 
-  const [timerEnabled, setTimerEnabled] = useState(false);
-  const [timerStarted, setTimerStarted] = useState(false);
-  const [elapsedMs, setElapsedMs] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const timerPausedRef = useRef(false);
+  // Timer state is encapsulated in a hook so the page component doesn't
+  // own the interval ref, pause handler, or confirm flag. See useProblemTimer.
+  const timer = useProblemTimer();
+
+  // Solution reveal confirmation modal — replaces window.confirm which
+  // broke the Linear × Notion × Raycast register.
+  const [showSolutionConfirm, setShowSolutionConfirm] = useState(false);
+
+  // Inline celebration banner for subsequent-pass submissions (the full
+  // Accepted modal only fires on first solve). Auto-clears after 3s.
+  const [showInlineCelebration, setShowInlineCelebration] = useState(false);
+
+  // Pending coach analysis surface. Tracks the submission id so we can
+  // show "Coach analyzing…" in the results panel until the user opens
+  // the coach chat or starts a new submission.
+  const [pendingAnalysis, setPendingAnalysis] = useState<{
+    id: number;
+    startedAt: number;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,36 +237,13 @@ export default function ProblemPage({
   const handleCodeChange = useCallback(
     (newCode: string) => {
       setCode(newCode);
-      if (timerEnabled && !timerStarted && newCode.trim()) {
-        setTimerStarted(true);
+      if (newCode.trim()) {
+        // Safe to call repeatedly; the hook guards on enabled + not-started.
+        timer.beginTicking();
       }
     },
-    [timerEnabled, timerStarted]
+    [timer]
   );
-
-  useEffect(() => {
-    if (timerStarted && timerEnabled) {
-      timerRef.current = setInterval(() => {
-        if (!timerPausedRef.current) {
-          setElapsedMs((previous) => previous + 1000);
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [timerStarted, timerEnabled]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      timerPausedRef.current = document.hidden;
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
 
   const handleRun = useCallback(async () => {
     if (!code.trim() || isRunning) return;
@@ -318,6 +297,7 @@ export default function ProblemPage({
             slug,
             startedAt: Date.now(),
           });
+          setPendingAnalysis({ id: data.submissionId, startedAt: Date.now() });
         }
       } else {
         setSubmitResult(data);
@@ -327,6 +307,7 @@ export default function ProblemPage({
             slug,
             startedAt: Date.now(),
           });
+          setPendingAnalysis({ id: data.submissionId, startedAt: Date.now() });
         }
 
         const difficulty = problem?.difficulty ?? "easy";
@@ -336,7 +317,14 @@ export default function ProblemPage({
           difficulty
         );
 
-        const timeArg = timerEnabled && timerStarted ? elapsedMs : undefined;
+        // First-pass = user has never solved this problem before. Everything
+        // else (practiced, mastered, or a re-solve) is a subsequent pass and
+        // gets the quieter inline banner instead of the full modal.
+        const isFirstPass =
+          previousLevel === "unattempted" || previousLevel === "attempted";
+
+        const timeArg =
+          timer.enabled && timer.started ? timer.elapsedMs : undefined;
         const store = recordAttempt(slug, data.pass, timeArg);
         const newCount = store.problems[slug]?.attempts ?? 0;
         setAttemptCount(newCount);
@@ -350,9 +338,16 @@ export default function ProblemPage({
               : null
           );
           setTotalSolved(getSolvedCount(store));
-          setShowAccepted(true);
           setCoachOpen(false);
-          if (timerRef.current) clearInterval(timerRef.current);
+          // Stop ticking without clearing elapsed — the modal needs to show it.
+          timer.stopTicking();
+          setPendingAnalysis(null);
+
+          if (isFirstPass) {
+            setShowAccepted(true);
+          } else {
+            setShowInlineCelebration(true);
+          }
         }
       }
     } catch {
@@ -360,15 +355,7 @@ export default function ProblemPage({
     } finally {
       setIsRunning(false);
     }
-  }, [
-    code,
-    elapsedMs,
-    isRunning,
-    problem?.difficulty,
-    slug,
-    timerEnabled,
-    timerStarted,
-  ]);
+  }, [code, isRunning, problem?.difficulty, slug, timer]);
 
   const handleResetCode = useCallback(() => {
     if (!problem) return;
@@ -379,10 +366,9 @@ export default function ProblemPage({
     setError(null);
     setShowAccepted(false);
     setCoachOpen(false);
-    setElapsedMs(0);
-    setTimerStarted(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-  }, [problem, slug]);
+    // Clear elapsed + stop ticking, but preserve enabled (armed) state.
+    timer.reset();
+  }, [problem, slug, timer]);
 
   const handleHintReveal = useCallback(
     (count: number) => {
@@ -391,12 +377,15 @@ export default function ProblemPage({
     [slug]
   );
 
-  const handleShowSolution = useCallback(async () => {
-    const ok = window.confirm(
-      "Viewing the solution means this problem can never reach Mastered status. Continue?"
-    );
-    if (!ok) return;
+  // Opening the solution reveal just toggles the branded modal. The
+  // actual fetch lives in confirmShowSolution so the modal stays in
+  // control of consent. Focus management + Escape live inside the modal.
+  const handleShowSolution = useCallback(() => {
+    setShowSolutionConfirm(true);
+  }, []);
 
+  const confirmShowSolution = useCallback(async () => {
+    setShowSolutionConfirm(false);
     try {
       const response = await fetch(`/api/problems/${slug}/solution`, {
         method: "POST",
@@ -409,9 +398,19 @@ export default function ProblemPage({
         recordSolutionViewed(slug);
       }
     } catch {
-      // silent
+      // Silent — solution reveal failing is a rare edge case; the
+      // solution remains hidden and the user can retry.
     }
   }, [slug]);
+
+  // Auto-clear the inline celebration banner after 3s. Cleanup cancels
+  // the timeout if the component unmounts or the state flips early,
+  // preventing "setState on unmounted component" warnings.
+  useEffect(() => {
+    if (!showInlineCelebration) return;
+    const id = window.setTimeout(() => setShowInlineCelebration(false), 3000);
+    return () => window.clearTimeout(id);
+  }, [showInlineCelebration]);
 
   if (notFound) {
     return (
@@ -550,63 +549,26 @@ export default function ProblemPage({
           <Panel defaultSize={56} minSize={24}>
             <div className="relative flex h-full flex-col bg-[color:var(--bg)]">
               {showAccepted && submitResult && (
-                <div
-                  className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center bg-black/10"
-                  onClick={() => setShowAccepted(false)}
-                >
-                  <div
-                    className="app-panel-strong animate-in max-w-lg border border-[color:var(--border-strong)] px-8 py-7 text-center"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <p className="eyebrow">Accepted</p>
-                    <div className="mt-3 text-2xl font-semibold leading-none text-[color:var(--positive)]">
-                      Clean pass.
-                    </div>
-                    <div className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
-                      Runtime {submitResult.executionTimeMs}ms
-                      {timerEnabled && timerStarted && (
-                        <span className="ml-3">
-                          Time {formatElapsed(elapsedMs)}
-                        </span>
-                      )}
-                    </div>
-                    {attemptCount > 1 && (
-                      <div className="mt-2 text-sm text-[color:var(--text-muted)]">
-                        Solved in {attemptCount} attempts
-                      </div>
-                    )}
-                    {masteryTransition && (
-                      <div className="mt-2 text-sm text-[color:var(--accent-strong)]">
-                        {masteryTransition.from === "unattempted" ||
-                        masteryTransition.from === "attempted"
-                          ? null
-                          : `${formatMastery(masteryTransition.from)} → `}
-                        {formatMastery(masteryTransition.to)}
-                      </div>
-                    )}
-                    {totalSolved > 0 && (
-                      <div className="mt-2 text-xs uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
-                        {totalSolved} total solved
-                      </div>
-                    )}
-                    <div className="mt-6 flex items-center justify-center gap-3">
-                      {problem.adjacent.next && (
-                        <a
-                          href={`/problems/${problem.adjacent.next}`}
-                          className="border border-[color:var(--positive)] bg-[color:var(--positive)] px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
-                        >
-                          Next problem
-                        </a>
-                      )}
-                      <button
-                        onClick={() => setShowAccepted(false)}
-                        className="border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
-                      >
-                        Keep editing
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <AcceptedModal
+                  executionTimeMs={submitResult.executionTimeMs}
+                  elapsedLabel={
+                    timer.enabled && timer.started
+                      ? formatElapsed(timer.elapsedMs)
+                      : null
+                  }
+                  attemptCount={attemptCount}
+                  masteryTransition={masteryTransition}
+                  totalSolved={totalSolved}
+                  nextSlug={problem.adjacent.next}
+                  onClose={() => setShowAccepted(false)}
+                />
+              )}
+
+              {showSolutionConfirm && (
+                <SolutionConfirmModal
+                  onConfirm={confirmShowSolution}
+                  onClose={() => setShowSolutionConfirm(false)}
+                />
               )}
 
               <div className="flex-1 overflow-hidden">
@@ -640,31 +602,7 @@ export default function ProblemPage({
                     ⌘⇧↵
                   </span>
                 </button>
-                <button
-                  onClick={() => {
-                    setTimerEnabled((current) => {
-                      const next = !current;
-                      if (next) {
-                        setElapsedMs(0);
-                        setTimerStarted(false);
-                      }
-                      return next;
-                    });
-                  }}
-                  className={`border px-3 py-2 text-sm font-medium ${
-                    timerEnabled
-                      ? "border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] text-[color:var(--highlight)]"
-                      : "border-[color:var(--border)] text-[color:var(--text-muted)] hover:bg-[color:var(--panel-muted)] hover:text-[color:var(--text)]"
-                  }`}
-                  title={timerEnabled ? "Disable timer" : "Enable timer"}
-                >
-                  Timer
-                  {timerEnabled && (
-                    <span className="ml-2 font-[family-name:var(--font-mono)]">
-                      {formatElapsed(elapsedMs)}
-                    </span>
-                  )}
-                </button>
+                <TimerToolbar timer={timer} />
                 {llmAvailable && (
                   <button
                     onClick={() => setCoachOpen((open) => !open)}
@@ -694,6 +632,45 @@ export default function ProblemPage({
 
           <Panel defaultSize={44} minSize={18}>
             <div className="flex h-full flex-col bg-[color:var(--bg)]">
+              {/* Inline celebration banner — subsequent-pass submissions
+                  get this quieter surface instead of the full Accepted modal. */}
+              {showInlineCelebration && submitResult?.pass && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="shrink-0 border-b border-[color:var(--positive)] bg-[color:var(--positive-soft)] px-5 py-2 text-sm font-medium text-[color:var(--positive)]"
+                >
+                  <span aria-hidden className="mr-1.5">
+                    ✓
+                  </span>
+                  Accepted · {submitResult.executionTimeMs}ms · {attemptCount}{" "}
+                  attempt{attemptCount === 1 ? "" : "s"}
+                </div>
+              )}
+
+              {/* Pending coach analysis surface — tells the user their failed
+                  submission is being analyzed. No live counter (the label would
+                  freeze on render; the animated dots carry the sense of motion). */}
+              {pendingAnalysis && !coachOpen && isWrong && (
+                <div className="shrink-0 flex items-center gap-3 border-b border-[color:var(--border)] bg-[color:var(--accent-soft)] px-5 py-2 text-sm">
+                  <span className="eyebrow text-[color:var(--accent-strong)]">
+                    Coach analyzing<span className="animate-pulse">…</span>
+                  </span>
+                  {llmAvailable && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCoachOpen(true);
+                        setPendingAnalysis(null);
+                      }}
+                      className="btn-ghost ml-auto text-[color:var(--accent)]"
+                    >
+                      Open coach chat →
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="shrink-0 border-b border-[color:var(--border)] px-5 py-4">
                 <div className="flex flex-wrap items-end justify-between gap-4">
                   <div>
@@ -724,7 +701,7 @@ export default function ProblemPage({
 
                 {isWrong ? (
                   submitResult.coaching ? (
-                    <div className="mt-4 border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--warning)]">
+                    <div className="mt-4 border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--warning-text)]">
                       {submitResult.coaching}
                     </div>
                   ) : null
@@ -790,6 +767,7 @@ export default function ProblemPage({
                     rowCount={result?.rowCount}
                     mode="run"
                     error={error ?? undefined}
+                    isLoading={isRunning && !result && !error}
                   />
                 )}
               </div>
@@ -812,7 +790,7 @@ function InfoPill({
     default:
       "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-soft)]",
     warning:
-      "border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] text-[color:var(--warning)]",
+      "border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] text-[color:var(--warning-text)]",
     danger:
       "border-[color:var(--danger-soft)] bg-[color:var(--danger-soft)] text-[color:var(--danger)]",
     success:

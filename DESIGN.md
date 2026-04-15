@@ -102,5 +102,97 @@ Small caps label + 7-day horizontal bar chart of activity minutes + two mini car
 - **Never use a serif.** Inter everywhere, IBM Plex Mono for numerics.
 - **Never put more than one CTA per section.** Primary indigo button is rare and meaningful.
 - **Progressive disclosure over density.** First load should feel uncluttered. Reasoning is one click away, not in your face.
-- **Amber is for overdue only.** Don't use it for general highlights.
+- **Amber is for overdue, difficulty:medium, and streaks** — a single token `--warning: #f59e0b`. Locked via /plan-design-review 2026-04-15 after the two-amber token drift was caught.
 - **Desktop only, 1440px target.** Mobile and tablet are out of scope.
+
+## Problem workspace
+
+Added via /plan-design-review 2026-04-15. Reference mockups live at `~/.gstack/projects/joncooper-sql-coach/designs/workspace-20260415/round-3/variant-D.png` (primary) and `round-2/variant-C.png` (secondary). See `approved.json` in the same directory for exact gap notes per variant.
+
+The workspace is a three-panel IDE at 1440×900 target. It shares the top nav with home but replaces the mode toggle with a quiet breadcrumb.
+
+### Layout
+
+- Horizontal split: **LEFT 34% | RIGHT 66%**, with a 2px draggable handle that tints indigo on hover.
+- RIGHT is a vertical split: **TOP 56% (editor) | BOTTOM 44% (results)**, same handle.
+
+### Left panel — three zones
+
+**Zone 1 — Problem context** (top, always visible, ~200px):
+- Small-caps eyebrow: `[DIFFICULTY] · [CATEGORY] · PROBLEM [N]`
+- Title: Inter semibold 24px
+- Description: 14px Inter body, 2–4 lines max above the fold
+- Due-for-review banner: 1px amber border + `--warning-soft` bg, italic text *"Due for review — solve again to strengthen mastery"*. Only rendered when `isReviewDue(stats)`.
+
+**Zone 2 — Reference accordion** (middle, scrollable):
+- Three sections: `SCHEMA`, `SAMPLE DATA`, `EXPECTED OUTPUT`
+- Each section is a row with small-caps eyebrow label + chevron icon (down when expanded, right when collapsed)
+- Multiple sections can be open at once (not mutually exclusive)
+- Default state: `SCHEMA` expanded on first visit to a problem, all three collapsed on subsequent visits (stored per-slug in localStorage)
+- SCHEMA content: one card per table, table name in IBM Plex Mono bold, column rows showing name + type badge
+- SAMPLE DATA content: monospace table preview, 4–6 rows, tight density
+- EXPECTED OUTPUT content: monospace table preview, same chrome as SAMPLE DATA
+
+**Zone 3 — Assistance** (bottom, sticky, ~100px, 1px top border):
+- Small-caps eyebrow: `ASSISTANCE`
+- Two ghost buttons side by side: `Reveal hint (N)` and `Solution`
+- `Solution` is visually muted with a lock icon until 3+ failed attempts
+- Clicking `Solution` opens a branded modal (`.app-panel-strong`): *"Reveal the solution? You'll lose the chance to solve this unaided."* with `Reveal solution` (destructive, red border) and `Keep trying` (ghost) buttons. Replaces `window.confirm()` which breaks the register.
+
+### Editor panel (top-right)
+
+- Tab strip: single tab `query.sql` in IBM Plex Mono 13px with close-on-hover X
+- Body: IBM Plex Mono 14px on pure white, line gutter in `--bg` with muted line numbers and 1px right border, indigo cursor, active line tinted 4% indigo
+- Selection: `--accent-soft` background
+- Matching brackets: 12% indigo tint + 25% indigo outline
+- Syntax highlighting per `SqlEditor.tsx`: keywords `#4f46e5` semibold, strings `#10b981`, numbers `#f59e0b`, comments italic `#94a3b8`, types `#7c3aed`, functions `#4338ca`
+- Bottom toolbar (48px, border-top only, **no shadow**):
+  - LEFT: `Run query` ghost button with `⌘↵` hint, then PRIMARY `Check answer` indigo button with `⌘⇧↵` hint
+  - RIGHT: Plex Mono timer pill, `Ask AI` ghost, `Reset` text link
+  - Primary/secondary order matters. `Check answer` is primary — it gates progress.
+
+### Results panel (bottom-right)
+
+- Tab strip: `Run output` / `Coach chat` with indigo underline on active tab
+- Right side of tab strip: `N rows · Xms` in Plex Mono `--text-muted`
+- Results table:
+  - Column headers in small-caps `--text-muted` on `--panel-muted`
+  - 28px row height, 1px bottom border per row, **no zebra stripes**
+  - IBM Plex Mono for all cells
+  - Numeric columns right-aligned, string columns left-aligned
+  - NULLs rendered as italic `null` in `--text-faint`
+- Empty state: *"Run a query to see results here"* in `--text-muted`, centered
+- Loading state: 3 skeleton rows matching row chrome
+- Error state: monospace error text in `--danger`, `--danger-soft` panel background
+- Diff mode (on submit): two tables stacked or side-by-side, missing rows highlighted with `--danger-soft` left-border, extra rows with `--warning-soft` left-border. Row-level diff, not cell-level.
+
+### Accepted celebration
+
+- **First-pass** submission: full modal overlay (`.app-panel-strong`, border-only — **no shadow**), centered, ~24px padding. `Accepted` eyebrow + *"Clean pass."* semibold in `--positive`, runtime + attempt count + mastery transition + total solved count. Three buttons: `Next problem` (primary if `adjacent.next` exists), `Return to Coach` (ghost), `Keep editing` (ghost).
+- **Subsequent passes**: inline 3-second banner above results table, *"✓ Accepted · 34ms · N attempts"*, fades out. No modal. Celebrate every win but respect the attention budget.
+
+### State matrix (required per surface)
+
+Every workspace surface must handle these states explicitly. No silent blanks.
+
+| Surface              | Load | Empty | Error | Success | Partial |
+|----------------------|------|-------|-------|---------|---------|
+| Home (initial fetch) |  ✓   |   ✓   |   ✓   |    —    |    —    |
+| Coach pick           |  ✓   |   ✓   |   ✓   |    ✓    |    —    |
+| Catalog table        |  ✓   |   ✓   |   ✓   |    —    |    —    |
+| Workspace page       |  ✓   |   —   |   ✓   |    ✓    |    —    |
+| Editor               |  ✓   |   ✓   |   —   |    —    |    —    |
+| Run results          |  ✓   |   ✓   |   ✓   |    ✓    |    ✓    |
+| Submit results       |  ✓   |   —   |   ✓   |    ✓    |  ✓ diff |
+| Coach chat           |  ✓   |   ✓   |   ✓   |    —    |    ✓    |
+| Pending analysis     |  ✓   |   —   |   ✓   |    ✓    |    —    |
+
+### Accessibility requirements
+
+- All modals: `aria-modal`, `aria-labelledby` on eyebrow, focus trap, Escape closes, focus returns to trigger.
+- Editor: skip-to-editor link in nav, kbd shortcuts documented in a discoverable `? = shortcuts` overlay.
+- Panel splitters: keyboard-adjustable via arrow keys when focused.
+- Diff colors: supplement with icon (× for missing, + for extra) so colorblind users have a non-color cue.
+- Activity chart (home): active days must differ from inactive by more than color alone (e.g., 1px top accent on active bars).
+- Animations: wrap in `@media (prefers-reduced-motion: reduce)` — already enforced globally in `globals.css`.
+- `--text-faint` (#94a3b8) fails WCAG AA on white at 2.85:1. Use only for decorative strokes, never for readable text content. Use `--text-muted` (#64748b, 5.74:1) for muted body text.

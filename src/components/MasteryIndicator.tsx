@@ -7,7 +7,7 @@ const config: Record<
   unattempted: {
     label: "Not attempted",
     content: "\u25CB",
-    className: "text-[color:var(--text-faint)]",
+    className: "text-[color:var(--text-muted)]",
   },
   attempted: {
     label: "Attempted",

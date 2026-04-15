@@ -18,6 +18,12 @@ function TopNavInner() {
 
   return (
     <nav className="sticky top-0 z-40 shrink-0 border-b border-[color:var(--border)] bg-[color:var(--surface)]/90 backdrop-blur">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-50 focus:rounded-md focus:border focus:border-[color:var(--border-strong)] focus:bg-[color:var(--surface)] focus:px-3 focus:py-1.5 focus:text-sm focus:font-medium focus:text-[color:var(--text)]"
+      >
+        Skip to content
+      </a>
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-6 px-6">
         {/* Logo */}
         <Link
@@ -42,39 +48,16 @@ function TopNavInner() {
         )}
         {!isHome && <div className="flex-1" />}
 
-        {/* Search (stub) */}
-        <div className="hidden items-center gap-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--panel-muted)] px-3 py-1.5 text-sm text-[color:var(--text-muted)] md:flex md:w-56">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-            <circle
-              cx="6"
-              cy="6"
-              r="4.25"
-              stroke="currentColor"
-              strokeWidth="1.4"
-            />
-            <path
-              d="m12 12-2.5-2.5"
-              stroke="currentColor"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className="flex-1">Search</span>
-          <kbd className="rounded border border-[color:var(--border)] bg-[color:var(--surface)] px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] text-[color:var(--text-muted)]">
-            ⌘K
-          </kbd>
-        </div>
-
-        {/* Pending pill + streak */}
+        {/* Pending pill + streak + solo indicator */}
         <div className="flex items-center gap-3">
           <PendingAnalysesPill />
           <StreakBadge />
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--panel-muted)] text-xs font-semibold text-[color:var(--text-muted)]"
-            aria-label="Profile"
+          <span
+            className="rounded-md border border-[color:var(--border)] bg-[color:var(--panel-muted)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]"
+            title="Your progress lives in this browser's local storage"
           >
-            YC
-          </div>
+            solo
+          </span>
         </div>
       </div>
     </nav>

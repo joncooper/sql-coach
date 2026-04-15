@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
 import type { ProblemSummary, StatsStore } from "@/types";
 import { loadStats, toggleStar } from "@/lib/stats";
 import {
@@ -54,10 +55,25 @@ function HomeInner() {
     return problems.filter((p) => !skippedSlugs.has(p.slug));
   }, [problems, skippedSlugs]);
 
-  const pick = useMemo<CoachPick | null>(() => {
-    if (!eligibleProblems || !store) return null;
-    return pickNextProblem(store, eligibleProblems);
+  // Coach engine is a pure function that can still throw on malformed
+  // stats or missing problem metadata. Catch and render a fallback panel
+  // rather than blanking the home page silently.
+  const pickResult = useMemo<{
+    pick: CoachPick | null;
+    error: string | null;
+  }>(() => {
+    if (!eligibleProblems || !store) return { pick: null, error: null };
+    try {
+      return { pick: pickNextProblem(store, eligibleProblems), error: null };
+    } catch (e) {
+      return {
+        pick: null,
+        error: e instanceof Error ? e.message : "Coach engine failed",
+      };
+    }
   }, [eligibleProblems, store]);
+  const pick = pickResult.pick;
+  const coachError = pickResult.error;
 
   const mastery = useMemo(() => {
     if (!problems || !store) return null;
@@ -134,6 +150,36 @@ function HomeInner() {
     const next = toggleStar(slug);
     setStore({ ...next });
   }, []);
+
+  if (coachError) {
+    return (
+      <div className="mx-auto max-w-[640px] px-6 py-16 text-center">
+        <div className="eyebrow">Coach engine hiccupped</div>
+        <p className="mt-3 text-sm leading-6 text-[color:var(--text-muted)]">
+          Something went wrong picking your next problem:
+        </p>
+        <code className="mt-2 inline-block rounded bg-[color:var(--panel-muted)] px-2 py-1 font-[family-name:var(--font-mono)] text-xs text-[color:var(--danger)]">
+          {coachError}
+        </code>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Link href="/?mode=catalog" className="btn-primary">
+            Browse catalog instead
+          </Link>
+          <button
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.localStorage.removeItem("sql-coach:stats");
+                window.location.reload();
+              }
+            }}
+            className="btn-secondary"
+          >
+            Reset progress
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!problems || !store || !pick || !mastery) {
     return <LoadingState />;

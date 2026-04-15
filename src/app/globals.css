@@ -35,22 +35,20 @@
   --accent-soft: #eef2ff;
   --accent-ring: rgba(79, 70, 229, 0.18);
 
-  /* Semantic */
-  --positive: #059669; /* easy pill / success ticks */
+  /* Semantic — values locked to DESIGN.md via /plan-design-review 2026-04-15 */
+  --positive: #10b981; /* easy pill / success ticks */
   --positive-soft: #d1fae5;
-  --warning: #d97706; /* medium pill */
+  --warning: #f59e0b; /* medium pill / streaks / review-due — single amber */
   --warning-soft: #fef3c7;
-  --highlight: #d97706; /* legacy alias — amber, used for streaks */
+  --warning-text: #b45309; /* readable amber for text on --warning-soft (5.3:1) */
+  --highlight: #f59e0b; /* legacy alias — same amber */
   --highlight-soft: #fef3c7;
-  --danger: #dc2626; /* hard pill / miss marks */
+  --danger: #ef4444; /* hard pill / miss marks */
   --danger-soft: #fee2e2;
   --review-due: #f59e0b;
   --review-due-soft: #fef3c7;
 
-  /* Effects */
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-soft: 0 1px 1px rgba(15, 23, 42, 0.03);
-  --shadow-lift: 0 4px 12px rgba(15, 23, 42, 0.06);
+  /* Effects — shadows removed per DESIGN.md rule "Depth = border, not elevation" */
 
   /* Typography */
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
@@ -143,14 +141,12 @@ textarea:focus-visible,
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: var(--shadow-soft);
 }
 
 .app-panel-strong {
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
-  box-shadow: var(--shadow);
 }
 
 .app-panel-muted {
@@ -207,7 +203,6 @@ textarea:focus-visible,
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: var(--shadow);
 }
 
 .btn-primary:hover {
@@ -285,8 +280,10 @@ textarea:focus-visible,
 
 .pill-medium {
   background: var(--warning-soft);
-  color: var(--warning);
-  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
+  /* --warning #f59e0b on #fef3c7 = 2.7:1, fails AA.
+     --warning-text #b45309 on #fef3c7 = 5.3:1, passes AA. */
+  color: var(--warning-text);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 .pill-hard {
@@ -368,12 +365,28 @@ textarea:focus-visible,
     filter: brightness(1);
   }
   50% {
-    filter: brightness(1.12) drop-shadow(0 0 5px rgba(217, 119, 6, 0.32));
+    filter: brightness(1.08);
   }
 }
 
 .animate-streak-glow {
   animation: streak-glow 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in,
+  .animate-streak-pulse,
+  .animate-streak-glow,
+  .animate-reveal {
+    animation: none;
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    transition: none;
+  }
 }
 
 @keyframes reveal-down {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { formatRevealedAt } from "@/lib/formatTime";
 
 interface ProblemDescriptionProps {
   description: string;
@@ -24,7 +25,7 @@ export function ProblemDescriptionText({
   return (
     <div className="space-y-3">
       {reviewDue && (
-        <div className="flex items-center gap-2 rounded-lg border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm text-[color:var(--warning)]">
+        <div className="flex items-center gap-2 rounded-lg border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm text-[color:var(--warning-text)]">
           <span
             className="inline-block h-1.5 w-1.5 rounded-full bg-[color:var(--review-due)]"
             aria-hidden
@@ -89,10 +90,19 @@ export default function ProblemDescription({
   reviewDue: _reviewDue,
 }: ProblemDescriptionProps) {
   const [revealedHints, setRevealedHints] = useState(0);
+  // Per-hint reveal timestamps. Index aligns with hints[]. Undefined = not yet revealed.
+  const [revealedAt, setRevealedAt] = useState<(number | undefined)[]>(
+    () => hints.map(() => undefined)
+  );
 
   const revealHint = () => {
     const next = revealedHints + 1;
     setRevealedHints(next);
+    setRevealedAt((prev) => {
+      const copy = [...prev];
+      copy[next - 1] = Date.now();
+      return copy;
+    });
     onHintReveal?.(next);
   };
 
@@ -105,7 +115,7 @@ export default function ProblemDescription({
           <div className="flex items-center justify-between">
             <div className="eyebrow">
               Hints{" "}
-              <span className="num ml-1 text-[color:var(--text-faint)]">
+              <span className="num ml-1 text-[color:var(--text-muted)]">
                 {revealedHints}/{hints.length}
               </span>
             </div>
@@ -125,10 +135,23 @@ export default function ProblemDescription({
                   key={i}
                   className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--panel-muted)] px-3 py-2 text-sm leading-6 text-[color:var(--text-soft)]"
                 >
-                  <span className="num mr-2 text-[color:var(--text-faint)]">
-                    {i + 1}.
-                  </span>
-                  {hint}
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="eyebrow flex items-center gap-1.5 text-[color:var(--positive)]">
+                      <span aria-hidden>✓</span>
+                      Revealed
+                    </span>
+                    {revealedAt[i] !== undefined && (
+                      <span className="num text-[10px] text-[color:var(--text-muted)]">
+                        {formatRevealedAt(revealedAt[i]!)}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="num mr-2 text-[color:var(--text-muted)]">
+                      {i + 1}.
+                    </span>
+                    {hint}
+                  </div>
                 </li>
               ))}
             </ol>
