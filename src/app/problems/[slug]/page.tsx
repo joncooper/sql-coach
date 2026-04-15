@@ -25,47 +25,16 @@ import {
   computeMasteryLevel,
   getSolvedCount,
 } from "@/lib/stats";
+import {
+  clearSavedCode,
+  loadInitialCode,
+  saveCode,
+} from "@/lib/problemCode";
 import { enqueuePendingAnalysis } from "@/hooks/usePendingAnalyses";
 import type { MasteryLevel, QueryResult, RowDiff } from "@/types";
 
 function formatCategory(value: string) {
   return value.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-/**
- * A localStorage entry is residual starter code if it contains no
- * real SQL — just comments, whitespace, schema-qualified references
- * from the old data model, or the skeleton `SELECT FROM` shapes that
- * the legacy `starter_code` field used to ship. We drop those on
- * load so the editor starts blank.
- */
-function isResidualStarterCode(source: string): boolean {
-  // Strip all SQL comments (line + block) and whitespace.
-  const stripped = source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/--.*$/gm, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  // Empty after stripping comments → template scaffold.
-  if (stripped.length === 0) return true;
-
-  // Legacy schema-qualified references are always stale.
-  if (/\b(hr|ecommerce|analytics|leetcode)\.\w/.test(source)) return true;
-
-  // Skeleton starter shapes like "SELECT FROM tablename" or
-  // "SELECT FROM tablename ORDER BY col" — short, no column list,
-  // no WHERE/GROUP/HAVING.
-  const upper = stripped.toUpperCase();
-  if (
-    stripped.length < 80 &&
-    /^SELECT\s+FROM\b/.test(upper) &&
-    !/WHERE|GROUP\s+BY|HAVING|JOIN|UNION|CASE/.test(upper)
-  ) {
-    return true;
-  }
-
-  return false;
 }
 
 function formatElapsed(ms: number) {
@@ -120,12 +89,75 @@ interface SubmitResponse {
   pass: boolean;
   message: string;
   coaching: string;
-  expected: { columns: string[]; rows: unknown[][] };
-  actual: { columns: string[]; rows: unknown[][] };
+  expected: { columns: string[]; columnTypes: string[]; rows: unknown[][] };
+  actual: { columns: string[]; columnTypes: string[]; rows: unknown[][] };
   diff: RowDiff[];
   executionTimeMs: number;
   error?: string;
   submissionId?: number | null;
+}
+
+function formatRow(row: unknown[]): string {
+  return row
+    .map((cell) => {
+      if (cell === null || cell === undefined) return "NULL";
+      if (cell instanceof Date) return cell.toISOString();
+      return String(cell);
+    })
+    .join(" | ");
+}
+
+function describeColumns(columns: string[], types: string[]): string {
+  return columns.map((c, i) => `${c} (${types[i] ?? "?"})`).join(", ");
+}
+
+function buildCoachErrorContext(r: SubmitResponse): string {
+  const lines: string[] = [];
+  lines.push(r.coaching || r.message || "Query did not match expected output.");
+  lines.push("");
+  lines.push(
+    `EXPECTED COLUMNS: ${describeColumns(r.expected.columns, r.expected.columnTypes)}`
+  );
+  lines.push(
+    `STUDENT COLUMNS: ${describeColumns(r.actual.columns, r.actual.columnTypes)}`
+  );
+
+  const missing = r.diff.filter((d) => d.type === "missing").map((d) => d.row);
+  const extra = r.diff.filter((d) => d.type === "extra").map((d) => d.row);
+
+  if (missing.length === 0 && extra.length === 0) {
+    // No row-level diff (e.g. column shape mismatch). Show a small sample
+    // of each result so the coach can still compare.
+    const sampleExpected = r.expected.rows.slice(0, 5);
+    const sampleActual = r.actual.rows.slice(0, 5);
+    if (sampleExpected.length) {
+      lines.push("");
+      lines.push("EXPECTED SAMPLE:");
+      for (const row of sampleExpected) lines.push(`  ${formatRow(row)}`);
+    }
+    if (sampleActual.length) {
+      lines.push("");
+      lines.push("STUDENT SAMPLE:");
+      for (const row of sampleActual) lines.push(`  ${formatRow(row)}`);
+    }
+    return lines.join("\n");
+  }
+
+  lines.push("");
+  lines.push(
+    `DIFF: ${missing.length} missing row${missing.length === 1 ? "" : "s"}, ${extra.length} extra row${extra.length === 1 ? "" : "s"}`
+  );
+  if (missing.length) {
+    lines.push("");
+    lines.push("MISSING (in expected, not in student output):");
+    for (const row of missing) lines.push(`  ${formatRow(row)}`);
+  }
+  if (extra.length) {
+    lines.push("");
+    lines.push("EXTRA (in student output, not expected):");
+    for (const row of extra) lines.push(`  ${formatRow(row)}`);
+  }
+  return lines.join("\n");
 }
 
 export default function ProblemPage({
@@ -161,6 +193,19 @@ export default function ProblemPage({
 
   useEffect(() => {
     let cancelled = false;
+
+    const stats = loadStats();
+    const problemStats = stats.problems[slug];
+    if (problemStats) {
+      setAttemptCount(problemStats.attempts);
+      setReviewDue(isReviewDue(problemStats));
+    }
+    // Only restore previously-saved code for problems the user
+    // has already solved. Unsolved problems always open blank —
+    // and any stale localStorage entry is cleared as a side
+    // effect of loadInitialCode.
+    setCode(loadInitialCode(slug, problemStats, localStorage));
+
     fetch(`/api/problems/${slug}`)
       .then(async (response) => {
         if (cancelled) return;
@@ -170,19 +215,6 @@ export default function ProblemPage({
         }
         const data: ProblemDetail = await response.json();
         setProblem(data);
-        // Restore in-progress code from localStorage. The editor
-        // always starts blank for a new problem; there is no
-        // `starter_code` in the data model. Stale entries from
-        // earlier versions (which seeded the editor with starter
-        // templates or schema-qualified SQL) are dropped.
-        const storageKey = `sql-coach:code:${slug}`;
-        const saved = localStorage.getItem(storageKey);
-        if (!saved) return;
-        if (isResidualStarterCode(saved)) {
-          localStorage.removeItem(storageKey);
-          return;
-        }
-        setCode(saved);
       })
       .catch(() => {
         if (!cancelled) setNotFound(true);
@@ -190,19 +222,12 @@ export default function ProblemPage({
     return () => {
       cancelled = true;
     };
-
-    const stats = loadStats();
-    const problemStats = stats.problems[slug];
-    if (problemStats) {
-      setAttemptCount(problemStats.attempts);
-      setReviewDue(isReviewDue(problemStats));
-    }
   }, [slug]);
 
   useEffect(() => {
     if (!code) return;
     const timer = setTimeout(() => {
-      localStorage.setItem(`sql-coach:code:${slug}`, code);
+      saveCode(slug, code, localStorage);
     }, 500);
     return () => clearTimeout(timer);
   }, [code, slug]);
@@ -348,7 +373,7 @@ export default function ProblemPage({
   const handleResetCode = useCallback(() => {
     if (!problem) return;
     setCode("");
-    localStorage.removeItem(`sql-coach:code:${slug}`);
+    clearSavedCode(slug, localStorage);
     setResult(null);
     setSubmitResult(null);
     setError(null);
@@ -427,10 +452,9 @@ export default function ProblemPage({
   const isAccepted = hasSubmit && submitResult.pass;
   const failedAttempts = attemptCount - (isAccepted ? 1 : 0);
   const canShowSolution = !solution && failedAttempts >= 3;
-  const missingCount =
-    submitResult?.diff.filter((entry) => entry.type === "missing").length ?? 0;
-  const extraCount =
-    submitResult?.diff.filter((entry) => entry.type === "extra").length ?? 0;
+  const coachErrorContext = hasSubmit
+    ? buildCoachErrorContext(submitResult)
+    : "";
   return (
     <PanelGroup orientation="horizontal" className="h-full overflow-hidden">
       <Panel defaultSize={34} minSize={24}>
@@ -686,7 +710,7 @@ export default function ProblemPage({
                     {hasSubmit && (
                       <InfoPill
                         label={isAccepted ? "Accepted" : "Wrong answer"}
-                        tone={isAccepted ? "success" : "danger"}
+                        tone={isAccepted ? "success" : "default"}
                       />
                     )}
                     {((submitResult && submitResult.executionTimeMs) ||
@@ -699,29 +723,11 @@ export default function ProblemPage({
                 </div>
 
                 {isWrong ? (
-                  <div className="mt-4 space-y-4">
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <DiffStat
-                        label="Missing rows"
-                        value={missingCount}
-                        tone="success"
-                      />
-                      <DiffStat
-                        label="Extra rows"
-                        value={extraCount}
-                        tone="danger"
-                      />
-                      <DiffStat
-                        label="Returned rows"
-                        value={submitResult.actual.rows.length}
-                      />
+                  submitResult.coaching ? (
+                    <div className="mt-4 border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--warning)]">
+                      {submitResult.coaching}
                     </div>
-                    {submitResult.coaching && (
-                      <div className="border border-[color:var(--warning-soft)] bg-[color:var(--warning-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--warning)]">
-                        {submitResult.coaching}
-                      </div>
-                    )}
-                  </div>
+                  ) : null
                 ) : !result && !hasSubmit ? (
                   <p className="mt-4 text-sm leading-6 text-[color:var(--text-soft)]">
                     Use Run query for quick inspection or Check answer when you
@@ -737,7 +743,7 @@ export default function ProblemPage({
                       description: problem.description,
                       tables: problem.tables,
                       studentSql: code,
-                      errorContext: submitResult?.coaching ?? "",
+                      errorContext: coachErrorContext,
                       attemptNumber: Math.max(1, attemptCount),
                     }}
                     isOpen={coachOpen}
@@ -748,7 +754,7 @@ export default function ProblemPage({
 
               <div className="min-h-0 flex-1 overflow-hidden">
                 {isWrong ? (
-                  <div className="grid h-full grid-cols-2">
+                  <div className="grid h-full grid-cols-2 grid-rows-1">
                     <ResultPanel label="Expected output">
                       <ResultsTable
                         columns={submitResult.expected.columns}
@@ -845,30 +851,3 @@ function ResultPanel({
   );
 }
 
-function DiffStat({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: number;
-  tone?: "default" | "success" | "danger";
-}) {
-  const classes = {
-    default:
-      "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)]",
-    success:
-      "border-[color:var(--positive-soft)] bg-[color:var(--positive-soft)] text-[color:var(--positive)]",
-    danger:
-      "border-[color:var(--danger-soft)] bg-[color:var(--danger-soft)] text-[color:var(--danger)]",
-  } as const;
-
-  return (
-    <div className={`border p-4 ${classes[tone]}`}>
-      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-muted)]">
-        {label}
-      </div>
-      <div className="mt-2 text-xl font-semibold tabular-nums">{value}</div>
-    </div>
-  );
-}
