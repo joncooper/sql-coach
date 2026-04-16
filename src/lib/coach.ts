@@ -1,29 +1,34 @@
 /**
- * Coach engine — mastery model + spaced repetition + next-problem selection.
+ * Coach engine — mastery model + next-problem selection.
  *
- * This is the server-side of Coach mode. All functions are pure: they take
- * the user's stats (a StatsStore) and the problem catalog, and return
- * recommendations and reasoning. No I/O, no clock reads (a Clock is
- * injected), no side effects — which makes everything trivially testable.
+ * All functions are pure: they take the user's stats (a StatsStore) and the
+ * problem catalog, and return recommendations and reasoning. No I/O, no
+ * clock reads (a Clock is injected), no side effects — which makes
+ * everything trivially testable.
  *
- * The coach's job:
- *   1. Score the user's mastery per skill tree category.
- *   2. Maintain a spaced-repetition queue of previously-solved problems.
- *   3. Pick the next problem by balancing: review-due items,
- *      weakest-category reinforcement, and forward progress through
- *      the learning path (respecting prerequisites).
- *   4. Explain the pick — which candidates were considered, why this
- *      one won, which were held or skipped.
+ * Current design (2026-04-16): finish-what-you-started momentum.
+ *
+ *   1. Compute mastery per skill-tree category (score, unlocked, inProgress).
+ *   2. Pick the lowest-tier unlocked category that still has any unsolved
+ *      problems. Stay there until every problem has `solvedAt != null`.
+ *   3. Within a category, walk problems in skill-tree declared order.
+ *   4. Never auto-serve spaced-repetition reviews or reinforcement. The UI
+ *      surfaces those via explicit pills — {@link getReviewQueue} and
+ *      {@link getReinforcementQueue} remain for that use.
+ *
+ *   Rationale: the previous design mixed weakest-category reinforcement,
+ *   an easy-difficulty bonus, and review-due picks from the start, which
+ *   produced an "elementary easy problem carousel" across Tier-1
+ *   categories before the user had worked through the skill tree.
  */
 
 import type {
-  ProblemStats,
   ProblemSummary,
   StatsStore,
   MasteryLevel,
 } from "@/types";
-import { computeMasteryLevel, isReviewDue } from "@/lib/stats";
-import { SKILL_TREE, getSkillNode } from "@/lib/skill-tree";
+import { computeMasteryLevel } from "@/lib/stats";
+import { SKILL_TREE, getSkillNode, sortBySkillTree } from "@/lib/skill-tree";
 
 // --------------------------------------------------------------------
 // Public types
@@ -116,23 +121,10 @@ const MASTERY_WEIGHTS: Record<MasteryLevel, number> = {
 
 const UNLOCK_THRESHOLD = 0.4; // prerequisites must be at least "solved" on average
 
-// Scoring weights — every candidate problem accumulates a score.
-// Higher score = more likely to be picked.
-const SCORE = {
-  reviewDue: 100, // review-overdue problems always win
-  reviewDueAge: 4, // bonus per day past review date
-  weakCategory: 40, // reinforcing the weakest unlocked category
-  currentCategory: 15, // continuing the in-progress category
-  unlockedCategory: 8, // any unlocked category still has headroom
-  difficultyEasyBias: 6, // prefer easier problems within the winning category
-  difficultyMediumBias: 3,
-  difficultyHardBias: 0,
-  recentAttemptPenalty: -25, // don't repeat a problem the user just tried
-  solutionViewedPenalty: -15, // if they've peeked, don't re-serve until a break
-  masteredPenalty: -50, // already mastered → skip unless review-due
-};
-
-const RECENT_ATTEMPT_DAYS = 1;
+// Upper bound on the reinforcement queue. Problems in "solved" level (solved
+// once but not yet practiced) beyond this cap are still tracked, just not
+// surfaced in the default Reinforce picker list.
+const REINFORCEMENT_QUEUE_CAP = 20;
 
 // --------------------------------------------------------------------
 // Mastery scoring
@@ -288,257 +280,161 @@ export function getReviewQueue(
 }
 
 // --------------------------------------------------------------------
+// Reinforcement queue
+// --------------------------------------------------------------------
+
+/**
+ * Problems the user has solved once but hasn't practiced to repeat-and-stick
+ * level yet. Surfaces explicitly via the "Reinforce" pill on the coach card —
+ * never auto-picked.
+ *
+ * Ordered by longest-since-last-solve first (oldest-first) so the user sees
+ * the most at-risk items at the top of the list.
+ */
+export function getReinforcementQueue(
+  store: StatsStore,
+  problems: ProblemSummary[],
+  clock?: Clock,
+): ProblemSummary[] {
+  const bySlug = new Map(problems.map((p) => [p.slug, p]));
+  const items: { problem: ProblemSummary; lastSolvedAt: string }[] = [];
+  for (const [slug, stats] of Object.entries(store.problems)) {
+    const problem = bySlug.get(slug);
+    if (!problem) continue;
+    if (!stats.solvedAt) continue;
+    const level = computeMasteryLevel(stats, problem.difficulty, clock);
+    if (level !== "solved") continue; // practiced/mastered don't need reinforcement
+    items.push({
+      problem,
+      lastSolvedAt: stats.lastSolvedAt ?? stats.solvedAt,
+    });
+  }
+  items.sort((a, b) => a.lastSolvedAt.localeCompare(b.lastSolvedAt));
+  return items.slice(0, REINFORCEMENT_QUEUE_CAP).map((i) => i.problem);
+}
+
+// --------------------------------------------------------------------
 // Next-problem selection
 // --------------------------------------------------------------------
 
-interface ScoredCandidate extends Candidate {
-  /** Internal: the raw priority before the winner is chosen. */
-  rawScore: number;
+function findCurrentCategory(
+  mastery: CategoryMastery[],
+  sortedByCategory: Map<string, ProblemSummary[]>,
+  store: StatsStore,
+): { category: CategoryMastery; winner: ProblemSummary } | null {
+  // mastery is already ordered by tier then SKILL_TREE position, so the
+  // first unlocked category with any unsolved problem wins.
+  for (const m of mastery) {
+    if (!m.unlocked || m.total === 0) continue;
+    const catProblems = sortedByCategory.get(m.category) ?? [];
+    const winner = catProblems.find(
+      (p) => !store.problems[p.slug]?.solvedAt,
+    );
+    if (winner) return { category: m, winner };
+  }
+  return null;
 }
 
-function scoreCandidate(
-  p: ProblemSummary,
-  stats: ProblemStats | undefined,
+function buildCandidatePool(
+  winner: ProblemSummary | null,
+  winnerKind: Candidate["kind"],
+  currentCategory: CategoryMastery | null,
+  sortedByCategory: Map<string, ProblemSummary[]>,
   mastery: CategoryMastery[],
-  reviewQueue: ReviewItem[],
-  weakestUnlocked: CategoryMastery | null,
-  currentInProgress: CategoryMastery | null,
-  firstPassComplete: boolean,
-  clock?: Clock
-): ScoredCandidate {
-  const today = todayStr(clock);
-  const catRow = mastery.find((m) => m.category === p.category);
-  const reviewItem = reviewQueue.find((r) => r.slug === p.slug);
+  store: StatsStore,
+): Candidate[] {
+  const pool: Candidate[] = [];
+  if (!winner || !currentCategory) return pool;
 
-  let score = 0;
-  let kind: Candidate["kind"] = "new-territory";
-  let status: CandidateStatus = "chosen"; // placeholder; re-assigned below
-  let reason = "";
+  pool.push({
+    problem: winner,
+    status: "chosen",
+    reason:
+      currentCategory.score === 0
+        ? `Starts ${currentCategory.label}, new ground in your skill tree`
+        : `Continues ${currentCategory.label} — ${currentCategory.solved}/${currentCategory.total} solved so far`,
+    score: 0,
+    kind: winnerKind,
+  });
 
-  // 1. Review-due takes absolute priority — BUT only after the user has
-  // made at least one pass through every unlocked category. Otherwise
-  // reviews steamroll forward progress when the student is still trying
-  // to broaden their exposure, which was the whole point of this app.
-  // Before first-pass completion, review items fall through to the
-  // normal category-weighted scoring (they'll still get a small bump
-  // via weakestUnlocked if they live in a weak category, but won't
-  // dominate new-territory picks).
-  if (reviewItem && firstPassComplete) {
-    score += SCORE.reviewDue + reviewItem.daysOverdue * SCORE.reviewDueAge;
-    kind = "review";
-    reason = reviewItem.daysOverdue > 0
-      ? `Review overdue by ${reviewItem.daysOverdue} day${reviewItem.daysOverdue === 1 ? "" : "s"}`
-      : "Review due today";
-  } else if (!catRow?.unlocked) {
-    // Prerequisites not met — skip entirely.
-    return {
+  // Next few unsolved problems in the same category — "you'll get to these next".
+  const catProblems = sortedByCategory.get(currentCategory.category) ?? [];
+  const upcoming = catProblems.filter(
+    (p) => p.slug !== winner.slug && !store.problems[p.slug]?.solvedAt,
+  );
+  for (const p of upcoming.slice(0, 2)) {
+    pool.push({
       problem: p,
+      status: "held-for-review",
+      reason: `Up next in ${currentCategory.label}`,
+      score: 0,
+      kind: winnerKind,
+    });
+  }
+
+  // One prereq-blocked reject to make the skill tree visible.
+  for (const m of mastery) {
+    if (m.unlocked || m.total === 0) continue;
+    const firstLocked = (sortedByCategory.get(m.category) ?? [])[0];
+    if (!firstLocked) continue;
+    pool.push({
+      problem: firstLocked,
       status: "skipped-prereq",
-      reason: "Prerequisite category not yet unlocked",
-      score: -Infinity,
-      rawScore: -Infinity,
+      reason: `Prerequisite for ${m.label} not yet unlocked`,
+      score: -1,
       kind: "new-step",
-    };
-  } else {
-    // 2. Weakest unlocked category bias.
-    if (weakestUnlocked && p.category === weakestUnlocked.category) {
-      score += SCORE.weakCategory;
-      kind = weakestUnlocked.score > 0 ? "reinforcement" : "new-territory";
-      reason =
-        weakestUnlocked.score > 0
-          ? `Reinforces ${weakestUnlocked.label}, your weakest category`
-          : `Starts ${weakestUnlocked.label}, a category you haven't touched yet`;
-    }
-
-    // 3. Current-in-progress bias (keep momentum).
-    if (currentInProgress && p.category === currentInProgress.category) {
-      score += SCORE.currentCategory;
-      if (!reason) {
-        kind = "new-step";
-        reason = `Continues ${currentInProgress.label}, your current category`;
-      }
-    }
-
-    // 4. Otherwise, any unlocked category gets a baseline bias.
-    if (score === 0) {
-      score += SCORE.unlockedCategory;
-      kind = "new-step";
-      reason = `Builds forward progress in ${catRow?.label ?? p.category}`;
-    }
+    });
+    break;
   }
 
-  // 5. Difficulty bias — prefer easier problems for the winning category.
-  if (p.difficulty === "easy") score += SCORE.difficultyEasyBias;
-  else if (p.difficulty === "medium") score += SCORE.difficultyMediumBias;
-  else score += SCORE.difficultyHardBias;
-
-  // 6. Penalties.
-  if (stats?.lastAttemptAt) {
-    const attemptDay = stats.lastAttemptAt.slice(0, 10);
-    const daysSince = daysBetween(attemptDay, today);
-    if (daysSince <= RECENT_ATTEMPT_DAYS && !reviewItem) {
-      score += SCORE.recentAttemptPenalty;
-      status = "skipped-recent";
-      reason = `Attempted in the last ${RECENT_ATTEMPT_DAYS} day${RECENT_ATTEMPT_DAYS === 1 ? "" : "s"}`;
-    }
-  }
-  if (stats?.solutionViewed && !reviewItem) {
-    score += SCORE.solutionViewedPenalty;
-    if (status === "chosen") {
-      status = "skipped-solution-viewed";
-      reason = "Solution already revealed";
-    }
-  }
-  const level = computeMasteryLevel(stats, p.difficulty, clock);
-  if (level === "mastered" && !reviewItem) {
-    score += SCORE.masteredPenalty;
-    status = "skipped-mastered";
-    reason = "Already mastered";
-  }
-
-  return {
-    problem: p,
-    status,
-    reason,
-    score,
-    rawScore: score,
-    kind,
-  };
+  return pool.slice(0, 5);
 }
 
 export function pickNextProblem(
   store: StatsStore,
   problems: ProblemSummary[],
-  clock?: Clock
+  clock?: Clock,
 ): CoachPick {
   const mastery = computeCategoryMastery(store, problems, clock);
   const reviewQueue = getReviewQueue(store, clock);
 
-  // Identify the weakest unlocked category (lowest non-complete score).
-  const unlockedWithHeadroom = mastery.filter(
-    (m) => m.unlocked && m.score < 1 && m.total > 0
-  );
-  unlockedWithHeadroom.sort((a, b) => {
-    if (a.score !== b.score) return a.score - b.score;
-    return a.tier - b.tier;
-  });
-  const weakestUnlocked = unlockedWithHeadroom[0] ?? null;
+  // Canonical problem order within each category: skill-tree declared order.
+  const sortedByCategory = new Map<string, ProblemSummary[]>();
+  for (const p of sortBySkillTree(problems)) {
+    const bucket = sortedByCategory.get(p.category) ?? [];
+    bucket.push(p);
+    sortedByCategory.set(p.category, bucket);
+  }
 
-  // In-progress = the user has touched but not finished it.
-  const inProgressUnlocked = mastery.filter(
-    (m) => m.unlocked && m.inProgress
-  );
-  inProgressUnlocked.sort((a, b) => a.tier - b.tier);
-  const currentInProgress = inProgressUnlocked[0] ?? null;
+  const choice = findCurrentCategory(mastery, sortedByCategory, store);
+  const currentCategory = choice?.category ?? null;
+  const winner = choice?.winner ?? null;
 
-  // First pass = every unlocked category with problems has been
-  // attempted at least once. Until this holds, spaced-repetition
-  // reviews step aside so the student can finish exploring the
-  // catalog.
-  const firstPassComplete = mastery
-    .filter((m) => m.unlocked && m.total > 0)
-    .every((m) => m.score > 0);
+  const winnerKind: Candidate["kind"] =
+    currentCategory && currentCategory.score === 0 ? "new-territory" : "new-step";
 
-  // Score every problem.
-  const scored: ScoredCandidate[] = problems.map((p) =>
-    scoreCandidate(
-      p,
-      store.problems[p.slug],
-      mastery,
-      reviewQueue,
-      weakestUnlocked,
-      currentInProgress,
-      firstPassComplete,
-      clock
-    )
+  const candidatePool = buildCandidatePool(
+    winner,
+    winnerKind,
+    currentCategory,
+    sortedByCategory,
+    mastery,
+    store,
   );
 
-  // Winner = highest non-negative score that isn't skipped.
-  const eligible = scored.filter(
-    (c) => c.status === "chosen" && c.score > -Infinity
-  );
-  eligible.sort((a, b) => b.score - a.score);
-  const winner = eligible[0] ?? null;
-
-  // Candidate pool for display = winner + up to 4 notable rejects.
-  const pool: Candidate[] = [];
-  if (winner) {
-    pool.push({
-      problem: winner.problem,
-      status: "chosen",
-      reason: winner.reason,
-      score: winner.score,
-      kind: winner.kind,
-    });
-  }
-
-  // Runners-up: next-highest-scored "chosen" in a different category (for variety).
-  const runnersUp = eligible
-    .slice(1)
-    .filter((c) => winner && c.problem.category !== winner.problem.category)
-    .slice(0, 1);
-  for (const r of runnersUp) {
-    pool.push({
-      problem: r.problem,
-      status: "held-for-review",
-      reason: `Held for a later session: ${r.reason}`,
-      score: r.score,
-      kind: r.kind,
-    });
-  }
-
-  // A recently-attempted reject, if we have one.
-  const recentReject = scored.find((c) => c.status === "skipped-recent");
-  if (recentReject) {
-    pool.push({
-      problem: recentReject.problem,
-      status: "skipped-recent",
-      reason: recentReject.reason,
-      score: recentReject.score,
-      kind: recentReject.kind,
-    });
-  }
-
-  // A prereq-blocked reject, if we have one.
-  const prereqReject = scored.find((c) => c.status === "skipped-prereq");
-  if (prereqReject) {
-    pool.push({
-      problem: prereqReject.problem,
-      status: "skipped-prereq",
-      reason: prereqReject.reason,
-      score: prereqReject.score,
-      kind: prereqReject.kind,
-    });
-  }
-
-  // An already-mastered reject, if we have one.
-  const masteredReject = scored.find((c) => c.status === "skipped-mastered");
-  if (masteredReject) {
-    pool.push({
-      problem: masteredReject.problem,
-      status: "skipped-mastered",
-      reason: masteredReject.reason,
-      score: masteredReject.score,
-      kind: masteredReject.kind,
-    });
-  }
-
-  // Teaser + bullets for the UI.
   const { teaser, bullets } = buildReasoning(
     winner,
-    reviewQueue,
-    weakestUnlocked,
-    currentInProgress
+    winnerKind,
+    currentCategory,
+    reviewQueue.length,
   );
 
-  // Learning path view — unlocked rows with the current + next marked.
   const learningPath = buildLearningPath(
     mastery,
-    winner?.problem.category ?? currentInProgress?.category ?? null
+    winner?.category ?? currentCategory?.category ?? null,
   );
 
-  // Overall mastery is average score over categories the user has any
-  // problems in.
+  // Overall mastery = mean of non-empty category scores.
   const nonEmpty = mastery.filter((m) => m.total > 0);
   const overall =
     nonEmpty.length === 0
@@ -546,12 +442,12 @@ export function pickNextProblem(
       : nonEmpty.reduce((a, m) => a + m.score, 0) / nonEmpty.length;
 
   return {
-    problem: winner?.problem ?? null,
-    kind: winner?.kind ?? "none",
+    problem: winner,
+    kind: winner ? winnerKind : "none",
     teaser,
     bullets,
     mastery,
-    candidatePool: pool.slice(0, 5),
+    candidatePool,
     learningPath,
     reviewDueCount: reviewQueue.length,
     overallMasteryPct: Math.round(overall * 100),
@@ -563,75 +459,55 @@ export function pickNextProblem(
 // --------------------------------------------------------------------
 
 function buildReasoning(
-  winner: ScoredCandidate | null,
-  reviewQueue: ReviewItem[],
-  weakestUnlocked: CategoryMastery | null,
-  currentInProgress: CategoryMastery | null
+  winner: ProblemSummary | null,
+  winnerKind: Candidate["kind"],
+  currentCategory: CategoryMastery | null,
+  reviewDueCount: number,
 ): { teaser: string; bullets: string[] } {
-  if (!winner) {
+  if (!winner || !currentCategory) {
+    const hint =
+      reviewDueCount > 0
+        ? `${reviewDueCount} problem${reviewDueCount === 1 ? "" : "s"} are due for review — use the Review pill to work through them.`
+        : "Use the Reinforce pill to deepen problems you've only solved once, or generate new problems.";
     return {
-      teaser: "No unblocked problems left — you've mastered the catalog",
+      teaser:
+        "You've cleared every unlocked category at least once — nice work.",
       bullets: [
-        "Every category you've unlocked is fully mastered.",
-        "Generate new problems, or come back when a review is due.",
+        "Every problem in every unlocked category has been solved.",
+        hint,
       ],
     };
   }
 
-  const { problem, kind, reason } = winner;
   const bullets: string[] = [];
+  const remaining = currentCategory.total - currentCategory.solved;
 
-  switch (kind) {
-    case "review": {
-      bullets.push(
-        reason + " — spaced repetition is how skills stick after the first solve."
-      );
-      if (reviewQueue.length > 1) {
-        bullets.push(
-          `${reviewQueue.length} problems overdue total; oldest is ${reviewQueue[0].daysOverdue} day${reviewQueue[0].daysOverdue === 1 ? "" : "s"} past due.`
-        );
-      }
-      if (weakestUnlocked) {
-        bullets.push(
-          `After this, I'll pivot toward ${weakestUnlocked.label} — it's your weakest unlocked category.`
-        );
-      }
-      break;
-    }
-    case "reinforcement": {
-      bullets.push(reason + ".");
-      if (weakestUnlocked) {
-        bullets.push(
-          `${weakestUnlocked.label} is at ${Math.round(weakestUnlocked.score * 100)}% mastery — below every other unlocked category.`
-        );
-      }
-      bullets.push(
-        `Starting with an ${problem.difficulty} problem in this category to build confidence before pushing harder.`
-      );
-      break;
-    }
-    case "new-step": {
-      bullets.push(reason + ".");
-      if (currentInProgress) {
-        bullets.push(
-          `You're ${Math.round(currentInProgress.score * 100)}% through ${currentInProgress.label}; staying here keeps momentum.`
-        );
-      }
-      break;
-    }
-    case "new-territory": {
-      bullets.push(reason + ".");
-      bullets.push(
-        "Prerequisites are met, so this is the next step forward in the skill tree."
-      );
-      break;
-    }
+  if (winnerKind === "new-territory") {
+    bullets.push(
+      `Starting ${currentCategory.label} — your next skill tree category.`,
+    );
+    bullets.push(
+      `Working through problems in ${currentCategory.label} in order; ${currentCategory.total} problem${currentCategory.total === 1 ? "" : "s"} in this section.`,
+    );
+  } else {
+    bullets.push(
+      `Continues ${currentCategory.label} — ${currentCategory.solved} solved, ${remaining} to go.`,
+    );
+    bullets.push(
+      "Finishing every problem in this category before moving on — no intermittent reinforcement from elsewhere.",
+    );
+  }
+
+  if (reviewDueCount > 0) {
+    bullets.push(
+      `Aside: ${reviewDueCount} review${reviewDueCount === 1 ? "" : "s"} due — surface them with the Review pill when you want.`,
+    );
   }
 
   const teaser =
-    kind === "review"
-      ? `Review due: ${problem.title}`
-      : reason;
+    winnerKind === "new-territory"
+      ? `Starts ${currentCategory.label}`
+      : `Continues ${currentCategory.label} (${currentCategory.solved}/${currentCategory.total} done)`;
 
   return { teaser, bullets };
 }

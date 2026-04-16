@@ -35,7 +35,13 @@ import {
   saveCode,
 } from "@/lib/problemCode";
 import { enqueuePendingAnalysis } from "@/hooks/usePendingAnalyses";
-import type { MasteryLevel, QueryResult, RowDiff } from "@/types";
+import { loadCatalogContext } from "@/lib/catalog-context";
+import {
+  buildLevelMap,
+  computeNext,
+  type NextResult,
+} from "@/lib/problem-navigation";
+import type { MasteryLevel, ProblemSummary, QueryResult, RowDiff } from "@/types";
 
 import { formatElapsed } from "@/lib/formatTime";
 
@@ -186,6 +192,13 @@ export default function ProblemPage({
   } | null>(null);
   const [totalSolved, setTotalSolved] = useState(0);
 
+  // "Next" navigation. If the user came from the catalog screen with an
+  // active filter (sessionStorage context), compute the next problem inside
+  // that filter rather than using the server's skill-tree adjacency. When
+  // the filter is exhausted and a section was highlighted, the result's
+  // nextSectionSlug offers "continue to next section" in the AcceptedModal.
+  const [nextResult, setNextResult] = useState<NextResult | null>(null);
+
   // Timer state is encapsulated in a hook so the page component doesn't
   // own the interval ref, pause handler, or confirm flag. See useProblemTimer.
   const timer = useProblemTimer();
@@ -256,6 +269,42 @@ export default function ProblemPage({
     }, 500);
     return () => clearTimeout(timer);
   }, [code, slug]);
+
+  // Compute what "Next problem" should navigate to. Cheap in the common
+  // coach-origin case (no sessionStorage context → use server's adjacent
+  // slug). Fetches the full catalog only when catalog filters are active.
+  useEffect(() => {
+    if (!problem) return;
+    let cancelled = false;
+    const ctx = loadCatalogContext();
+    if (!ctx) {
+      setNextResult({
+        kind: problem.adjacent.next ? "next" : "end-of-catalog",
+        slug: problem.adjacent.next,
+      });
+      return;
+    }
+    fetch("/api/problems")
+      .then((r) => (r.ok ? (r.json() as Promise<ProblemSummary[]>) : []))
+      .then((list) => {
+        if (cancelled) return;
+        const store = loadStats();
+        const levelMap =
+          ctx.sortKey === "status" ? buildLevelMap(list, store) : undefined;
+        setNextResult(computeNext(slug, list, ctx, levelMap));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Network hiccup: fall back to server's skill-tree adjacency.
+        setNextResult({
+          kind: problem.adjacent.next ? "next" : "end-of-catalog",
+          slug: problem.adjacent.next,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [problem, slug]);
 
   const handleCodeChange = useCallback(
     (newCode: string) => {
@@ -602,7 +651,12 @@ export default function ProblemPage({
                   attemptCount={attemptCount}
                   masteryTransition={masteryTransition}
                   totalSolved={totalSolved}
-                  nextSlug={problem.adjacent.next}
+                  nextResult={
+                    nextResult ?? {
+                      kind: problem.adjacent.next ? "next" : "end-of-catalog",
+                      slug: problem.adjacent.next,
+                    }
+                  }
                   onClose={() => setShowAccepted(false)}
                 />
               )}

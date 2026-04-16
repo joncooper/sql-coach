@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import type { MasteryLevel } from "@/types";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import type { NextResult } from "@/lib/problem-navigation";
 
 interface AcceptedModalProps {
   executionTimeMs: number;
@@ -10,7 +11,11 @@ interface AcceptedModalProps {
   attemptCount: number;
   masteryTransition: { from: MasteryLevel; to: MasteryLevel } | null;
   totalSolved: number;
-  nextSlug: string | null;
+  /**
+   * Next-problem navigation, computed on the problem page. Honors catalog
+   * filter context when present, otherwise falls back to skill-tree order.
+   */
+  nextResult: NextResult;
   onClose: () => void;
 }
 
@@ -38,7 +43,7 @@ export default function AcceptedModal({
   attemptCount,
   masteryTransition,
   totalSolved,
-  nextSlug,
+  nextResult,
   onClose,
 }: AcceptedModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,15 +91,11 @@ export default function AcceptedModal({
             {totalSolved} total solved
           </div>
         )}
+
+        <EndOfSectionBanner nextResult={nextResult} />
+
         <div className="mt-6 flex items-center justify-center gap-3">
-          {nextSlug && (
-            <a
-              href={`/problems/${nextSlug}`}
-              className="border border-[color:var(--positive)] bg-[color:var(--positive)] px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
-            >
-              Next problem
-            </a>
-          )}
+          <PrimaryNextButton nextResult={nextResult} />
           <a
             href="/"
             className="border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]"
@@ -112,4 +113,55 @@ export default function AcceptedModal({
       </div>
     </div>
   );
+}
+
+/**
+ * Message rendered between the stats and the button row when the user has
+ * exhausted a catalog filter. Silent in the common "next in filter" case.
+ */
+function EndOfSectionBanner({ nextResult }: { nextResult: NextResult }) {
+  if (nextResult.kind !== "end-of-filter") return null;
+  const label = nextResult.filterLabel;
+  return (
+    <div className="mt-4 border border-[color:var(--accent-soft)] bg-[color:var(--accent-soft)] px-4 py-3 text-sm leading-6 text-[color:var(--accent-strong)]">
+      {label
+        ? `You've cleared ${label}.`
+        : "You've cleared this filter."}
+      {nextResult.nextSectionLabel && (
+        <div className="mt-1 text-xs text-[color:var(--text-soft)]">
+          Continue to {nextResult.nextSectionLabel}?
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PrimaryNextButton({ nextResult }: { nextResult: NextResult }) {
+  // Plain "next inside the filter" or "next in skill-tree order" — same UI.
+  if (nextResult.kind === "next" && nextResult.slug) {
+    return (
+      <a
+        href={`/problems/${nextResult.slug}`}
+        className="border border-[color:var(--positive)] bg-[color:var(--positive)] px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
+      >
+        Next problem
+      </a>
+    );
+  }
+
+  // Filter exhausted with a section highlighted — offer the next section.
+  if (nextResult.kind === "end-of-filter" && nextResult.nextSectionSlug) {
+    return (
+      <a
+        href={`/problems/${nextResult.nextSectionSlug}`}
+        className="border border-[color:var(--accent)] bg-[color:var(--accent)] px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
+      >
+        Continue to next section
+      </a>
+    );
+  }
+
+  // Catalog exhausted, or filter exhausted with no next section — only
+  // secondary actions remain (Return to Coach, Keep editing).
+  return null;
 }

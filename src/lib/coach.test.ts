@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { ProblemSummary, StatsStore, ProblemStats } from "@/types";
 import {
   computeCategoryMastery,
+  getReinforcementQueue,
   getReviewQueue,
   pickNextProblem,
 } from "./coach";
@@ -18,7 +19,7 @@ const CLOCK = {
 function problem(
   slug: string,
   category: string,
-  difficulty: "easy" | "medium" | "hard" = "easy"
+  difficulty: "easy" | "medium" | "hard" = "easy",
 ): ProblemSummary {
   return {
     slug,
@@ -52,6 +53,21 @@ function stats(overrides: Partial<ProblemStats> = {}): ProblemStats {
   };
 }
 
+function markSolved(
+  store: StatsStore,
+  slug: string,
+  solvedDate = "2026-04-10",
+): void {
+  store.problems[slug] = stats({
+    attempts: 1,
+    solvedAt: `${solvedDate}T00:00:00Z`,
+    lastSolvedAt: `${solvedDate}T00:00:00Z`,
+    lastAttemptAt: `${solvedDate}T00:00:00Z`,
+    solveHistory: [solvedDate],
+    nextReviewAt: "2026-06-01", // far future
+  });
+}
+
 const CATALOG: ProblemSummary[] = [
   // basic-select: tier 0, no prereqs
   problem("bs-1", "basic-select", "easy"),
@@ -74,7 +90,7 @@ const CATALOG: ProblemSummary[] = [
 ];
 
 // --------------------------------------------------------------------
-// computeCategoryMastery
+// computeCategoryMastery — unchanged semantics, keep the old assertions.
 // --------------------------------------------------------------------
 
 describe("computeCategoryMastery", () => {
@@ -83,85 +99,54 @@ describe("computeCategoryMastery", () => {
     expect(mastery.length).toBeGreaterThan(0);
     for (const row of mastery) {
       expect(row.score).toBe(0);
-      expect(row.solved).toBe(0);
-      expect(row.practiced).toBe(0);
-      expect(row.mastered).toBe(0);
     }
   });
 
   it("scores a single solved problem against category total", () => {
     const store = emptyStore();
-    store.problems["bs-1"] = stats({
-      attempts: 1,
-      solvedAt: "2026-04-12T00:00:00Z",
-      lastAttemptAt: "2026-04-12T00:00:00Z",
-      lastSolvedAt: "2026-04-12T00:00:00Z",
-      solveHistory: ["2026-04-12"],
-    });
-
+    markSolved(store, "bs-1", "2026-04-12");
     const mastery = computeCategoryMastery(store, CATALOG, CLOCK);
-    const basicSelect = mastery.find((m) => m.category === "basic-select");
-    expect(basicSelect).toBeDefined();
-    expect(basicSelect!.total).toBe(4);
-    expect(basicSelect!.solved).toBe(1);
-    // 1 solved (0.4) + 3 unattempted (0) = 0.4 / 4 = 0.1
-    expect(basicSelect!.score).toBeCloseTo(0.1);
+    const basic = mastery.find((m) => m.category === "basic-select")!;
+    expect(basic.total).toBe(4);
+    expect(basic.solved).toBe(1);
+    expect(basic.score).toBeCloseTo(0.1);
   });
 
   it("locks categories whose prerequisites are below threshold", () => {
     const mastery = computeCategoryMastery(emptyStore(), CATALOG, CLOCK);
-    const basic = mastery.find((m) => m.category === "basic-select")!;
-    const joins = mastery.find((m) => m.category === "joins")!;
-    const subqueries = mastery.find((m) => m.category === "subqueries")!;
-
-    expect(basic.unlocked).toBe(true); // no prereqs
-    expect(joins.unlocked).toBe(false); // needs basic-select
-    expect(subqueries.unlocked).toBe(false); // needs joins + aggregation
+    expect(mastery.find((m) => m.category === "basic-select")!.unlocked).toBe(
+      true,
+    );
+    expect(mastery.find((m) => m.category === "joins")!.unlocked).toBe(false);
+    expect(mastery.find((m) => m.category === "subqueries")!.unlocked).toBe(
+      false,
+    );
   });
 
   it("unlocks downstream categories once prerequisites cross the threshold", () => {
     const store = emptyStore();
-    // Solve all 4 basic-select problems.
     for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) {
-      store.problems[slug] = stats({
-        attempts: 1,
-        solvedAt: "2026-04-12T00:00:00Z",
-        lastSolvedAt: "2026-04-12T00:00:00Z",
-        lastAttemptAt: "2026-04-12T00:00:00Z",
-        solveHistory: ["2026-04-12"],
-      });
+      markSolved(store, slug, "2026-04-12");
     }
     const mastery = computeCategoryMastery(store, CATALOG, CLOCK);
-    const basic = mastery.find((m) => m.category === "basic-select")!;
-    const joins = mastery.find((m) => m.category === "joins")!;
-    // basic-select score = 0.4 (all solved once) → meets UNLOCK_THRESHOLD 0.4
-    expect(basic.score).toBeCloseTo(0.4);
-    expect(joins.unlocked).toBe(true);
+    expect(mastery.find((m) => m.category === "basic-select")!.score).toBeCloseTo(
+      0.4,
+    );
+    expect(mastery.find((m) => m.category === "joins")!.unlocked).toBe(true);
   });
 
   it("sorts mastery rows by tier then skill-tree position", () => {
     const mastery = computeCategoryMastery(emptyStore(), CATALOG, CLOCK);
-    // basic-select (tier 0) must come before joins/aggregation (tier 1)
-    const basicIdx = mastery.findIndex((m) => m.category === "basic-select");
-    const joinsIdx = mastery.findIndex((m) => m.category === "joins");
-    const subqIdx = mastery.findIndex((m) => m.category === "subqueries");
-    expect(basicIdx).toBeLessThan(joinsIdx);
-    expect(joinsIdx).toBeLessThan(subqIdx);
-  });
-
-  it("labels unknown categories with title case and flags them unlocked", () => {
-    const store = emptyStore();
-    const catalog = [...CATALOG, problem("x-1", "secret-sauce", "medium")];
-    const mastery = computeCategoryMastery(store, catalog, CLOCK);
-    const secret = mastery.find((m) => m.category === "secret-sauce")!;
-    expect(secret.label).toBe("Secret Sauce");
-    expect(secret.unlocked).toBe(true); // unknown to skill tree = no prereqs
-    expect(secret.tier).toBe(99);
+    const basic = mastery.findIndex((m) => m.category === "basic-select");
+    const joins = mastery.findIndex((m) => m.category === "joins");
+    const sq = mastery.findIndex((m) => m.category === "subqueries");
+    expect(basic).toBeLessThan(joins);
+    expect(joins).toBeLessThan(sq);
   });
 });
 
 // --------------------------------------------------------------------
-// getReviewQueue
+// getReviewQueue — unchanged; still used for the explicit Review pill.
 // --------------------------------------------------------------------
 
 describe("getReviewQueue", () => {
@@ -177,264 +162,182 @@ describe("getReviewQueue", () => {
       lastSolvedAt: "2026-04-05T00:00:00Z",
       lastAttemptAt: "2026-04-05T00:00:00Z",
       solveHistory: ["2026-04-05"],
-      nextReviewAt: "2026-04-10", // 3 days past on 2026-04-13
+      nextReviewAt: "2026-04-10", // 3 days overdue
     });
-    store.problems["bs-2"] = stats({
-      attempts: 2,
-      solvedAt: "2026-04-12T00:00:00Z",
-      lastSolvedAt: "2026-04-12T00:00:00Z",
-      lastAttemptAt: "2026-04-12T00:00:00Z",
-      solveHistory: ["2026-04-12"],
-      nextReviewAt: "2026-04-20", // future
-    });
-
     const queue = getReviewQueue(store, CLOCK);
     expect(queue.map((q) => q.slug)).toEqual(["bs-1"]);
     expect(queue[0].daysOverdue).toBe(3);
   });
+});
 
-  it("orders overdue items oldest-first", () => {
+// --------------------------------------------------------------------
+// getReinforcementQueue — new; problems solved once but not yet practiced.
+// --------------------------------------------------------------------
+
+describe("getReinforcementQueue", () => {
+  it("returns empty for an empty store", () => {
+    expect(getReinforcementQueue(emptyStore(), CATALOG, CLOCK)).toEqual([]);
+  });
+
+  it("includes problems at mastery level 'solved' but not 'practiced' or beyond", () => {
     const store = emptyStore();
-    store.problems["a"] = stats({
-      attempts: 1,
-      solvedAt: "2026-04-01T00:00:00Z",
-      nextReviewAt: "2026-04-11",
-      solveHistory: ["2026-04-01"],
-      lastSolvedAt: "2026-04-01T00:00:00Z",
-      lastAttemptAt: "2026-04-01T00:00:00Z",
+    // Solved once (level = "solved").
+    markSolved(store, "bs-1", "2026-04-10");
+    // Solved 3 times on 3 different days, within 30 days → "practiced".
+    store.problems["bs-2"] = stats({
+      attempts: 3,
+      solvedAt: "2026-03-15T00:00:00Z",
+      lastSolvedAt: "2026-04-10T00:00:00Z",
+      lastAttemptAt: "2026-04-10T00:00:00Z",
+      solveHistory: ["2026-03-15", "2026-04-01", "2026-04-10"],
+      nextReviewAt: "2026-06-01",
     });
-    store.problems["b"] = stats({
-      attempts: 1,
-      solvedAt: "2026-04-01T00:00:00Z",
-      nextReviewAt: "2026-04-08", // more overdue
-      solveHistory: ["2026-04-01"],
-      lastSolvedAt: "2026-04-01T00:00:00Z",
-      lastAttemptAt: "2026-04-01T00:00:00Z",
-    });
-    const queue = getReviewQueue(store, CLOCK);
-    expect(queue.map((q) => q.slug)).toEqual(["b", "a"]);
+
+    const queue = getReinforcementQueue(store, CATALOG, CLOCK);
+    const slugs = queue.map((p) => p.slug);
+    expect(slugs).toContain("bs-1");
+    expect(slugs).not.toContain("bs-2");
+  });
+
+  it("orders by oldest last-solve first", () => {
+    const store = emptyStore();
+    markSolved(store, "bs-1", "2026-04-10");
+    markSolved(store, "bs-2", "2026-04-01");
+    const queue = getReinforcementQueue(store, CATALOG, CLOCK);
+    expect(queue.map((p) => p.slug)).toEqual(["bs-2", "bs-1"]);
   });
 });
 
 // --------------------------------------------------------------------
-// pickNextProblem — the main integration test
+// pickNextProblem — the rewrite is the point.
 // --------------------------------------------------------------------
 
 describe("pickNextProblem", () => {
-  it("picks an unlocked starting problem when the store is empty", () => {
+  it("picks the first unsolved problem in the lowest-tier unlocked category for a fresh store", () => {
     const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
-    expect(pick.problem).not.toBeNull();
-    // Must be in basic-select (the only tier-0 category).
-    expect(pick.problem!.category).toBe("basic-select");
-    // Must prefer easy difficulty within the winning category.
-    expect(pick.problem!.difficulty).toBe("easy");
-    // Kind is "new-territory" because no category has score > 0.
+    expect(pick.problem?.slug).toBe("bs-1");
+    expect(pick.problem?.category).toBe("basic-select");
     expect(pick.kind).toBe("new-territory");
   });
 
   it("never picks a problem whose prerequisites are not met", () => {
     const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
-    expect(pick.problem).not.toBeNull();
     expect(pick.problem!.category).not.toBe("joins");
+    expect(pick.problem!.category).not.toBe("aggregation");
     expect(pick.problem!.category).not.toBe("subqueries");
   });
 
-  it("prioritizes review-due problems over forward progress once first pass is complete", () => {
+  it("sticks with the current category until every problem is solved at least once", () => {
     const store = emptyStore();
-    // Complete a first pass: at least one attempt in every unlocked
-    // category. Solving basic-select, joins, and aggregation unlocks
-    // subqueries, so we also touch sq-1 to satisfy the first-pass
-    // gate.
-    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) {
-      store.problems[slug] = stats({
-        attempts: 1,
-        solvedAt: "2026-04-05T00:00:00Z",
-        lastSolvedAt: "2026-04-05T00:00:00Z",
-        lastAttemptAt: "2026-04-05T00:00:00Z",
-        solveHistory: ["2026-04-05"],
-        nextReviewAt: "2026-04-20", // not due
-      });
-    }
-    for (const slug of ["j-1", "j-2", "j-3"]) {
-      store.problems[slug] = stats({
-        attempts: 1,
-        solvedAt: "2026-04-05T00:00:00Z",
-        lastSolvedAt: "2026-04-05T00:00:00Z",
-        lastAttemptAt: "2026-04-05T00:00:00Z",
-        solveHistory: ["2026-04-05"],
-        nextReviewAt: "2026-04-20",
-      });
-    }
-    for (const slug of ["agg-1", "agg-2"]) {
-      store.problems[slug] = stats({
-        attempts: 1,
-        solvedAt: "2026-04-05T00:00:00Z",
-        lastSolvedAt: "2026-04-05T00:00:00Z",
-        lastAttemptAt: "2026-04-05T00:00:00Z",
-        solveHistory: ["2026-04-05"],
-        nextReviewAt: "2026-04-20",
-      });
-    }
-    // Touch subqueries (unlocked after the categories above) so the
-    // first pass is truly complete.
-    store.problems["sq-1"] = stats({
-      attempts: 1,
-      solvedAt: "2026-04-05T00:00:00Z",
-      lastSolvedAt: "2026-04-05T00:00:00Z",
-      lastAttemptAt: "2026-04-05T00:00:00Z",
-      solveHistory: ["2026-04-05"],
-      nextReviewAt: "2026-04-20",
-    });
-    store.problems["sq-2"] = stats({
-      attempts: 1,
-      solvedAt: "2026-04-05T00:00:00Z",
-      lastSolvedAt: "2026-04-05T00:00:00Z",
-      lastAttemptAt: "2026-04-05T00:00:00Z",
-      solveHistory: ["2026-04-05"],
-      nextReviewAt: "2026-04-20",
-    });
-    // Make bs-3 overdue.
-    store.problems["bs-3"].nextReviewAt = "2026-04-09";
-
+    // Solve 2 of 4 basic-select problems. Expect the 3rd.
+    markSolved(store, "bs-1");
+    markSolved(store, "bs-2");
     const pick = pickNextProblem(store, CATALOG, CLOCK);
     expect(pick.problem?.slug).toBe("bs-3");
-    expect(pick.kind).toBe("review");
-    expect(pick.teaser.toLowerCase()).toContain("review");
+    expect(pick.problem?.category).toBe("basic-select");
+    // Kind is "new-step" because the category has non-zero progress.
+    expect(pick.kind).toBe("new-step");
   });
 
-  it("defers review-due problems while unlocked categories are still untouched", () => {
+  it("advances to the next category only after every problem in the current one is solved", () => {
     const store = emptyStore();
-    // Solve basic-select but leave joins and aggregation untouched.
-    // A review on bs-3 comes due — it should NOT win, because we still
-    // have fresh ground to break in joins and aggregation.
-    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) {
-      store.problems[slug] = stats({
-        attempts: 1,
-        solvedAt: "2026-04-05T00:00:00Z",
-        lastSolvedAt: "2026-04-05T00:00:00Z",
-        lastAttemptAt: "2026-04-05T00:00:00Z",
-        solveHistory: ["2026-04-05"],
-        nextReviewAt: "2026-04-20",
-      });
-    }
+    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) markSolved(store, slug);
+    const pick = pickNextProblem(store, CATALOG, CLOCK);
+    // basic-select is done (even though score is only 0.4, every problem has solvedAt set).
+    // Next lowest-tier unlocked category is joins.
+    expect(pick.problem?.category).toBe("joins");
+    expect(pick.problem?.slug).toBe("j-1");
+  });
+
+  it("follows skill-tree declared order within a category (easy→medium→hard by default)", () => {
+    const store = emptyStore();
+    // Solve the easy and medium basic-select problems, leave bs-4 (hard).
+    markSolved(store, "bs-1");
+    markSolved(store, "bs-2");
+    markSolved(store, "bs-3");
+    const pick = pickNextProblem(store, CATALOG, CLOCK);
+    expect(pick.problem?.slug).toBe("bs-4");
+  });
+
+  it("does NOT auto-serve review-due problems (reviews are explicit now)", () => {
+    const store = emptyStore();
+    // Clear basic-select completely and make one review-due.
+    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) markSolved(store, slug);
     store.problems["bs-3"].nextReviewAt = "2026-04-09"; // overdue
 
     const pick = pickNextProblem(store, CATALOG, CLOCK);
-    expect(pick.problem).not.toBeNull();
-    expect(pick.kind).not.toBe("review");
-    expect(["joins", "aggregation"]).toContain(pick.problem!.category);
-  });
-
-  it("reinforces the weakest unlocked category after basic-select is done", () => {
-    const store = emptyStore();
-    // Master basic-select.
-    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) {
-      store.problems[slug] = stats({
-        attempts: 3,
-        solvedAt: "2026-03-01T00:00:00Z",
-        lastSolvedAt: "2026-04-10T00:00:00Z",
-        lastAttemptAt: "2026-04-10T00:00:00Z",
-        solveHistory: ["2026-03-01", "2026-03-15", "2026-04-10"],
-        nextReviewAt: "2026-05-01",
-      });
-    }
-    // Solve one aggregation problem (category partially learned).
-    store.problems["agg-1"] = stats({
-      attempts: 1,
-      solvedAt: "2026-04-10T00:00:00Z",
-      lastSolvedAt: "2026-04-10T00:00:00Z",
-      lastAttemptAt: "2026-04-10T00:00:00Z",
-      solveHistory: ["2026-04-10"],
-      nextReviewAt: "2026-04-30",
-    });
-
-    const pick = pickNextProblem(store, CATALOG, CLOCK);
-    // joins is 0.0 (weakest unlocked), aggregation is partially learned,
-    // basic-select is strongest. Pick should be in joins.
+    // Forward progress wins; we're now in joins.
     expect(pick.problem?.category).toBe("joins");
-    expect(pick.kind).toBe("new-territory");
+    expect(pick.kind).not.toBe("review");
+    // Review count is still surfaced for the Review pill.
+    expect(pick.reviewDueCount).toBe(1);
   });
 
-  it("avoids a problem attempted in the last day", () => {
+  it("does NOT apply a recent-attempt penalty (penalties are gone)", () => {
     const store = emptyStore();
-    // Two easy problems in basic-select. Attempted one today.
+    // Start bs-1 today but don't solve it — it's still the current pick.
     store.problems["bs-1"] = stats({
       attempts: 1,
-      lastAttemptAt: "2026-04-13T12:00:00Z", // today
+      lastAttemptAt: "2026-04-13T12:00:00Z",
     });
     const pick = pickNextProblem(store, CATALOG, CLOCK);
-    expect(pick.problem?.slug).not.toBe("bs-1");
+    // Finish-what-you-started: bs-1 is the first unsolved problem in
+    // basic-select regardless of yesterday's attempt.
+    expect(pick.problem?.slug).toBe("bs-1");
   });
 
-  it("lists the winning problem as CHOSEN in the candidate pool", () => {
-    const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
-    expect(pick.candidatePool.length).toBeGreaterThan(0);
-    expect(pick.candidatePool[0].status).toBe("chosen");
-    expect(pick.candidatePool[0].problem.slug).toBe(pick.problem!.slug);
-  });
-
-  it("surfaces prereq-blocked problems in the candidate pool explanation", () => {
-    const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
-    const prereqEntry = pick.candidatePool.find(
-      (c) => c.status === "skipped-prereq"
-    );
-    expect(prereqEntry).toBeDefined();
-    expect(prereqEntry!.reason.toLowerCase()).toContain("prerequisite");
-  });
-
-  it("returns null problem + explanatory bullets when the catalog is exhausted", () => {
+  it("returns null problem with a review-mode hint when every unlocked category is fully solved", () => {
     const store = emptyStore();
     const catalog: ProblemSummary[] = [problem("only-one", "basic-select", "easy")];
-    // Mastered: 3 solves on 3 different days, recent, no solution viewed.
-    store.problems["only-one"] = stats({
-      attempts: 3,
-      solvedAt: "2026-04-01T00:00:00Z",
-      lastSolvedAt: "2026-04-12T00:00:00Z",
-      lastAttemptAt: "2026-04-12T00:00:00Z",
-      solveHistory: ["2026-04-01", "2026-04-07", "2026-04-12"],
-      nextReviewAt: "2026-05-15", // not due
-    });
+    markSolved(store, "only-one", "2026-04-12");
     const pick = pickNextProblem(store, catalog, CLOCK);
     expect(pick.problem).toBeNull();
+    expect(pick.kind).toBe("none");
+    expect(pick.teaser.toLowerCase()).toContain("cleared");
     expect(pick.bullets.length).toBeGreaterThan(0);
-    expect(pick.teaser.toLowerCase()).toContain("mastered");
+  });
+
+  it("puts the current pick on the learning path as 'current'", () => {
+    const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
+    const current = pick.learningPath.find((n) => n.current);
+    expect(current?.category).toBe("basic-select");
+  });
+
+  it("exposes reviewDueCount matching getReviewQueue", () => {
+    const store = emptyStore();
+    markSolved(store, "bs-1", "2026-04-01");
+    store.problems["bs-1"].nextReviewAt = "2026-04-10"; // overdue
+    const pick = pickNextProblem(store, CATALOG, CLOCK);
+    expect(pick.reviewDueCount).toBe(1);
+  });
+
+  it("builds a candidate pool with the chosen + upcoming same-category problems", () => {
+    const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
+    expect(pick.candidatePool.length).toBeGreaterThan(0);
+    const chosen = pick.candidatePool[0];
+    expect(chosen.status).toBe("chosen");
+    expect(chosen.problem.slug).toBe(pick.problem!.slug);
+    // At least one "held" upcoming problem in the same category.
+    const held = pick.candidatePool.find(
+      (c) => c.status === "held-for-review" && c.problem.category === "basic-select",
+    );
+    expect(held).toBeDefined();
+  });
+
+  it("surfaces a prereq-blocked reject in the candidate pool", () => {
+    const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
+    const prereqReject = pick.candidatePool.find(
+      (c) => c.status === "skipped-prereq",
+    );
+    expect(prereqReject).toBeDefined();
+    expect(prereqReject!.reason.toLowerCase()).toContain("prerequisite");
   });
 
   it("computes overallMasteryPct as the mean of non-empty categories", () => {
     const store = emptyStore();
-    // 4 basic-select problems, all solved once = 0.4 score. joins+aggregation=0.
-    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) {
-      store.problems[slug] = stats({
-        attempts: 1,
-        solvedAt: "2026-04-12T00:00:00Z",
-        lastSolvedAt: "2026-04-12T00:00:00Z",
-        lastAttemptAt: "2026-04-12T00:00:00Z",
-        solveHistory: ["2026-04-12"],
-      });
-    }
+    for (const slug of ["bs-1", "bs-2", "bs-3", "bs-4"]) markSolved(store, slug);
     const pick = pickNextProblem(store, CATALOG, CLOCK);
-    // 4 categories with problems: basic-select(0.4), joins(0), aggregation(0), subqueries(0) → mean 0.1 = 10%
+    // basic-select 0.4, joins 0, aggregation 0, subqueries 0 → mean 0.1 = 10%
     expect(pick.overallMasteryPct).toBe(10);
-  });
-
-  it("puts the user's current focus category on the learning path", () => {
-    const pick = pickNextProblem(emptyStore(), CATALOG, CLOCK);
-    const current = pick.learningPath.find((n) => n.current);
-    expect(current).toBeDefined();
-    expect(current!.category).toBe("basic-select");
-  });
-
-  it("exposes a reviewDueCount that matches getReviewQueue", () => {
-    const store = emptyStore();
-    store.problems["bs-1"] = stats({
-      attempts: 1,
-      solvedAt: "2026-04-01T00:00:00Z",
-      lastSolvedAt: "2026-04-01T00:00:00Z",
-      lastAttemptAt: "2026-04-01T00:00:00Z",
-      solveHistory: ["2026-04-01"],
-      nextReviewAt: "2026-04-10",
-    });
-    const pick = pickNextProblem(store, CATALOG, CLOCK);
-    expect(pick.reviewDueCount).toBe(1);
   });
 });

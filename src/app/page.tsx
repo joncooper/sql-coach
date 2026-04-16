@@ -24,6 +24,8 @@ import { loadStats, toggleStar } from "@/lib/stats";
 import {
   pickNextProblem,
   computeCategoryMastery,
+  getReinforcementQueue,
+  getReviewQueue,
   type CoachPick,
 } from "@/lib/coach";
 import CoachMode from "@/components/home/CoachMode";
@@ -78,6 +80,23 @@ function HomeInner() {
   const mastery = useMemo(() => {
     if (!problems || !store) return null;
     return computeCategoryMastery(store, problems);
+  }, [problems, store]);
+
+  // Review + Reinforce queues are surfaced via explicit pills on the coach
+  // card — they never auto-mix into the forward-progress pick. Computed
+  // here (not in CoachMode) so the parent owns the stats->ProblemSummary
+  // join.
+  const reviewProblems = useMemo<ProblemSummary[]>(() => {
+    if (!problems || !store) return [];
+    const bySlug = new Map(problems.map((p) => [p.slug, p]));
+    return getReviewQueue(store)
+      .map((item) => bySlug.get(item.slug))
+      .filter((p): p is ProblemSummary => !!p);
+  }, [problems, store]);
+
+  const reinforceCandidates = useMemo<ProblemSummary[]>(() => {
+    if (!problems || !store) return [];
+    return getReinforcementQueue(store, problems);
   }, [problems, store]);
 
   const handleSkipPick = useCallback(() => {
@@ -218,6 +237,8 @@ function HomeInner() {
       weekDays={weekDays}
       continueWorking={continueWorking}
       starredProblems={starredProblems}
+      reviewProblems={reviewProblems}
+      reinforceCandidates={reinforceCandidates}
       onSkip={handleSkipPick}
       canSkip={pick.problem !== null}
     />

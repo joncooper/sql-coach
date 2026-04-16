@@ -38,6 +38,10 @@ interface CoachModeProps {
   weekDays: string[];
   continueWorking: ProblemSummary | null;
   starredProblems: ProblemSummary[];
+  /** Review-due problems, surfaced via the explicit Review pill. */
+  reviewProblems: ProblemSummary[];
+  /** Problems solved once but not yet practiced, for the Reinforce pill. */
+  reinforceCandidates: ProblemSummary[];
   /** Exclude the current pick from consideration and re-run the engine. */
   onSkip: () => void;
   /** Disables Skip when there is no pick to skip (catalog exhausted). */
@@ -55,6 +59,8 @@ export default function CoachMode({
   weekDays,
   continueWorking,
   starredProblems,
+  reviewProblems,
+  reinforceCandidates,
   onSkip,
   canSkip,
 }: CoachModeProps) {
@@ -145,6 +151,14 @@ export default function CoachMode({
           </div>
         </div>
       </div>
+
+      {/* REVIEW / REINFORCE pills — explicit, opt-in. Coach's auto-pick is
+          forward-progress only; reviews and reinforcement surface here so
+          they never intermix with the skill-tree walk. */}
+      <ReviewReinforcePills
+        reviewProblems={reviewProblems}
+        reinforceCandidates={reinforceCandidates}
+      />
 
       {/* WHY I PICKED THIS — collapsible */}
       <button
@@ -261,6 +275,126 @@ export default function CoachMode({
         <Link href="/?mode=catalog" className="soft-link text-sm">
           Browse all {problems.length} problems →
         </Link>
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------
+// Review / Reinforce pills — explicit opt-in surfaces.
+// --------------------------------------------------------------------
+
+function ReviewReinforcePills({
+  reviewProblems,
+  reinforceCandidates,
+}: {
+  reviewProblems: ProblemSummary[];
+  reinforceCandidates: ProblemSummary[];
+}) {
+  const [open, setOpen] = useState<"review" | "reinforce" | null>(null);
+
+  const hasReview = reviewProblems.length > 0;
+  const hasReinforce = reinforceCandidates.length > 0;
+
+  if (!hasReview && !hasReinforce) return null;
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-2">
+        <ExplicitPill
+          label={`Review: ${reviewProblems.length} due`}
+          tone="warning"
+          active={open === "review"}
+          disabled={!hasReview}
+          onClick={() => setOpen(open === "review" ? null : "review")}
+        />
+        <ExplicitPill
+          label={`Reinforce: ${reinforceCandidates.length} practice candidate${reinforceCandidates.length === 1 ? "" : "s"}`}
+          tone="accent"
+          active={open === "reinforce"}
+          disabled={!hasReinforce}
+          onClick={() => setOpen(open === "reinforce" ? null : "reinforce")}
+        />
+      </div>
+      {open === "review" && (
+        <PickerList
+          eyebrow="Review due"
+          caption="Spaced-repetition reviews. Pick one to practice now — the coach won't auto-serve these anymore."
+          problems={reviewProblems}
+        />
+      )}
+      {open === "reinforce" && (
+        <PickerList
+          eyebrow="Reinforcement candidates"
+          caption="Problems you've solved once but haven't practiced enough to stick. Oldest-since-solve first."
+          problems={reinforceCandidates}
+        />
+      )}
+    </div>
+  );
+}
+
+function ExplicitPill({
+  label,
+  tone,
+  active,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  tone: "warning" | "accent";
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const activeClass =
+    tone === "warning"
+      ? "border-[color:var(--review-due)] bg-[color:var(--review-due-soft,var(--panel-muted))] text-[color:var(--review-due)]"
+      : "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-[color:var(--accent)]";
+  const idleClass =
+    "border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text-soft)] hover:border-[color:var(--border-strong)] hover:text-[color:var(--text)]";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={`border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        active ? activeClass : idleClass
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function PickerList({
+  eyebrow,
+  caption,
+  problems,
+}: {
+  eyebrow: string;
+  caption: string;
+  problems: ProblemSummary[];
+}) {
+  return (
+    <div className="app-panel animate-reveal mt-3 p-4">
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <p className="mt-2 text-xs text-[color:var(--text-muted)]">{caption}</p>
+      <div className="mt-3 flex flex-col gap-1.5">
+        {problems.map((p) => (
+          <Link
+            key={p.slug}
+            href={`/problems/${p.slug}`}
+            className="flex items-center justify-between rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--panel-muted)] px-3 py-2 text-sm hover:border-[color:var(--border)]"
+          >
+            <span className="truncate text-[color:var(--text)]">{p.title}</span>
+            <div className="flex shrink-0 items-center gap-2">
+              <CategoryTag>{labelFor(p.category)}</CategoryTag>
+              <DifficultyPill difficulty={p.difficulty} />
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );

@@ -22,13 +22,19 @@
  */
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { MasteryLevel, ProblemSummary, StatsStore } from "@/types";
 
 type Difficulty = ProblemSummary["difficulty"];
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 import type { CoachPick, CategoryMastery } from "@/lib/coach";
 import { computeMasteryLevel, getSolvedCount } from "@/lib/stats";
+import {
+  loadCatalogContext,
+  saveCatalogContext,
+  type CatalogSortKey,
+  type CatalogSortDir,
+} from "@/lib/catalog-context";
 import { CategoryTag, DifficultyPill, Eyebrow } from "./parts";
 
 const LEVEL_ORDER: Record<MasteryLevel, number> = {
@@ -56,8 +62,8 @@ interface CatalogModeProps {
   starredSet: Set<string>;
 }
 
-type SortKey = "num" | "title" | "difficulty" | "category" | "status";
-type SortDir = "asc" | "desc";
+type SortKey = CatalogSortKey;
+type SortDir = CatalogSortDir;
 
 const DIFF_ORDER = { easy: 0, medium: 1, hard: 2 } as const;
 
@@ -117,6 +123,34 @@ export default function CatalogMode({
   );
   const [sortKey, setSortKey] = useState<SortKey>("num");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  // Restore filters/sort from sessionStorage on mount so that navigating
+  // from a problem page back to catalog keeps the user's view, and so
+  // that the problem page's "Next" button can read the same context.
+  // `hydrated` gates the save-on-change effect below so we don't overwrite
+  // stored context with defaults before the restore completes.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const ctx = loadCatalogContext();
+    if (ctx) {
+      setCategoryFilter(ctx.category);
+      setDifficultyFilter(new Set(ctx.difficulty));
+      setSortKey(ctx.sortKey);
+      setSortDir(ctx.sortDir);
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveCatalogContext({
+      difficulty: Array.from(difficultyFilter),
+      category: categoryFilter,
+      sortKey,
+      sortDir,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [hydrated, categoryFilter, difficultyFilter, sortKey, sortDir]);
 
   const toggleDifficulty = (d: Difficulty) => {
     setDifficultyFilter((prev) => {

@@ -1,6 +1,10 @@
 import { describe, expect, test, mock } from "bun:test";
 import { render, fireEvent } from "@testing-library/react";
 import AcceptedModal from "./AcceptedModal";
+import type { NextResult } from "@/lib/problem-navigation";
+
+const NEXT: NextResult = { kind: "next", slug: "second-highest-salary" };
+const DONE: NextResult = { kind: "end-of-catalog", slug: null };
 
 describe("AcceptedModal", () => {
   test("renders the core fields", () => {
@@ -11,7 +15,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={null}
         totalSolved={5}
-        nextSlug="second-highest-salary"
+        nextResult={NEXT}
         onClose={mock()}
       />
     );
@@ -33,7 +37,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={null}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={mock()}
       />
     );
@@ -48,7 +52,7 @@ describe("AcceptedModal", () => {
         attemptCount={4}
         masteryTransition={null}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={mock()}
       />
     );
@@ -63,7 +67,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={{ from: "solved", to: "practiced" }}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={mock()}
       />
     );
@@ -78,7 +82,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={{ from: "attempted", to: "solved" }}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={mock()}
       />
     );
@@ -86,7 +90,7 @@ describe("AcceptedModal", () => {
     expect(queryByText(/Attempted →/)).toBeNull();
   });
 
-  test("Next problem button renders when nextSlug is set", () => {
+  test("Next problem button renders when nextResult is kind 'next'", () => {
     const { getByText } = render(
       <AcceptedModal
         executionTimeMs={12}
@@ -94,7 +98,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={null}
         totalSolved={0}
-        nextSlug="my-next-problem"
+        nextResult={{ kind: "next", slug: "my-next-problem" }}
         onClose={mock()}
       />
     );
@@ -102,7 +106,7 @@ describe("AcceptedModal", () => {
     expect(next.getAttribute("href")).toBe("/problems/my-next-problem");
   });
 
-  test("Next problem button absent when nextSlug is null", () => {
+  test("Next problem button absent when kind is 'end-of-catalog'", () => {
     const { queryByText } = render(
       <AcceptedModal
         executionTimeMs={12}
@@ -110,11 +114,58 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={null}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={mock()}
       />
     );
     expect(queryByText("Next problem")).toBeNull();
+  });
+
+  test("end-of-filter with nextSectionSlug shows 'Continue to next section' button", () => {
+    const { getByText } = render(
+      <AcceptedModal
+        executionTimeMs={12}
+        elapsedLabel={null}
+        attemptCount={1}
+        masteryTransition={null}
+        totalSolved={0}
+        nextResult={{
+          kind: "end-of-filter",
+          slug: null,
+          filterLabel: "Medium · Joins",
+          nextSectionSlug: "agg-1",
+          nextSectionLabel: "Aggregation",
+        }}
+        onClose={mock()}
+      />
+    );
+    expect(getByText(/You've cleared Medium · Joins/)).toBeDefined();
+    expect(getByText(/Continue to Aggregation/)).toBeDefined();
+    const cta = getByText("Continue to next section") as HTMLAnchorElement;
+    expect(cta.getAttribute("href")).toBe("/problems/agg-1");
+  });
+
+  test("end-of-filter with no next section hides the primary CTA", () => {
+    const { queryByText, getByText } = render(
+      <AcceptedModal
+        executionTimeMs={12}
+        elapsedLabel={null}
+        attemptCount={1}
+        masteryTransition={null}
+        totalSolved={0}
+        nextResult={{
+          kind: "end-of-filter",
+          slug: null,
+          filterLabel: "Hard",
+          nextSectionSlug: null,
+          nextSectionLabel: null,
+        }}
+        onClose={mock()}
+      />
+    );
+    expect(getByText(/You've cleared Hard/)).toBeDefined();
+    expect(queryByText("Next problem")).toBeNull();
+    expect(queryByText("Continue to next section")).toBeNull();
   });
 
   test("Return to Coach button links to home", () => {
@@ -125,7 +176,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={null}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={mock()}
       />
     );
@@ -142,7 +193,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={null}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={onClose}
       />
     );
@@ -159,7 +210,7 @@ describe("AcceptedModal", () => {
         attemptCount={1}
         masteryTransition={null}
         totalSolved={0}
-        nextSlug={null}
+        nextResult={DONE}
         onClose={onClose}
       />
     );
