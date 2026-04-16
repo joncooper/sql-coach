@@ -82,7 +82,19 @@ interface SubmitResponse {
   diff: RowDiff[];
   executionTimeMs: number;
   error?: string;
+  position?: string;
   submissionId?: number | null;
+}
+
+function annotateError(sql: string, message: string, position?: string): string {
+  if (!position) return message;
+  const pos = parseInt(position, 10);
+  if (isNaN(pos) || pos < 1) return message;
+  const before = sql.slice(0, pos - 1);
+  const line = (before.match(/\n/g) || []).length + 1;
+  const lastNewline = before.lastIndexOf("\n");
+  const col = pos - (lastNewline + 1);
+  return `${message}\n\n→ Line ${line}, column ${col}`;
 }
 
 function formatRow(row: unknown[]): string {
@@ -156,6 +168,7 @@ export default function ProblemPage({
   const { slug } = use(params);
   const [problem, setProblem] = useState<ProblemDetail | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [result, setResult] = useState<QueryResult | null>(null);
   const [submitResult, setSubmitResult] = useState<SubmitResponse | null>(null);
@@ -211,15 +224,25 @@ export default function ProblemPage({
     fetch(`/api/problems/${slug}`)
       .then(async (response) => {
         if (cancelled) return;
-        if (!response.ok) {
+        if (response.status === 404) {
           setNotFound(true);
+          return;
+        }
+        if (!response.ok) {
+          setLoadError(
+            `Couldn't load this problem (HTTP ${response.status}). The database may be down — try \`docker start sql-coach-db\`.`
+          );
           return;
         }
         const data: ProblemDetail = await response.json();
         setProblem(data);
       })
       .catch(() => {
-        if (!cancelled) setNotFound(true);
+        if (!cancelled) {
+          setLoadError(
+            "Couldn't reach the server. Check that the dev server and database are running."
+          );
+        }
       });
     return () => {
       cancelled = true;
@@ -261,7 +284,7 @@ export default function ProblemPage({
       });
       const data = await response.json();
       if (data.error) {
-        setError(data.error);
+        setError(annotateError(code, data.error, data.position));
         setResult(null);
       } else {
         setResult(data);
@@ -289,7 +312,7 @@ export default function ProblemPage({
       const data: SubmitResponse = await response.json();
 
       if (data.error) {
-        setError(data.error);
+        setError(annotateError(code, data.error, data.position));
         setSubmitResult(null);
         if (typeof data.submissionId === "number") {
           enqueuePendingAnalysis({
@@ -429,6 +452,26 @@ export default function ProblemPage({
         <a href="/?mode=catalog" className="btn-primary mt-6">
           Browse all problems
         </a>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto flex h-full max-w-[640px] flex-col items-center justify-center px-6 text-center">
+        <div className="eyebrow">Error</div>
+        <h1 className="mt-3 text-2xl font-semibold text-[color:var(--text)]">
+          Couldn&apos;t load this problem
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-[color:var(--text-muted)]">
+          {loadError}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="btn-primary mt-6"
+        >
+          Retry
+        </button>
       </div>
     );
   }
